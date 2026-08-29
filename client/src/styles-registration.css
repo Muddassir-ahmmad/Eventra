@@ -1,0 +1,64 @@
+/* Optional additions to copy into client/src/styles.css */
+
+.registration-result {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px;
+  margin: 10px 0;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 10px;
+  background: rgba(255,255,255,.035);
+}
+
+.registration-result span {
+  color: #9ea8c1;
+}
+
+.registration-table-card {
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.045);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.registration-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+.registration-table th,
+.registration-table td {
+  text-align: left;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.registration-table th {
+  color: #9ea8c1;
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.registration-table td {
+  color: #e8ebf5;
+}
+
+.card-actions {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.card-actions a {
+  color: #bca9ff;
+  font-weight: 600;
+}

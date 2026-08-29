@@ -1,0 +1,10 @@
+.manage-actions{display:flex;gap:10px;flex-wrap:wrap}
+.sidebar-danger{border-top:1px solid rgba(255,255,255,.07);margin-top:9px;padding-top:9px}
+.sidebar-danger button{width:100%;border:1px solid rgba(255,100,120,.12);background:rgba(255,80,100,.04);color:#ff8998;border-radius:9px;padding:10px;text-align:left;display:flex;gap:10px;align-items:center;cursor:pointer}
+.sidebar-danger button:hover{background:rgba(255,80,100,.09)}
+.sidebar-danger button:disabled{opacity:.5;cursor:not-allowed}
+.edit-event-shell{max-width:780px}
+.edit-event-shell h1{margin-bottom:8px}
+.edit-options{display:grid;gap:10px;padding:14px;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:rgba(255,255,255,.02)}
+.edit-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+.edit-actions button:disabled{opacity:.6;cursor:not-allowed}
