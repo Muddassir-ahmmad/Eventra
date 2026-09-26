@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import {
   Link,
+  Navigate,
   Route,
   Routes,
   useLocation,
   useNavigate,
+  useParams,
 } from "react-router-dom";
 
 import Login from "./pages/Login";
@@ -15,6 +17,7 @@ import EventRegistration from "./pages/EventRegistration";
 import EventRegistrations from "./pages/EventRegistrations";
 import EventManage from "./pages/EventManage";
 import EventBuilder from "./pages/EventBuilder";
+import api, { setToken } from "./api";
 
 export default function App() {
   const location = useLocation();
@@ -36,12 +39,12 @@ export default function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Organizer dashboard */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
 
         {/* Create new event */}
         <Route
           path="/create-event"
-          element={<EventBuilder />}
+          element={<RequireAuth><EventBuilder /></RequireAuth>}
         />
 
         {/* Public participant event page */}
@@ -59,22 +62,71 @@ export default function App() {
         {/* Organizer event management */}
         <Route
           path="/dashboard/events/:eventId"
-          element={<EventManage />}
+          element={<RequireAuth><EventManage /></RequireAuth>}
         />
 
         {/* Edit existing event using SAME event builder */}
         <Route
           path="/dashboard/events/:eventId/edit"
-          element={<EventBuilder />}
+          element={<RequireAuth><EventBuilder /></RequireAuth>}
         />
 
         {/* Organizer registrations */}
         <Route
           path="/dashboard/events/:eventId/registrations"
-          element={<EventRegistrations />}
+          element={<RequireAuth><EventRegistrations /></RequireAuth>}
+        />
+        <Route
+          path="/dashboard/events/:eventId/attendance"
+          element={<RequireAuth><ModuleIntegration name="Attendance" /></RequireAuth>}
+        />
+        <Route
+          path="/dashboard/events/:eventId/report"
+          element={<RequireAuth><ModuleIntegration name="Post-event report" /></RequireAuth>}
+        />
+        <Route
+          path="/dashboard/events/:eventId/certificates"
+          element={<RequireAuth><ModuleIntegration name="Certificates" /></RequireAuth>}
         />
       </Routes>
     </>
+  );
+}
+
+function RequireAuth({ children }) {
+  return localStorage.getItem("eventra_token")
+    ? children
+    : <Navigate to="/login" replace />;
+}
+
+function ModuleIntegration({ name }) {
+  const { eventId } = useParams();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  React.useEffect(() => {
+    api.get(`/events/${eventId}`)
+      .catch((err) => {
+        setError(err.response?.data?.message || "Could not load event.");
+        if (err.response?.status === 401) {
+          setToken(null);
+          navigate("/login", { replace: true });
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [eventId, navigate]);
+
+  return (
+    <main className="center-page">
+      {loading ? <p>Loading event...</p> : error ? <h1>{error}</h1> : <>
+        <h1>{name}</h1>
+        <p>This module is not connected yet.</p>
+      </>}
+      <Link className="button button-primary" to={`/dashboard/events/${eventId}`}>
+        Back to Event
+      </Link>
+    </main>
   );
 }
 
@@ -86,7 +138,7 @@ function OrganizerHeader() {
   const token = localStorage.getItem("eventra_token");
 
   function logout() {
-    localStorage.removeItem("eventra_token");
+    setToken(null);
     navigate("/login");
   }
 

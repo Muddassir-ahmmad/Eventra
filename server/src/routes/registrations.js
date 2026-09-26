@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import Event from "../models/Event.js";
 import Registration from "../models/Registration.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -102,6 +103,10 @@ router.post("/public/:slug", async (req, res) => {
 
 // Organizer: view registrations for one of their events
 router.get("/event/:eventId", requireAuth, async (req, res) => {
+  if (!mongoose.isObjectIdOrHexString(req.params.eventId)) {
+    return res.status(400).json({ message: "Invalid event ID" });
+  }
+
   try {
     const event = await Event.findOne({
       _id: req.params.eventId,

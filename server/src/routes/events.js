@@ -1,31 +1,74 @@
 import express from "express";
+import mongoose from "mongoose";
 import Event from "../models/Event.js";
 import { requireAuth } from "../middleware/auth.js";
 import { makeSlug } from "../utils/slug.js";
 
 const router = express.Router();
+const EVENT_STATUSES = ["draft", "published", "closed"];
+const EVENT_FIELDS = [
+  "title",
+  "shortDescription",
+  "description",
+  "date",
+  "startTime",
+  "endTime",
+  "venue",
+  "location",
+  "capacity",
+  "registrationDeadline",
+  "posterUrl",
+  "theme",
+  "speakers",
+  "registrationFields",
+  "ticketMode",
+  "qrEnabled",
+  "ticketTypes",
+  "volunteerEnabled",
+  "volunteerRoles",
+  "certificateEnabled",
+  "certificateTemplate",
+  "certificateDescription",
+  "signatures",
+  "status",
+];
+
+function pickEventFields(body) {
+  return Object.fromEntries(
+    EVENT_FIELDS
+      .filter((field) => body[field] !== undefined)
+      .map((field) => [field, body[field]])
+  );
+}
+
+function isValidEventId(eventId) {
+  return mongoose.isObjectIdOrHexString(eventId);
+}
 
 /*
   CREATE EVENT
 */
 router.post("/", requireAuth, async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      date,
-      venue,
-      capacity,
-      registrationDeadline,
-      posterUrl,
-      qrEnabled,
-      volunteerEnabled,
-      certificateEnabled,
-    } = req.body;
+    const fields = pickEventFields(req.body);
+    const { title, date, venue, capacity } = fields;
 
-    if (!title || !date || !venue || !capacity) {
+    if (
+      !title?.trim() ||
+      !date ||
+      Number.isNaN(new Date(date).getTime()) ||
+      !venue?.trim() ||
+      !Number.isFinite(Number(capacity)) ||
+      Number(capacity) < 1
+    ) {
       return res.status(400).json({
-        message: "Title, date, venue and capacity are required",
+        message: "A title, valid date, venue and positive capacity are required",
+      });
+    }
+
+    if (fields.status !== undefined && !EVENT_STATUSES.includes(fields.status)) {
+      return res.status(400).json({
+        message: "Status must be draft, published or closed",
       });
     }
 
@@ -38,24 +81,26 @@ router.post("/", requireAuth, async (req, res) => {
     }
 
     const event = await Event.create({
+      ...fields,
       organizerId: req.userId,
-      title,
+      title: title.trim(),
       slug,
-      description: description || "",
-      date,
-      venue,
-      capacity,
-      registrationDeadline: registrationDeadline || null,
-      posterUrl: posterUrl || "",
-      qrEnabled: qrEnabled ?? true,
-      volunteerEnabled: volunteerEnabled ?? false,
-      certificateEnabled: certificateEnabled ?? false,
-      status: "published",
+      venue: venue.trim(),
+      capacity: Number(capacity),
+      status: fields.status ?? "draft",
     });
 
     res.status(201).json({ event });
   } catch (error) {
     console.error("Create event error:", error);
+
+    if (error.name === "ValidationError" || error.name === "CastError") {
+      return res.status(400).json({ message: error.message });
+    }
+
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "An event with this slug already exists" });
+    }
 
     res.status(500).json({
       message: "Could not create event",
@@ -87,10 +132,40 @@ router.get("/mine", requireAuth, async (req, res) => {
 
 
 /*
+  GET ONE OF THE ORGANIZER'S EVENTS
+*/
+router.get("/:eventId", requireAuth, async (req, res) => {
+  if (!isValidEventId(req.params.eventId)) {
+    return res.status(400).json({ message: "Invalid event ID" });
+  }
+
+  try {
+    const event = await Event.findOne({
+      _id: req.params.eventId,
+      organizerId: req.userId,
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    res.json({ event });
+  } catch (error) {
+    console.error("Load event error:", error);
+    res.status(500).json({ message: "Could not load event" });
+  }
+});
+
+
+/*
   UPDATE EVENT
   Organizer can edit ONLY their own event.
 */
 router.put("/:eventId", requireAuth, async (req, res) => {
+  if (!isValidEventId(req.params.eventId)) {
+    return res.status(400).json({ message: "Invalid event ID" });
+  }
+
   try {
     const event = await Event.findOne({
       _id: req.params.eventId,
@@ -103,64 +178,15 @@ router.put("/:eventId", requireAuth, async (req, res) => {
       });
     }
 
-    const {
-      title,
-      description,
-      date,
-      venue,
-      capacity,
-      registrationDeadline,
-      posterUrl,
-      qrEnabled,
-      volunteerEnabled,
-      certificateEnabled,
-      status,
-    } = req.body;
+    const fields = pickEventFields(req.body);
 
-    if (title !== undefined) {
-      event.title = title;
+    if (fields.status !== undefined && !EVENT_STATUSES.includes(fields.status)) {
+      return res.status(400).json({
+        message: "Status must be draft, published or closed",
+      });
     }
 
-    if (description !== undefined) {
-      event.description = description;
-    }
-
-    if (date !== undefined) {
-      event.date = date;
-    }
-
-    if (venue !== undefined) {
-      event.venue = venue;
-    }
-
-    if (capacity !== undefined) {
-      event.capacity = capacity;
-    }
-
-    if (registrationDeadline !== undefined) {
-      event.registrationDeadline = registrationDeadline || null;
-    }
-
-    if (posterUrl !== undefined) {
-      event.posterUrl = posterUrl;
-    }
-
-    if (qrEnabled !== undefined) {
-      event.qrEnabled = qrEnabled;
-    }
-
-    if (volunteerEnabled !== undefined) {
-      event.volunteerEnabled = volunteerEnabled;
-    }
-
-    if (certificateEnabled !== undefined) {
-      event.certificateEnabled = certificateEnabled;
-    }
-
-    if (status !== undefined) {
-      event.status = status;
-    }
-
+    Object.assign(event, fields);
     await event.save();
 
     res.json({
@@ -169,6 +195,10 @@ router.put("/:eventId", requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("Update event error:", error);
+
+    if (error.name === "ValidationError" || error.name === "CastError") {
+      return res.status(400).json({ message: error.message });
+    }
 
     res.status(500).json({
       message: "Could not update event",
@@ -182,6 +212,10 @@ router.put("/:eventId", requireAuth, async (req, res) => {
   Organizer can delete ONLY their own event.
 */
 router.delete("/:eventId", requireAuth, async (req, res) => {
+  if (!isValidEventId(req.params.eventId)) {
+    return res.status(400).json({ message: "Invalid event ID" });
+  }
+
   try {
     const event = await Event.findOne({
       _id: req.params.eventId,

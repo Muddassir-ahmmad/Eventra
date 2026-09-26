@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import api from "../api";
+import api, { setToken } from "../api";
 
 export default function EventManage() {
   const { eventId } = useParams();
@@ -10,14 +10,18 @@ export default function EventManage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    api.get("/events/mine")
+    api.get(`/events/${eventId}`)
       .then(({ data }) => {
-        const found = data.events.find((item) => item._id === eventId);
-        if (found) setEvent(found);
-        else setError("Event not found.");
+        setEvent(data.event);
       })
-      .catch((err) => setError(err.response?.data?.message || "Could not load event."));
-  }, [eventId]);
+      .catch((err) => {
+        setError(err.response?.data?.message || "Could not load event.");
+        if (err.response?.status === 401) {
+          setToken(null);
+          navigate("/login", { replace: true });
+        }
+      });
+  }, [eventId, navigate]);
 
   async function deleteEvent() {
     const confirmed = window.confirm(
@@ -47,9 +51,10 @@ export default function EventManage() {
     ["Overview", "⌂", true, ""],
     ["Registrations", "◎", true, `/dashboard/events/${eventId}/registrations`],
     ["Tickets", "▣", false, ""],
-    ["Attendance", "✓", false, ""],
+    ["Attendance", "✓", true, `/dashboard/events/${eventId}/attendance`],
     ["Volunteers", "♙", false, ""],
-    ["Certificates", "◇", false, ""],
+    ["Post-Event Report", "↗", true, `/dashboard/events/${eventId}/report`],
+    ["Certificates", "◇", true, `/dashboard/events/${eventId}/certificates`],
     ["Payments", "₹", false, ""],
     ["Analytics", "↗", false, ""]
   ];
@@ -67,9 +72,11 @@ export default function EventManage() {
           </div>
 
           <div className="manage-actions">
-            <Link className="button button-ghost" to={`/events/${event.slug}`}>
-              View Public Page ↗
-            </Link>
+            {event.status === "published" && (
+              <Link className="button button-ghost" to={`/events/${event.slug}`}>
+                View Public Page ↗
+              </Link>
+            )}
             <Link className="button button-primary" to={`/dashboard/events/${eventId}/edit`}>
               ✎ Edit Event
             </Link>
@@ -82,13 +89,13 @@ export default function EventManage() {
 
             {modules.map(([name, icon, active, to]) =>
               active ? (
-                <Link key={name} className="sidebar-link" to={to || "#"}>
+                <Link key={name} className="sidebar-link" to={to}>
                   <span>{icon}</span><strong>{name}</strong>
                 </Link>
               ) : (
                 <button key={name} className="sidebar-link sidebar-disabled">
                   <span>{icon}</span>
-                  <div><strong>{name}</strong><small>Coming soon</small></div>
+                  <div><strong>{name}</strong><small>Not connected</small></div>
                 </button>
               )
             )}
@@ -114,7 +121,7 @@ export default function EventManage() {
               <div>
                 <span className="live-dot">● {event.status}</span>
                 <h2>Event overview</h2>
-                <p>Your event workspace. Edit your event whenever you need. Tickets, QR entry, volunteers, certificates, payments and analytics will live here.</p>
+                <p>Your event workspace. Edit your event whenever you need. Registration, attendance and certificate modules connect here as they become available.</p>
               </div>
               <div className="overview-symbol">✦</div>
             </div>

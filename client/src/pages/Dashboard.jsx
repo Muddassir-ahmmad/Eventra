@@ -32,6 +32,7 @@ export default function Dashboard() {
       <Stat label="Total Events" value={events.length} icon="◈"/>
       <Stat label="Published" value={events.filter(e=>e.status==="published").length} icon="✓"/>
       <Stat label="Drafts" value={events.filter(e=>e.status==="draft").length} icon="◌"/>
+      <Stat label="Closed" value={events.filter(e=>e.status==="closed").length} icon="—"/>
     </div>
 
     <div className="events-section-head"><div><h2>Your Events</h2><p>All events created from your organizer account.</p></div></div>
@@ -59,7 +60,11 @@ function EventCard({event}) {
       <div className="capacity-line"><div><span>Registration capacity</span><strong>{event.capacity}</strong></div><div className="capacity-track"><span/></div></div>
       <div className="event-card-actions">
         <Link className="button button-primary small" to={`/dashboard/events/${event._id}`}>Manage Event</Link>
-        <Link className="button button-ghost small" to={`/events/${event.slug}`}>View Page</Link>
+        {event.status === "published" ? (
+          <Link className="button button-ghost small" to={`/events/${event.slug}`}>View Page</Link>
+        ) : (
+          <Link className="button button-ghost small" to={`/dashboard/events/${event._id}/edit`}>Edit Event</Link>
+        )}
       </div>
     </div>
   </article>;

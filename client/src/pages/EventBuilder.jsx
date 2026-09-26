@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import api from "../api";
+import api, { setToken } from "../api";
 
 const STEPS = [
   ["basics", "Basics"],
@@ -58,14 +58,9 @@ export default function EventBuilder() {
   useEffect(() => {
     if (!editing) return;
 
-    api.get("/events/mine")
+    api.get(`/events/${eventId}`)
       .then(({ data }) => {
-        const event = data.events.find((item) => item._id === eventId);
-        if (!event) {
-          setError("Event not found.");
-          return;
-        }
-
+        const event = data.event;
         setForm((old) => ({
           ...old,
           ...event,
@@ -82,9 +77,13 @@ export default function EventBuilder() {
       })
       .catch((err) => {
         setError(err.response?.data?.message || "Could not load event.");
+        if (err.response?.status === 401) {
+          setToken(null);
+          navigate("/login", { replace: true });
+        }
       })
       .finally(() => setLoading(false));
-  }, [editing, eventId]);
+  }, [editing, eventId, navigate]);
 
   const update = (key, value) => {
     setForm((old) => ({ ...old, [key]: value }));
