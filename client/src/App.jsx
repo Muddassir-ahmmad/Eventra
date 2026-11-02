@@ -15,6 +15,7 @@ import EventRegistration from "./pages/EventRegistration";
 import EventRegistrations from "./pages/EventRegistrations";
 import EventManage from "./pages/EventManage";
 import EventBuilder from "./pages/EventBuilder";
+import CertificateManager from "./pages/CertificateManager";
 
 export default function App() {
   const location = useLocation();
@@ -72,6 +73,11 @@ export default function App() {
         <Route
           path="/dashboard/events/:eventId/registrations"
           element={<EventRegistrations />}
+        />
+
+        <Route
+          path="/dashboard/events/:eventId/certificates"
+          element={<CertificateManager />}
         />
       </Routes>
     </>
