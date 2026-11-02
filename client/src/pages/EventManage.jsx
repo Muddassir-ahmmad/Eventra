@@ -123,7 +123,12 @@ export default function EventManage() {
               <Overview title="Registrations" value="—" text={`Maximum ${event.capacity} participants`} to={`/dashboard/events/${eventId}/registrations`} />
               <Overview title="QR Entry" value={event.qrEnabled ? "ON" : "OFF"} text="QR check-in will be activated in the ticket phase." />
               <Overview title="Volunteers" value={event.volunteerEnabled ? "ON" : "OFF"} text="Volunteer management is coming next." />
-              <Overview title="Certificates" value={event.certificateEnabled ? "ON" : "OFF"} text="Certificate builder is coming next." />
+              <Overview
+                title="Certificates"
+                value={event.certificateEnabled ? "ON" : "OFF"}
+                text="Configure designs, preview certificates and issue them to attendees."
+                to={`/dashboard/events/${eventId}/certificates`}
+              />
             </div>
 
             <div className="manage-note">

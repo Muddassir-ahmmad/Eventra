@@ -17,7 +17,12 @@ export default function Login() {
       setToken(data.token);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+      setError(
+        err.response?.data?.message ||
+          (err.request
+            ? "Could not reach the server. Check that EVENTRA is running and try again."
+            : "Login failed")
+      );
     }
   }
 

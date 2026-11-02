@@ -47,15 +47,16 @@ Frontend: http://localhost:5173
 
 ## Certificates
 
-Certificate eligibility uses the existing confirmed registration and its `checkedIn` attendance flag. The certificate API does not infer attendance or create participant records. Organizers can manage certificates from an event workspace; generated PDFs are stored in a private Supabase Storage bucket and signatures are uploaded from PNG/JPEG files to a public asset bucket for previews.
+Certificate settings belong to the existing MongoDB event and can be edited in the event's Certificate Studio while the event is a draft, published, or closed. The event builder saves the certificate theme and wording with the draft; the dedicated studio manages the live preview, optional organization logo, signatories, attendance eligibility, PDF generation, and email delivery.
 
-Configure these values in `server/.env`:
+Certificate eligibility uses the existing confirmed registration and its `checkedIn` QR attendance flag. Cancelled and absent participants are excluded; the certificate API does not infer attendance or create participant records. Generated PDF data and certificate metadata are stored with MongoDB. In local development, image uploads use Multer and are served from `server/uploads`. Production uploads require Cloudinary so temporary Vercel files are never treated as persistent URLs.
+
+Configure these values in `server/.env` for production image uploads and optional integrations:
 
 ```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=server-only-service-role-key
-SUPABASE_STORAGE_BUCKET=eventra-assets
-SUPABASE_CERTIFICATE_BUCKET=eventra-certificates
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
 
 SMTP_HOST=
 SMTP_PORT=587
@@ -69,4 +70,4 @@ AI_API_URL=https://api.openai.com/v1/chat/completions
 AI_MODEL=gpt-4o-mini
 ```
 
-The service-role key and email credentials must never be added to client environment variables. Storage buckets are created by the server when first needed. AI theme suggestions are shown only when `AI_API_KEY` is configured; SMTP delivery and the test-email action are enabled only when `SMTP_HOST` and `EMAIL_FROM` are configured. The existing MongoDB event and registration store remains the shared source of truth for this branch.
+Cloudinary credentials, AI keys, and email credentials must never be added to client environment variables. Uploads are limited to PNG/JPEG images of 5 MB or less. AI suggestions are available only when `AI_API_KEY` is configured; SMTP delivery is available only when `SMTP_HOST` and `EMAIL_FROM` are configured. The existing MongoDB event and registration collections remain the source of truth.

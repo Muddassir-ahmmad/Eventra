@@ -2,6 +2,7 @@ import express from "express";
 import Event from "../models/Event.js";
 import { requireAuth } from "../middleware/auth.js";
 import { makeSlug } from "../utils/slug.js";
+import { DEFAULT_CERTIFICATE_DESCRIPTION } from "../utils/certificateDesign.js";
 
 const router = express.Router();
 
@@ -26,12 +27,20 @@ router.post("/", requireAuth, async (req, res) => {
       certificateDescription,
       eventType,
       signatures,
+      certificateShowOrganization,
+      certificateLogoUrl,
+      certificateLogoPath,
+      status,
     } = req.body;
 
     if (!title || !date || !venue || !capacity) {
       return res.status(400).json({
         message: "Title, date, venue and capacity are required",
       });
+    }
+
+    if (status !== undefined && !["draft", "published"].includes(status)) {
+      return res.status(400).json({ message: "Event status must be draft or published" });
     }
 
     let slug = makeSlug(title);
@@ -57,10 +66,13 @@ router.post("/", requireAuth, async (req, res) => {
       certificateEnabled: certificateEnabled ?? false,
       certificateTemplate: certificateTemplate ?? "classic",
       certificateTitle: certificateTitle || "Certificate of Participation",
-      certificateDescription: certificateDescription || "",
+      certificateDescription: certificateDescription || DEFAULT_CERTIFICATE_DESCRIPTION,
       eventType: eventType || "",
       signatures: Array.isArray(signatures) ? signatures : [],
-      status: "published",
+      certificateShowOrganization: certificateShowOrganization ?? true,
+      certificateLogoUrl: certificateLogoUrl || "",
+      certificateLogoPath: certificateLogoPath || "",
+      status: status || "published",
     });
 
     res.status(201).json({ event });
@@ -129,6 +141,9 @@ router.put("/:eventId", requireAuth, async (req, res) => {
       certificateDescription,
       eventType,
       signatures,
+      certificateShowOrganization,
+      certificateLogoUrl,
+      certificateLogoPath,
       status,
     } = req.body;
 
@@ -193,7 +208,22 @@ router.put("/:eventId", requireAuth, async (req, res) => {
     }
 
     if (status !== undefined) {
+      if (!["draft", "published", "closed"].includes(status)) {
+        return res.status(400).json({ message: "Invalid event status" });
+      }
       event.status = status;
+    }
+
+    if (certificateShowOrganization !== undefined) {
+      event.certificateShowOrganization = certificateShowOrganization;
+    }
+
+    if (certificateLogoUrl !== undefined) {
+      event.certificateLogoUrl = certificateLogoUrl;
+    }
+
+    if (certificateLogoPath !== undefined) {
+      event.certificateLogoPath = certificateLogoPath;
     }
 
     await event.save();

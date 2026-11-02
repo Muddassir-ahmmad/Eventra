@@ -39,7 +39,11 @@ const defaultForm = {
   volunteerRoles: [],
   certificateEnabled: false,
   certificateTemplate: "classic",
-  certificateDescription: "This certificate is presented to {name} for participating in {event}.",
+  certificateTitle: "Certificate of Participation",
+  certificateDescription: "This certificate is proudly presented to {name} for participating in {event}.",
+  certificateShowOrganization: true,
+  certificateLogoUrl: "",
+  certificateLogoPath: "",
   signatures: [],
 };
 
@@ -230,7 +234,7 @@ export default function EventBuilder() {
           {step === 3 && <Registration form={form} update={update} />}
           {step === 4 && <Tickets form={form} update={update} />}
           {step === 5 && <Volunteers form={form} update={update} />}
-          {step === 6 && <Certificates form={form} update={update} />}
+          {step === 6 && <Certificates form={form} update={update} eventId={eventId} />}
           {step === 7 && <Preview form={form} />}
 
           <div className="builder-footer">
@@ -511,47 +515,39 @@ function Volunteers({ form, update }) {
   </div>;
 }
 
-function Certificates({ form, update }) {
-  function addSignature() {
-    update("signatures", [...form.signatures, { name: "", role: "" }]);
-  }
-
-  function changeSignature(index, key, value) {
-    const next = [...form.signatures];
-    next[index] = { ...next[index], [key]: value };
-    update("signatures", next);
-  }
-
+function Certificates({ form, update, eventId }) {
   return <div className="builder-card">
     <label className="toggle-row">
       <span><strong>Issue certificates</strong><small>Certificates will be generated only for participants marked as attended.</small></span>
       <input type="checkbox" checked={form.certificateEnabled} onChange={(e) => update("certificateEnabled", e.target.checked)} />
     </label>
 
-    {form.certificateEnabled && <>
-      <h3 className="subheading">Certificate template</h3>
-      <div className="certificate-templates">
-        {["classic", "modern", "academic"].map((template) => (
-          <button key={template} className={form.certificateTemplate === template ? "selected" : ""} onClick={() => update("certificateTemplate", template)}>
-            <div className={`certificate-mini cert-${template}`}>CERTIFICATE</div>
-            <strong>{template}</strong>
-          </button>
-        ))}
-      </div>
-
-      <Field label="Certificate description">
-        <textarea rows="4" value={form.certificateDescription} onChange={(e) => update("certificateDescription", e.target.value)} />
-      </Field>
-
-      <div className="section-row"><div><h3 className="subheading">Signatures</h3><p className="muted">Add the names and roles printed below each signature.</p></div><button className="button button-primary small" onClick={addSignature}>＋ Add Signature</button></div>
-
-      {form.signatures.map((signature, index) => (
-        <div className="builder-two repeat-inline" key={index}>
-          <Field label="Name"><input value={signature.name} onChange={(e) => changeSignature(index, "name", e.target.value)} /></Field>
-          <Field label="Role"><input value={signature.role} onChange={(e) => changeSignature(index, "role", e.target.value)} /></Field>
-        </div>
+    <h3 className="subheading">Certificate design</h3>
+    <div className="certificate-templates">
+      {["classic", "modern", "academic"].map((template) => (
+        <button type="button" key={template} className={form.certificateTemplate === template ? "selected" : ""} onClick={() => update("certificateTemplate", template)}>
+          <div className={`certificate-mini cert-${template}`}>CERTIFICATE</div>
+          <strong>{template}</strong>
+        </button>
       ))}
-    </>}
+    </div>
+
+    <Field label="Certificate headline">
+      <input maxLength="100" value={form.certificateTitle} onChange={(e) => update("certificateTitle", e.target.value)} />
+    </Field>
+    <Field label="Certificate description">
+      <textarea rows="4" maxLength="500" value={form.certificateDescription} onChange={(e) => update("certificateDescription", e.target.value)} />
+    </Field>
+    <small className="muted">Use {"{name}"}, {"{event}"} and {"{date}"} as participant, event and date placeholders.</small>
+
+    {form.certificateEnabled && <div className="builder-info certificate-studio-link">
+      <span>✦</span>
+      <div>
+        <strong>Continue designing in Certificate Studio</strong>
+        <p>Save your event draft, then manage logos, signatories, live preview and attendance certificates in its dedicated studio.</p>
+        {eventId && <Link className="button button-ghost small" to={`/dashboard/events/${eventId}/certificates`}>Open Certificate Studio →</Link>}
+      </div>
+    </div>}
   </div>;
 }
 

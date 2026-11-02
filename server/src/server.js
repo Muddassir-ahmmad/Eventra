@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import eventRoutes from "./routes/events.js";
@@ -8,6 +10,7 @@ import registrationRoutes from "./routes/registrations.js";
 import certificateRoutes from "./routes/certificates.js";
 
 const app = express();
+const uploadDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../uploads");
 
 app.use(
   cors({
@@ -16,6 +19,9 @@ app.use(
 );
 
 app.use(express.json());
+if (process.env.NODE_ENV !== "production") {
+  app.use("/uploads", express.static(uploadDirectory, { maxAge: "1d" }));
+}
 
 app.get("/api/health", (req, res) => {
   res.json({ message: "EVENTRA API is running" });

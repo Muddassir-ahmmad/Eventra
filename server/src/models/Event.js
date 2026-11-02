@@ -128,6 +128,12 @@ const signatureSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+
+    designation: {
+      type: String,
+      trim: true,
+      default: "",
+    },
   },
   { _id: true }
 );
@@ -335,7 +341,25 @@ const eventSchema = new mongoose.Schema(
 
     certificateDescription: {
       type: String,
+      trim: true,
+      default: "This certificate is proudly presented to {name} for participating in {event}.",
+    },
+
+    certificateLogoUrl: {
+      type: String,
+      trim: true,
       default: "",
+    },
+
+    certificateLogoPath: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    certificateShowOrganization: {
+      type: Boolean,
+      default: true,
     },
 
     signatures: {

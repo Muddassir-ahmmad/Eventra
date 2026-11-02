@@ -26,7 +26,19 @@ const certificateSchema = new mongoose.Schema(
     },
     storagePath: {
       type: String,
-      required: true,
+      default: "",
+    },
+    pdfData: {
+      type: Buffer,
+      select: false,
+      get: (value) => {
+        if (!value) return value;
+        return Buffer.isBuffer(value) ? Buffer.from(value) : Buffer.from(value.buffer ?? value);
+      },
+      set: (value) => {
+        if (!value) return value;
+        return Buffer.isBuffer(value) ? Buffer.from(value) : Buffer.from(value);
+      },
     },
     generatedAt: {
       type: Date,
