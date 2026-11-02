@@ -359,7 +359,13 @@ const eventSchema = new mongoose.Schema(
 
     certificateShowOrganization: {
       type: Boolean,
-      default: true,
+      default: false,
+    },
+
+    certificateOrganization: {
+      type: String,
+      trim: true,
+      default: "",
     },
 
     signatures: {

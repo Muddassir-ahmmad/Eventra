@@ -28,6 +28,7 @@ router.post("/", requireAuth, async (req, res) => {
       eventType,
       signatures,
       certificateShowOrganization,
+      certificateOrganization,
       certificateLogoUrl,
       certificateLogoPath,
       status,
@@ -69,7 +70,8 @@ router.post("/", requireAuth, async (req, res) => {
       certificateDescription: certificateDescription || DEFAULT_CERTIFICATE_DESCRIPTION,
       eventType: eventType || "",
       signatures: Array.isArray(signatures) ? signatures : [],
-      certificateShowOrganization: certificateShowOrganization ?? true,
+      certificateShowOrganization: certificateShowOrganization === true,
+      certificateOrganization: certificateOrganization || "",
       certificateLogoUrl: certificateLogoUrl || "",
       certificateLogoPath: certificateLogoPath || "",
       status: status || "published",
@@ -216,6 +218,10 @@ router.put("/:eventId", requireAuth, async (req, res) => {
 
     if (certificateShowOrganization !== undefined) {
       event.certificateShowOrganization = certificateShowOrganization;
+    }
+
+    if (certificateOrganization !== undefined) {
+      event.certificateOrganization = certificateOrganization;
     }
 
     if (certificateLogoUrl !== undefined) {

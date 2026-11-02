@@ -12,7 +12,8 @@ function certificateSettings(event) {
     certificateTemplate: event.certificateTemplate || "classic",
     certificateTitle: event.certificateTitle || "Certificate of Participation",
     certificateDescription: event.certificateDescription || DEFAULT_DESCRIPTION,
-    certificateShowOrganization: event.certificateShowOrganization !== false,
+    certificateShowOrganization: event.certificateShowOrganization === true,
+    certificateOrganization: event.certificateOrganization || "",
     certificateLogoUrl: event.certificateLogoUrl || "",
     certificateLogoPath: event.certificateLogoPath || "",
     eventType: event.eventType || "",
@@ -367,14 +368,13 @@ export default function CertificateManager() {
 
             <label className="certificate-switch organization-switch">
               <input type="checkbox" checked={settings.certificateShowOrganization} onChange={(change) => update("certificateShowOrganization", change.target.checked)} />
-              <span>Show organizer organization name</span>
+              <span>Show organization branding</span>
             </label>
             {settings.certificateShowOrganization && (
-              <p className="certificate-empty-line">
-                {organizer.organization
-                  ? `Organization: ${organizer.organization}`
-                  : "No organization name is configured on your organizer profile."}
-              </p>
+              <label className="certificate-field">
+                <span>Organization / Institution name</span>
+                <input maxLength="100" placeholder="Enter organization name" value={settings.certificateOrganization !== undefined ? settings.certificateOrganization : (organizer.organization && !/^sahyadri/i.test(organizer.organization) ? organizer.organization : "")} onChange={(change) => update("certificateOrganization", change.target.value)} />
+              </label>
             )}
 
             <div className="certificate-logo-control">
@@ -524,7 +524,8 @@ function CertificatePreview({ event, organizer, settings, participant }) {
     .replaceAll("{date}", date)
     .replace(/\{[^{}]+\}/g, "");
   const signatures = (settings.signatures || []).filter((signature) => signature.name || signature.imageUrl);
-  const organization = settings.certificateShowOrganization ? organizer.organization : "";
+  const rawOrg = settings.certificateOrganization || organizer.organization || "";
+  const organization = settings.certificateShowOrganization && !/^sahyadri/i.test(rawOrg) ? rawOrg : "";
 
   return (
     <div className={`certificate-art certificate-art-${settings.certificateTemplate}`}>

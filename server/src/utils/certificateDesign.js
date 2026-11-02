@@ -26,7 +26,8 @@ export function normalizeCertificateSettings(settings) {
     certificateDescription: String(
       settings.certificateDescription || DEFAULT_CERTIFICATE_DESCRIPTION
     ).trim().slice(0, 500),
-    certificateShowOrganization: settings.certificateShowOrganization !== false,
+    certificateShowOrganization: settings.certificateShowOrganization === true,
+    certificateOrganization: String(settings.certificateOrganization || "").trim().slice(0, 100),
     certificateLogoUrl: String(settings.certificateLogoUrl || "").trim(),
     certificateLogoPath: String(settings.certificateLogoPath || "").trim(),
     eventType: String(settings.eventType || "").trim().slice(0, 80),

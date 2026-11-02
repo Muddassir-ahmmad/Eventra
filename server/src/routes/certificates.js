@@ -379,8 +379,11 @@ async function generatePdf(event, registration, organization) {
 
 async function organizerOrganization(event) {
   if (!event.certificateShowOrganization) return "";
+  const customOrg = String(event.certificateOrganization || "").trim();
+  if (customOrg) return /^sahyadri/i.test(customOrg) ? "" : customOrg;
   const organizer = await User.findById(event.organizerId).select("organization").lean();
-  return String(organizer?.organization || "").trim();
+  const org = String(organizer?.organization || "").trim();
+  return /^sahyadri/i.test(org) ? "" : org;
 }
 
 function certificatePayload(certificate) {

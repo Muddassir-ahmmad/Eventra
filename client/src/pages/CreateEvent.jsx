@@ -155,7 +155,7 @@ export default function CreateEvent() {
 
           <input
             type="text"
-            placeholder="Example: Sahyadri College, Mangalore"
+            placeholder="Example: City Convention Center, Mangalore"
             value={form.venue}
             onChange={(e) =>
               update("venue", e.target.value)
