@@ -94,7 +94,7 @@ async function storedCertificatePdf(certificate) {
   return Buffer.from(await data.arrayBuffer());
 }
 
-export async function renderCertificate(event, registration, organizer) {
+export async function renderCertificate(event, registration) {
   const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 0 });
   const chunks = [];
   const finished = new Promise((resolve, reject) => {
@@ -119,22 +119,20 @@ export async function renderCertificate(event, registration, organizer) {
   if (template === "modern") {
     doc.rect(36, 36, 12, height - 72).fill(colors.accent);
     doc.rect(width - 48, 36, 12, height - 72).fill(colors.accent);
-  } else if (template === "academic") {
-    doc.circle(width / 2, 84, 23).lineWidth(2).strokeColor(colors.accent).stroke();
-    doc.font("Times-Bold").fontSize(13).fillColor(colors.accent).text("E", width / 2 - 5, 76, { width: 10, align: "center" });
   }
 
+  drawSahyadriLogo(doc, (width - 300) / 2, 24, 300);
   const titleFont = template === "modern" ? "Helvetica-Bold" : "Times-Bold";
-  doc.fillColor(colors.accent).font("Helvetica-Bold").fontSize(10).text("EVENTRA  /  RECOGNITION", 55, template === "academic" ? 119 : 76, { width: width - 110, align: "center", characterSpacing: 2 });
-  doc.fillColor(colors.ink).font(titleFont).fontSize(31).text(event.certificateTitle || "Certificate of Participation", 72, 145, { width: width - 144, align: "center" });
-  doc.fillColor(colors.ink).font("Times-Italic").fontSize(16).text("This certificate is proudly presented to", 80, 207, { width: width - 160, align: "center" });
+  doc.fillColor(colors.accent).font("Helvetica-Bold").fontSize(9).text("EVENTRA  /  RECOGNITION", 55, 91, { width: width - 110, align: "center", characterSpacing: 2 });
+  doc.fillColor(colors.ink).font(titleFont).fontSize(29).text(event.certificateTitle || "Certificate of Participation", 72, 114, { width: width - 144, align: "center" });
+  doc.fillColor(colors.ink).font("Times-Italic").fontSize(14).text("This certificate is proudly presented to", 80, 169, { width: width - 160, align: "center" });
   doc.fillColor(colors.accent).font("Times-Bold");
   const nameFontSize = Math.min(35, Math.max(19, 35 * (width - 160) / doc.widthOfString(registration.name || "Participant")));
-  doc.fontSize(nameFontSize).text(registration.name, 70, 246, { width: width - 140, align: "center" });
-  doc.moveTo(width * 0.25, 293).lineTo(width * 0.75, 293).lineWidth(1).strokeColor(colors.edge).stroke();
-  doc.fillColor(colors.ink).font("Times-Roman").fontSize(15).text(certificateDescription(event, registration), 110, 311, { width: width - 220, align: "center", lineGap: 4, height: 48 });
-  doc.fillColor(colors.ink).font("Helvetica-Bold").fontSize(17).text(event.title, 90, 372, { width: width - 180, align: "center" });
-  doc.fillColor(colors.ink).font("Helvetica").fontSize(10).text(displayDate(event.date), 90, 400, { width: width - 180, align: "center" });
+  doc.fontSize(nameFontSize).text(registration.name, 70, 205, { width: width - 140, align: "center" });
+  doc.moveTo(width * 0.25, 250).lineTo(width * 0.75, 250).lineWidth(1).strokeColor(colors.edge).stroke();
+  doc.fillColor(colors.ink).font("Times-Roman").fontSize(13).text(certificateDescription(event, registration), 110, 267, { width: width - 220, align: "center", lineGap: 3, height: 48 });
+  doc.fillColor(colors.ink).font("Helvetica-Bold").fontSize(16).text(event.title, 90, 326, { width: width - 180, align: "center" });
+  doc.fillColor(colors.ink).font("Helvetica").fontSize(9).text(displayDate(event.date), 90, 350, { width: width - 180, align: "center" });
 
   const signatures = (event.signatures || []).filter((item) => item.name || item.imagePath).slice(0, 4);
   const client = storageClient();
@@ -145,19 +143,40 @@ export async function renderCertificate(event, registration, organizer) {
     const image = await signatureBuffer(client, signature.imagePath);
     if (image) {
       try {
-        doc.image(image, center - 44, 423, { fit: [88, 34], align: "center", valign: "center" });
+        doc.image(image, center - 44, 390, { fit: [88, 34], align: "center", valign: "center" });
       } catch {
         // An unsupported or damaged stored image should not prevent certificate delivery.
       }
     }
-    doc.moveTo(center - 62, 461).lineTo(center + 62, 461).lineWidth(0.8).strokeColor(colors.edge).stroke();
-    doc.fillColor(colors.ink).font("Helvetica-Bold").fontSize(9).text(signature.name || "Authorized signatory", center - 70, 467, { width: 140, align: "center" });
-    doc.fillColor(colors.ink).font("Helvetica").fontSize(8).text(signature.role || "", center - 70, 480, { width: 140, align: "center" });
+    doc.moveTo(center - 62, 428).lineTo(center + 62, 428).lineWidth(0.8).strokeColor(colors.edge).stroke();
+    doc.fillColor(colors.ink).font("Helvetica-Bold").fontSize(9).text(signature.name || "Authorized signatory", center - 70, 434, { width: 140, align: "center" });
+    doc.fillColor(colors.ink).font("Helvetica").fontSize(8).text(signature.role || "", center - 70, 447, { width: 140, align: "center" });
   }
 
-  doc.fillColor(colors.ink).font("Helvetica").fontSize(9).text(organizer.organization || organizer.name || "Event Organizer", 90, 525, { width: width - 180, align: "center" });
+  doc.fillColor(colors.ink).font("Helvetica-Bold").fontSize(9).text("Sahyadri College of Engineering and Management", 90, 506, { width: width - 180, align: "center" });
+  doc.fillColor(colors.ink).font("Helvetica").fontSize(8).text("Adyar, Mangalore", 90, 520, { width: width - 180, align: "center" });
   doc.end();
   return finished;
+}
+
+function drawSahyadriLogo(doc, x, y, width) {
+  doc.save();
+  doc.translate(x, y).scale(width / 1200);
+
+  doc.path("M 58 45 C 111 12 184 12 244 45 L 244 122 C 244 163 204 192 151 213 C 98 192 58 163 58 122 Z").fillAndStroke("#ffffff", "#c65f3e");
+  doc.lineWidth(5).path("M 70 51 C 119 22 183 22 232 51 L 232 121 C 232 158 196 184 151 203 C 106 184 70 158 70 121 Z").fillAndStroke("#007748", "#ffffff");
+  doc.fillColor("#ffffff").font("Times-Roman").fontSize(124).text("S", 101, 31, { width: 100, align: "center", lineBreak: false });
+  doc.path("M 18 159 L 260 159 L 280 176 L 260 193 L 18 193 L -2 176 Z").fill("#f28a37");
+  doc.path("M 54 159 L 246 159 L 246 185 L 54 185 Z").fill("#c65f3e");
+  doc.path("M 54 185 L 107 185 L 128 198 L 54 193 Z M 246 185 L 194 185 L 174 198 L 246 193 Z").fill("#a94f37");
+  doc.fillColor("#ffffff").font("Times-Bold").fontSize(21).text("SAHYADRI", 74, 160, { width: 152, align: "center", lineBreak: false });
+  doc.circle(258, 37, 10).lineWidth(2).strokeColor("#343434").stroke();
+  doc.fillColor("#343434").font("Helvetica").fontSize(14).text("R", 253, 29, { width: 10, align: "center", lineBreak: false });
+
+  doc.fillColor("#2d466f").font("Helvetica-Bold").fontSize(86).text("SAHYADRI", 282, 7, { lineBreak: false });
+  doc.fontSize(37).text("COLLEGE OF ENGINEERING & MANAGEMENT", 283, 116, { lineBreak: false });
+  doc.fillColor("#c57852").fontSize(29).text("An Autonomous Institution", 521, 169, { lineBreak: false });
+  doc.restore();
 }
 
 function withUpload(req, res, next) {
@@ -249,7 +268,6 @@ router.post("/event/:eventId/generate", requireAuth, async (req, res) => {
     const alreadyIssued = [];
     const client = storageClient();
     if (!client) return res.status(503).json({ message: "Supabase Storage is not configured on the server." });
-    const organizer = await User.findById(event.organizerId).select("name organization").lean();
     await ensureBucket(client, certificateBucket, false, { allowedMimeTypes: ["application/pdf"] });
 
     for (const registration of registrations) {
@@ -259,7 +277,7 @@ router.post("/event/:eventId/generate", requireAuth, async (req, res) => {
         continue;
       }
       const generation = existing ? existing.generation + 1 : 1;
-      const pdf = await renderCertificate(event, registration, organizer || {});
+      const pdf = await renderCertificate(event, registration);
       const storagePath = `${event._id}/${registration._id}/v${generation}.pdf`;
       const { error: uploadError } = await client.storage.from(certificateBucket).upload(storagePath, pdf, {
         contentType: "application/pdf",

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api";
+import sahyadriLogo from "../../../assets/sahyadri-logo.svg";
 
 const DEFAULT_DESCRIPTION = "This certificate is presented to {name} for participating in {event}.";
 const TEMPLATE_NAMES = ["classic", "modern", "academic"];
@@ -8,7 +9,6 @@ const TEMPLATE_NAMES = ["classic", "modern", "academic"];
 export default function CertificateManager() {
   const { eventId } = useParams();
   const [event, setEvent] = useState(null);
-  const [organizer, setOrganizer] = useState({ name: "", organization: "" });
   const [participants, setParticipants] = useState([]);
   const [settings, setSettings] = useState(null);
   const [selected, setSelected] = useState([]);
@@ -33,7 +33,6 @@ export default function CertificateManager() {
     try {
       const { data } = await api.get(`/certificates/event/${eventId}`);
       setEvent(data.event);
-      setOrganizer(data.organizer || { name: "", organization: "" });
       setParticipants(data.participants || []);
       setStorageConfigured(Boolean(data.storageConfigured));
       setEmailConfigured(Boolean(data.emailConfigured));
@@ -319,7 +318,7 @@ export default function CertificateManager() {
                 </select>
               </label>
             </div>
-            <CertificatePreview event={event} organizer={organizer} settings={settings} participant={previewPerson} />
+            <CertificatePreview event={event} settings={settings} participant={previewPerson} />
             <p className="preview-caption">PDFs are rendered from the current saved design.</p>
           </div>
         </section>
@@ -361,7 +360,7 @@ export default function CertificateManager() {
             </div>
           </div>
           {!settings.certificateEnabled && <p className="certificate-inline-warning">Enable certificates and save settings before issuing certificates.</p>}
-          <div className="attendance-note"><span>✓</span> Only confirmed registrations with a recorded check-in are eligible. No attendance is inferred.</div>
+          <div className="attendance-note"><span>✓</span> Eligibility requires a confirmed registration marked checked in by QR attendance. QR integration is not active yet, so no certificate is eligible until it records attendance.</div>
           <div className="participant-table-wrap">
             <table className="participant-table">
               <thead><tr><th><span className="sr-only">Select</span></th><th>Participant</th><th>Email</th><th>Attendance</th><th>Certificate</th><th>Delivery</th><th>Actions</th></tr></thead>
@@ -398,7 +397,7 @@ export default function CertificateManager() {
   );
 }
 
-function CertificatePreview({ event, organizer, settings, participant }) {
+function CertificatePreview({ event, settings, participant }) {
   const date = event.date ? new Date(event.date).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }) : "Event date";
   const description = (settings.certificateDescription || DEFAULT_DESCRIPTION)
     .replaceAll("{name}", participant.name || "Participant Name")
@@ -409,6 +408,7 @@ function CertificatePreview({ event, organizer, settings, participant }) {
   return (
     <div className={`certificate-art certificate-art-${settings.certificateTemplate}`}>
       <div className="certificate-art-inner">
+        <img className="certificate-college-logo" src={sahyadriLogo} alt="Sahyadri College of Engineering and Management, an autonomous institution" />
         <span className="certificate-art-brand">EVENTRA · RECOGNITION</span>
         <h3>{settings.certificateTitle || "Certificate of Participation"}</h3>
         <p className="certificate-presented">This certificate is proudly presented to</p>
@@ -426,7 +426,7 @@ function CertificatePreview({ event, organizer, settings, participant }) {
             </div>
           ))}
         </div>
-        <span className="certificate-organizer">{organizer.organization || organizer.name || "Event Organizer"}</span>
+        <span className="certificate-organizer">Sahyadri College of Engineering and Management · Adyar, Mangalore</span>
       </div>
     </div>
   );
