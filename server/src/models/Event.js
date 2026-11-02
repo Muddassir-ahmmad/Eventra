@@ -111,6 +111,18 @@ const signatureSchema = new mongoose.Schema(
       default: "",
     },
 
+    imageUrl: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    imagePath: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     role: {
       type: String,
       trim: true,
@@ -307,6 +319,18 @@ const eventSchema = new mongoose.Schema(
         "academic",
       ],
       default: "classic",
+    },
+
+    certificateTitle: {
+      type: String,
+      trim: true,
+      default: "Certificate of Participation",
+    },
+
+    eventType: {
+      type: String,
+      trim: true,
+      default: "",
     },
 
     certificateDescription: {

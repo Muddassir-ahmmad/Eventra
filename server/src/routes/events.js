@@ -21,6 +21,11 @@ router.post("/", requireAuth, async (req, res) => {
       qrEnabled,
       volunteerEnabled,
       certificateEnabled,
+      certificateTemplate,
+      certificateTitle,
+      certificateDescription,
+      eventType,
+      signatures,
     } = req.body;
 
     if (!title || !date || !venue || !capacity) {
@@ -50,6 +55,11 @@ router.post("/", requireAuth, async (req, res) => {
       qrEnabled: qrEnabled ?? true,
       volunteerEnabled: volunteerEnabled ?? false,
       certificateEnabled: certificateEnabled ?? false,
+      certificateTemplate: certificateTemplate ?? "classic",
+      certificateTitle: certificateTitle || "Certificate of Participation",
+      certificateDescription: certificateDescription || "",
+      eventType: eventType || "",
+      signatures: Array.isArray(signatures) ? signatures : [],
       status: "published",
     });
 
@@ -114,6 +124,11 @@ router.put("/:eventId", requireAuth, async (req, res) => {
       qrEnabled,
       volunteerEnabled,
       certificateEnabled,
+      certificateTemplate,
+      certificateTitle,
+      certificateDescription,
+      eventType,
+      signatures,
       status,
     } = req.body;
 
@@ -155,6 +170,26 @@ router.put("/:eventId", requireAuth, async (req, res) => {
 
     if (certificateEnabled !== undefined) {
       event.certificateEnabled = certificateEnabled;
+    }
+
+    if (certificateTemplate !== undefined) {
+      event.certificateTemplate = certificateTemplate;
+    }
+
+    if (certificateTitle !== undefined) {
+      event.certificateTitle = certificateTitle;
+    }
+
+    if (certificateDescription !== undefined) {
+      event.certificateDescription = certificateDescription;
+    }
+
+    if (eventType !== undefined) {
+      event.eventType = eventType;
+    }
+
+    if (signatures !== undefined) {
+      event.signatures = Array.isArray(signatures) ? signatures : [];
     }
 
     if (status !== undefined) {
