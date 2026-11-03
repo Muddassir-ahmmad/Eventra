@@ -329,3 +329,4 @@ function StarRatingField({ label, description, value, onChange }) {
     </div>
   );
 }
+

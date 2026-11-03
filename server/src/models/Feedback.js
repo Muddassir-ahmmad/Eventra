@@ -79,3 +79,4 @@ feedbackSchema.index({ eventId: 1, registrationId: 1 }, { unique: true });
 feedbackSchema.index({ eventId: 1, submittedAt: -1 });
 
 export default mongoose.model("Feedback", feedbackSchema);
+

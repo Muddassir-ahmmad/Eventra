@@ -47,3 +47,4 @@ emailLogSchema.index({ eventId: 1, registrationId: 1, emailType: 1 });
 emailLogSchema.index({ eventId: 1, deliveryStatus: 1 });
 
 export default mongoose.model("EmailLog", emailLogSchema);
+
