@@ -95,10 +95,27 @@ export function generateDefaultReportContent(event, organizer, analytics) {
     `- Absentee Follow-Up: Addressing the gap between confirmed registrations (${analytics.confirmedCount}) and attended participants (${analytics.attendedCount}).\n` +
     `- Facility Logistics: Continuous monitoring of seating capacity and technical audio-visual connectivity.`;
 
-  const feedbackSummary =
+  let feedbackSummary =
     `Note: Formal in-app participant feedback surveys were not actively collected for this event. ` +
     `Informal floor feedback indicated strong appreciation for the content relevance, venue accessibility, and overall organization. ` +
     `Future editions will incorporate dedicated digital feedback surveys post-event.`;
+
+  if (analytics.feedbackSubmissions && analytics.feedbackSubmissions > 0) {
+    let fbSections = [
+      `Based on ${analytics.feedbackSubmissions} verified participant feedback submissions (${analytics.feedbackResponseRate}% response rate):\n`,
+      `• Overall Satisfaction Rating: ${analytics.avgRatingOverall} / 5.0`,
+      `• Event Organization: ${analytics.avgRatingOrg} / 5.0`,
+      `• Speakers & Sessions: ${analytics.avgRatingSpeakers} / 5.0`,
+      `• Venue & Facilities: ${analytics.avgRatingVenue} / 5.0\n`,
+    ];
+    if (analytics.feedbackLiked && analytics.feedbackLiked.length > 0) {
+      fbSections.push(`Key Aspects Appreciated:\n` + analytics.feedbackLiked.map((item) => `  - "${item}"`).join("\n") + "\n");
+    }
+    if (analytics.feedbackImprovements && analytics.feedbackImprovements.length > 0) {
+      fbSections.push(`Participant Improvement Suggestions:\n` + analytics.feedbackImprovements.map((item) => `  - "${item}"`).join("\n") + "\n");
+    }
+    feedbackSummary = fbSections.join("\n");
+  }
 
   const futureImprovements =
     `1. Implement pre-event automated attendance reminders to improve attendance conversion rate beyond ${analytics.attendanceRate}%.\n` +

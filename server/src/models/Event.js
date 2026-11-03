@@ -344,6 +344,21 @@ const eventSchema = new mongoose.Schema(
     },
 
 
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+
+    feedbackDeadline: {
+      type: Date,
+      default: null,
+    },
+
+    requireFeedbackForCertificate: {
+      type: Boolean,
+      default: false,
+    },
+
     /*
      * EVENT STATUS
      */
@@ -353,6 +368,7 @@ const eventSchema = new mongoose.Schema(
         "draft",
         "published",
         "closed",
+        "completed",
       ],
       default: "draft",
     },

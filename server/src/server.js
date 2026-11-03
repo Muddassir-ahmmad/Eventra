@@ -7,6 +7,8 @@ import eventRoutes from "./routes/events.js";
 import registrationRoutes from "./routes/registrations.js";
 import certificateRoutes from "./routes/certificates.js";
 import reportRoutes from "./routes/reports.js";
+import feedbackRoutes from "./routes/feedback.js";
+import feedbackRoutes from "./routes/feedback.js";
 
 const app = express();
 
@@ -27,6 +29,8 @@ app.use("/api/events", eventRoutes);
 app.use("/api/registrations", registrationRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/feedback", feedbackRoutes);
 
 const PORT = process.env.PORT || 5000;
 

@@ -77,7 +77,7 @@ const postEventReportSchema = new mongoose.Schema(
     },
     reportStatus: {
       type: String,
-      enum: ["not_started", "draft", "completed"],
+      enum: ["not_started", "collecting_feedback", "draft", "completed", "finalized"],
       default: "draft",
     },
     generatedAt: {

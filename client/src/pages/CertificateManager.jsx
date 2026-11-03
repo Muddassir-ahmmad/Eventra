@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api";
-import sahyadriLogo from "../../../assets/sahyadri-logo.svg";
 
 const DEFAULT_DESCRIPTION = "This certificate is presented to {name} for participating in {event}.";
 const TEMPLATE_NAMES = ["classic", "modern", "academic"];
@@ -9,6 +8,7 @@ const TEMPLATE_NAMES = ["classic", "modern", "academic"];
 export default function CertificateManager() {
   const { eventId } = useParams();
   const [event, setEvent] = useState(null);
+  const [organizer, setOrganizer] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [settings, setSettings] = useState(null);
   const [selected, setSelected] = useState([]);
@@ -33,6 +33,7 @@ export default function CertificateManager() {
     try {
       const { data } = await api.get(`/certificates/event/${eventId}`);
       setEvent(data.event);
+      setOrganizer(data.organizer || null);
       setParticipants(data.participants || []);
       setStorageConfigured(Boolean(data.storageConfigured));
       setEmailConfigured(Boolean(data.emailConfigured));
@@ -44,6 +45,7 @@ export default function CertificateManager() {
         certificateDescription: data.event.certificateDescription || DEFAULT_DESCRIPTION,
         eventType: data.event.eventType || "",
         signatures: data.event.signatures || [],
+        requireFeedbackForCertificate: data.event.requireFeedbackForCertificate ?? false,
       });
       setSelected((data.participants || [])
         .filter((person) => person.checkedIn && !person.certificate)
@@ -142,7 +144,11 @@ export default function CertificateManager() {
   }
 
   function toggleAllEligible() {
-    const eligible = participants.filter((person) => person.checkedIn && !person.certificate).map((person) => person._id);
+    const eligible = participants.filter((person) => {
+      if (!person.checkedIn || person.certificate) return false;
+      if (settings.requireFeedbackForCertificate && !person.feedbackSubmitted) return false;
+      return true;
+    }).map((person) => person._id);
     setSelected((current) => current.length === eligible.length ? [] : eligible);
   }
 
@@ -293,6 +299,21 @@ export default function CertificateManager() {
               <small>Use {"{name}"}, {"{event}"} and {"{date}"} to insert participant and event details.</small>
             </label>
 
+            <label className="certificate-field" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.75rem", cursor: "pointer", marginTop: "1rem", background: "#f8fafc", padding: "0.85rem", borderRadius: "0.5rem", border: "1px solid #e2e8f0" }}>
+              <input
+                type="checkbox"
+                checked={settings.requireFeedbackForCertificate}
+                onChange={(eventChange) => update("requireFeedbackForCertificate", eventChange.target.checked)}
+                style={{ width: "1.25rem", height: "1.25rem", cursor: "pointer" }}
+              />
+              <div>
+                <strong>Require Feedback Before Certificate</strong>
+                <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>
+                  Participants must submit the post-event feedback survey before their certificate can be issued.
+                </p>
+              </div>
+            </label>
+
             {aiConfigured && (
               <div className="certificate-ai">
                 <div><strong>Theme suggestion</strong><small>Based on your event title, type and description.</small></div>
@@ -318,7 +339,7 @@ export default function CertificateManager() {
                 </select>
               </label>
             </div>
-            <CertificatePreview event={event} settings={settings} participant={previewPerson} />
+            <CertificatePreview event={event} settings={settings} participant={previewPerson} organizer={organizer} />
             <p className="preview-caption">PDFs are rendered from the current saved design.</p>
           </div>
         </section>
@@ -365,22 +386,56 @@ export default function CertificateManager() {
             <table className="participant-table">
               <thead><tr><th><span className="sr-only">Select</span></th><th>Participant</th><th>Email</th><th>Attendance</th><th>Certificate</th><th>Delivery</th><th>Actions</th></tr></thead>
               <tbody>
-                {participants.map((person) => (
-                  <tr key={person._id}>
-                    <td><input aria-label={`Select ${person.name}`} type="checkbox" checked={selected.includes(person._id)} disabled={!person.checkedIn} onChange={() => toggleParticipant(person._id)} /></td>
-                    <td><strong>{person.name}</strong></td>
-                    <td>{person.email}</td>
-                    <td><span className={`participant-status ${person.checkedIn ? "is-eligible" : ""}`}>{person.checkedIn ? "Checked in" : "Not checked in"}</span></td>
-                    <td>{person.certificate ? <span className="issued-status">Issued · v{person.certificate.generation}</span> : <span className="not-issued">Not issued</span>}</td>
-                    <td>{person.certificate?.lastEmailedAt ? `Emailed ${new Date(person.certificate.lastEmailedAt).toLocaleDateString()}` : "—"}</td>
-                    <td className="participant-actions-cell">
-                      {person.certificate && <>
-                        <button type="button" className="text-action" onClick={() => downloadCertificate(person)} disabled={working}>Download PDF</button>
-                        <button type="button" className="text-action" onClick={() => emailCertificate(person)} disabled={working || !emailConfigured} title={!emailConfigured ? "Configure SMTP on the server" : "Email certificate"}>Email</button>
-                      </>}
-                    </td>
-                  </tr>
-                ))}
+                {participants.map((person) => {
+                  const isFeedbackPending = settings.requireFeedbackForCertificate && !person.feedbackSubmitted;
+                  const isEligible = person.checkedIn && !isFeedbackPending;
+                  const canSelect = isEligible && !person.certificate;
+
+                  return (
+                    <tr key={person._id}>
+                      <td>
+                        <input
+                          aria-label={`Select ${person.name}`}
+                          type="checkbox"
+                          checked={selected.includes(person._id)}
+                          disabled={!canSelect}
+                          onChange={() => toggleParticipant(person._id)}
+                        />
+                      </td>
+                      <td><strong>{person.name}</strong></td>
+                      <td>{person.email}</td>
+                      <td>
+                        <span className={`participant-status ${person.checkedIn ? "is-eligible" : ""}`}>
+                          {person.checkedIn ? "Checked in" : "Absent"}
+                        </span>
+                      </td>
+                      <td>
+                        {person.certificate ? (
+                          <span className="issued-status">Issued · v{person.certificate.generation}</span>
+                        ) : isFeedbackPending && person.checkedIn ? (
+                          <span className="not-issued" style={{ background: "#fef3c7", color: "#92400e" }}>
+                            Feedback Pending
+                          </span>
+                        ) : isEligible ? (
+                          <span className="not-issued" style={{ background: "#e0f2fe", color: "#0369a1" }}>
+                            Eligible
+                          </span>
+                        ) : (
+                          <span className="not-issued">Not Eligible</span>
+                        )}
+                      </td>
+                      <td>{person.certificate?.lastEmailedAt ? `Emailed ${new Date(person.certificate.lastEmailedAt).toLocaleDateString()}` : "—"}</td>
+                      <td className="participant-actions-cell">
+                        {person.certificate && isEligible && (
+                          <>
+                            <button type="button" className="text-action" onClick={() => downloadCertificate(person)} disabled={working}>Download PDF</button>
+                            <button type="button" className="text-action" onClick={() => emailCertificate(person)} disabled={working || !emailConfigured} title={!emailConfigured ? "Configure SMTP on the server" : "Email certificate"}>Email</button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {participants.length === 0 && <tr><td className="empty-participants" colSpan="7">No confirmed registrations yet.</td></tr>}
               </tbody>
             </table>
@@ -397,18 +452,23 @@ export default function CertificateManager() {
   );
 }
 
-function CertificatePreview({ event, settings, participant }) {
+function CertificatePreview({ event, settings, participant, organizer }) {
   const date = event.date ? new Date(event.date).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }) : "Event date";
   const description = (settings.certificateDescription || DEFAULT_DESCRIPTION)
     .replaceAll("{name}", participant.name || "Participant Name")
     .replaceAll("{event}", event.title || "Event Name")
     .replaceAll("{date}", date);
   const signatures = (settings.signatures || []).filter((signature) => signature.name || signature.imageUrl);
+  const orgName = (organizer?.organization || "").trim();
 
   return (
     <div className={`certificate-art certificate-art-${settings.certificateTemplate}`}>
       <div className="certificate-art-inner">
-        <img className="certificate-college-logo" src={sahyadriLogo} alt="Sahyadri College of Engineering and Management, an autonomous institution" />
+        {orgName ? (
+          <div style={{ fontWeight: 800, fontSize: "0.85rem", letterSpacing: "0.1em", color: "var(--accent, #0f766e)", marginBottom: "0.5rem" }}>
+            {orgName.toUpperCase()}
+          </div>
+        ) : null}
         <span className="certificate-art-brand">EVENTRA · RECOGNITION</span>
         <h3>{settings.certificateTitle || "Certificate of Participation"}</h3>
         <p className="certificate-presented">This certificate is proudly presented to</p>
@@ -426,7 +486,7 @@ function CertificatePreview({ event, settings, participant }) {
             </div>
           ))}
         </div>
-        <span className="certificate-organizer">Sahyadri College of Engineering and Management · Adyar, Mangalore</span>
+        {orgName ? <span className="certificate-organizer">{orgName}</span> : null}
       </div>
     </div>
   );

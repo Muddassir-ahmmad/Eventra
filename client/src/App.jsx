@@ -17,13 +17,14 @@ import EventManage from "./pages/EventManage";
 import EventBuilder from "./pages/EventBuilder";
 import CertificateManager from "./pages/CertificateManager";
 import PostEventReport from "./pages/PostEventReport";
+import PublicFeedback from "./pages/PublicFeedback";
+import EventFeedback from "./pages/EventFeedback";
 
 export default function App() {
   const location = useLocation();
 
   // Public participant pages should not show organizer navigation.
-  const publicPage =
-    location.pathname.startsWith("/events/");
+  const publicPage = location.pathname.startsWith("/events/") || location.pathname.startsWith("/feedback/");
 
   return (
     <>
@@ -83,6 +84,18 @@ export default function App() {
         <Route
           path="/dashboard/events/:eventId/report"
           element={<PostEventReport />}
+        />
+        <Route
+          path="/dashboard/events/:eventId/feedback"
+          element={<EventFeedback />}
+        />
+        <Route
+          path="/events/:eventId/feedback"
+          element={<PublicFeedback />}
+        />
+        <Route
+          path="/feedback/:token"
+          element={<PublicFeedback />}
         />
       </Routes>
     </>

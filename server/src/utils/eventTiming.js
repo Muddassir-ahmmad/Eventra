@@ -62,7 +62,7 @@ export function getEventEndDateTime(event) {
 export function isEventCompleted(event, currentTime = new Date()) {
   if (!event) return false;
   // If explicitly closed by the organizer, report is available
-  if (event.status === "closed") return true;
+  if (event.status === "closed" || event.status === "completed") return true;
 
   const end = getEventEndDateTime(event);
   if (!end) return false;

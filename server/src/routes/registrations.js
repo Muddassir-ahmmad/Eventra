@@ -17,10 +17,13 @@ router.post("/public/:slug", async (req, res) => {
       });
     }
 
-    const event = await Event.findOne({
-      slug: req.params.slug,
-      status: "published",
-    });
+    const event = await Event.findOne({ slug: req.params.slug });
+    if (event && (event.status === "completed" || event.status === "closed")) {
+      return res.status(409).json({ message: "This event has completed and is no longer accepting new registrations." });
+    }
+    if (!event || event.status !== "published") {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
     if (!event) {
       return res.status(404).json({

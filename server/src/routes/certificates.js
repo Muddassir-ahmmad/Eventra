@@ -94,7 +94,11 @@ async function storedCertificatePdf(certificate) {
   return Buffer.from(await data.arrayBuffer());
 }
 
-export async function renderCertificate(event, registration) {
+export async function renderCertificate(event, registration, organizer = null) {
+  let org = organizer;
+  if (!org && event.organizerId) {
+    org = await User.findById(event.organizerId).select("name organization").lean();
+  }
   const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 0 });
   const chunks = [];
   const finished = new Promise((resolve, reject) => {
@@ -121,7 +125,10 @@ export async function renderCertificate(event, registration) {
     doc.rect(width - 48, 36, 12, height - 72).fill(colors.accent);
   }
 
-  drawSahyadriLogo(doc, (width - 300) / 2, 24, 300);
+  const orgDisplayName = (org?.organization || "").trim();
+  if (orgDisplayName) {
+    doc.fillColor(colors.accent).font("Helvetica-Bold").fontSize(11).text(orgDisplayName.toUpperCase(), 55, 52, { width: width - 110, align: "center", characterSpacing: 1.5 });
+  }
   const titleFont = template === "modern" ? "Helvetica-Bold" : "Times-Bold";
   doc.fillColor(colors.accent).font("Helvetica-Bold").fontSize(9).text("EVENTRA  /  RECOGNITION", 55, 91, { width: width - 110, align: "center", characterSpacing: 2 });
   doc.fillColor(colors.ink).font(titleFont).fontSize(29).text(event.certificateTitle || "Certificate of Participation", 72, 114, { width: width - 144, align: "center" });
@@ -153,31 +160,15 @@ export async function renderCertificate(event, registration) {
     doc.fillColor(colors.ink).font("Helvetica").fontSize(8).text(signature.role || "", center - 70, 447, { width: 140, align: "center" });
   }
 
-  doc.fillColor(colors.ink).font("Helvetica-Bold").fontSize(9).text("Sahyadri College of Engineering and Management", 90, 506, { width: width - 180, align: "center" });
-  doc.fillColor(colors.ink).font("Helvetica").fontSize(8).text("Adyar, Mangalore", 90, 520, { width: width - 180, align: "center" });
+  if (orgDisplayName) {
+    doc.fillColor(colors.ink).font("Helvetica-Bold").fontSize(9).text(orgDisplayName, 90, 512, { width: width - 180, align: "center" });
+  }
+
   doc.end();
   return finished;
 }
 
-function drawSahyadriLogo(doc, x, y, width) {
-  doc.save();
-  doc.translate(x, y).scale(width / 1200);
 
-  doc.path("M 58 45 C 111 12 184 12 244 45 L 244 122 C 244 163 204 192 151 213 C 98 192 58 163 58 122 Z").fillAndStroke("#ffffff", "#c65f3e");
-  doc.lineWidth(5).path("M 70 51 C 119 22 183 22 232 51 L 232 121 C 232 158 196 184 151 203 C 106 184 70 158 70 121 Z").fillAndStroke("#007748", "#ffffff");
-  doc.fillColor("#ffffff").font("Times-Roman").fontSize(124).text("S", 101, 31, { width: 100, align: "center", lineBreak: false });
-  doc.path("M 18 159 L 260 159 L 280 176 L 260 193 L 18 193 L -2 176 Z").fill("#f28a37");
-  doc.path("M 54 159 L 246 159 L 246 185 L 54 185 Z").fill("#c65f3e");
-  doc.path("M 54 185 L 107 185 L 128 198 L 54 193 Z M 246 185 L 194 185 L 174 198 L 246 193 Z").fill("#a94f37");
-  doc.fillColor("#ffffff").font("Times-Bold").fontSize(21).text("SAHYADRI", 74, 160, { width: 152, align: "center", lineBreak: false });
-  doc.circle(258, 37, 10).lineWidth(2).strokeColor("#343434").stroke();
-  doc.fillColor("#343434").font("Helvetica").fontSize(14).text("R", 253, 29, { width: 10, align: "center", lineBreak: false });
-
-  doc.fillColor("#2d466f").font("Helvetica-Bold").fontSize(86).text("SAHYADRI", 282, 7, { lineBreak: false });
-  doc.fontSize(37).text("COLLEGE OF ENGINEERING & MANAGEMENT", 283, 116, { lineBreak: false });
-  doc.fillColor("#c57852").fontSize(29).text("An Autonomous Institution", 521, 169, { lineBreak: false });
-  doc.restore();
-}
 
 function withUpload(req, res, next) {
   imageUpload.single("signature")(req, res, (error) => {
@@ -201,14 +192,34 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
     res.json({
       event,
       organizer: { name: organizer?.name || "", organization: organizer?.organization || "" },
-      participants: registrations.map((registration) => ({
-        _id: registration._id,
-        name: registration.name,
-        email: registration.email,
-        checkedIn: registration.checkedIn === true,
-        checkedInAt: registration.checkedInAt,
-        certificate: issuedByRegistration.get(String(registration._id)) || null,
-      })),
+      participants: registrations.map((registration) => {
+        const hasCertificate = Boolean(issuedByRegistration.get(String(registration._id)));
+        const attended = registration.checkedIn === true;
+        const feedbackSubmitted = registration.feedbackSubmitted === true;
+
+        let eligibilityStatus = "ineligible_absent";
+        if (attended) {
+          if (event.requireFeedbackForCertificate && !feedbackSubmitted) {
+            eligibilityStatus = "feedback_pending";
+          } else if (hasCertificate) {
+            eligibilityStatus = "issued";
+          } else {
+            eligibilityStatus = "eligible";
+          }
+        }
+
+        return {
+          _id: registration._id,
+          name: registration.name,
+          email: registration.email,
+          checkedIn: attended,
+          checkedInAt: registration.checkedInAt,
+          feedbackSubmitted,
+          feedbackSubmittedAt: registration.feedbackSubmittedAt,
+          eligibilityStatus,
+          certificate: issuedByRegistration.get(String(registration._id)) || null,
+        };
+      }),
       storageConfigured: Boolean(storageClient()),
       emailConfigured: Boolean(emailTransport()),
       aiConfigured: Boolean(process.env.AI_API_KEY),
@@ -256,16 +267,23 @@ router.post("/event/:eventId/generate", requireAuth, async (req, res) => {
     const ids = Array.isArray(req.body.registrationIds) ? req.body.registrationIds.map(String) : [];
     if (!ids.length) return res.status(400).json({ message: "Select at least one participant." });
 
-    const registrations = await Registration.find({
+    const regQuery = {
       _id: { $in: ids },
       eventId: event._id,
       status: "confirmed",
       checkedIn: true,
-    });
+    };
+    if (event.requireFeedbackForCertificate) {
+      regQuery.feedbackSubmitted = true;
+    }
+    const registrations = await Registration.find(regQuery);
     const eligibleIds = new Set(registrations.map((item) => String(item._id)));
     const ineligible = ids.filter((id) => !eligibleIds.has(id));
     const issued = [];
     const alreadyIssued = [];
+    if (registrations.length === 0) {
+      return res.json({ issued, alreadyIssued, ineligible });
+    }
     const client = storageClient();
     if (!client) return res.status(503).json({ message: "Supabase Storage is not configured on the server." });
     await ensureBucket(client, certificateBucket, false, { allowedMimeTypes: ["application/pdf"] });
@@ -277,7 +295,8 @@ router.post("/event/:eventId/generate", requireAuth, async (req, res) => {
         continue;
       }
       const generation = existing ? existing.generation + 1 : 1;
-      const pdf = await renderCertificate(event, registration);
+      const organizer = await User.findById(event.organizerId).select("name organization").lean();
+      const pdf = await renderCertificate(event, registration, organizer);
       const storagePath = `${event._id}/${registration._id}/v${generation}.pdf`;
       const { error: uploadError } = await client.storage.from(certificateBucket).upload(storagePath, pdf, {
         contentType: "application/pdf",
@@ -319,6 +338,9 @@ router.get("/event/:eventId/:registrationId/download", requireAuth, async (req, 
       Registration.findOne({ _id: req.params.registrationId, eventId: event._id, status: "confirmed", checkedIn: true }),
     ]);
     if (!certificate || !registration) return res.status(404).json({ message: "Eligible generated certificate not found" });
+    if (event.requireFeedbackForCertificate && !registration.feedbackSubmitted) {
+      return res.status(403).json({ message: "Certificate download is pending feedback submission." });
+    }
     const pdf = await storedCertificatePdf(certificate);
     if (!pdf) return res.status(503).json({ message: "Stored certificate PDF is unavailable. Check Supabase Storage configuration." });
     const filename = `eventra-certificate-${String(registration._id)}.pdf`;
@@ -342,6 +364,9 @@ router.post("/event/:eventId/:registrationId/email", requireAuth, async (req, re
       Registration.findOne({ _id: req.params.registrationId, eventId: event._id, status: "confirmed", checkedIn: true }),
     ]);
     if (!certificate || !registration) return res.status(404).json({ message: "Eligible generated certificate not found" });
+    if (event.requireFeedbackForCertificate && !registration.feedbackSubmitted) {
+      return res.status(403).json({ message: "Participant must submit event feedback before receiving their certificate." });
+    }
     const pdf = await storedCertificatePdf(certificate);
     if (!pdf) return res.status(503).json({ message: "Stored certificate PDF is unavailable. Check Supabase Storage configuration." });
     await transport.sendMail({

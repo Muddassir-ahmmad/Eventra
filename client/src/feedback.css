@@ -1,0 +1,470 @@
+/* =========================================================================
+   EVENTRA - POST-EVENT FEEDBACK & CLOSURE STYLES
+   ========================================================================= */
+
+:root {
+  --fb-primary: #0f766e;
+  --fb-primary-hover: #115e59;
+  --fb-accent: #f59e0b;
+  --fb-bg: #f8fafc;
+  --fb-card-bg: #ffffff;
+  --fb-border: #e2e8f0;
+  --fb-text: #0f172a;
+  --fb-muted: #64748b;
+}
+
+/* Public Feedback Page Shell */
+.feedback-public-shell {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0fdfa 0%, #f8fafc 50%, #eff6ff 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+}
+
+.feedback-public-card {
+  width: 100%;
+  max-width: 680px;
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--fb-border);
+  overflow: hidden;
+}
+
+.feedback-card-header {
+  background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+  color: #ffffff;
+  padding: 2rem 2.25rem;
+}
+
+.feedback-card-header .brand-pill {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  margin-bottom: 0.75rem;
+}
+
+.feedback-card-header h1 {
+  font-size: 1.65rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.25;
+}
+
+.feedback-card-header p {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.feedback-participant-strip {
+  background: #f0fdfa;
+  border-bottom: 1px solid #ccfbf1;
+  padding: 0.85rem 2.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #115e59;
+}
+
+.feedback-card-body {
+  padding: 2.25rem;
+}
+
+/* Star Rating Controls */
+.rating-field-group {
+  margin-bottom: 1.75rem;
+}
+
+.rating-field-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--fb-text);
+  margin-bottom: 0.5rem;
+}
+
+.rating-field-label small {
+  color: var(--fb-muted);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.stars-selector {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.star-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.85rem;
+  cursor: pointer;
+  color: #cbd5e1;
+  transition: transform 0.15s ease, color 0.15s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.star-btn:hover {
+  transform: scale(1.15);
+}
+
+.star-btn.is-active {
+  color: #f59e0b;
+}
+
+.rating-score-pill {
+  margin-left: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #d97706;
+}
+
+/* Textarea input styles */
+.feedback-textarea-group {
+  margin-bottom: 1.5rem;
+}
+
+.feedback-textarea-group label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--fb-text);
+  margin-bottom: 0.4rem;
+}
+
+.feedback-textarea-group textarea {
+  width: 100%;
+  border: 1px solid var(--fb-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--fb-text);
+  resize: vertical;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+
+.feedback-textarea-group textarea:focus {
+  outline: none;
+  border-color: var(--fb-primary);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+}
+
+.feedback-submit-btn {
+  width: 100%;
+  background: var(--fb-primary);
+  color: #ffffff;
+  border: none;
+  padding: 0.9rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  margin-top: 0.5rem;
+}
+
+.feedback-submit-btn:hover {
+  background: var(--fb-primary-hover);
+}
+
+.feedback-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Confirmation & Status screens */
+.feedback-status-view {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.status-icon-circle {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: #f0fdfa;
+  color: #0f766e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+  margin: 0 auto 1.5rem auto;
+  border: 2px solid #99f6e4;
+}
+
+.status-icon-circle.is-warning {
+  background: #fffbeb;
+  color: #d97706;
+  border-color: #fde68a;
+}
+
+.status-icon-circle.is-error {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.feedback-status-view h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--fb-text);
+  margin-bottom: 0.5rem;
+}
+
+.feedback-status-view p {
+  color: var(--fb-muted);
+  max-width: 440px;
+  margin: 0 auto 1.5rem auto;
+  line-height: 1.5;
+}
+
+.certificate-unlock-notice {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: #065f46;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* =========================================================================
+   Organizer Feedback Dashboard
+   ========================================================================= */
+
+.event-feedback-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem 1.5rem;
+}
+
+.feedback-dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.feedback-dash-header h1 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--fb-text);
+  margin: 0.25rem 0;
+}
+
+.feedback-dash-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* KPI Grid */
+.feedback-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.feedback-kpi-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid var(--fb-border);
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.kpi-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.kpi-metric {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--fb-text);
+  line-height: 1;
+  margin-bottom: 0.4rem;
+}
+
+.kpi-subtext {
+  font-size: 0.825rem;
+  color: var(--fb-muted);
+}
+
+/* Ratings Detailed Section */
+.feedback-ratings-container {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .feedback-ratings-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ratings-main-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid var(--fb-border);
+  padding: 1.75rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.rating-big-number {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: #d97706;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.rating-big-stars {
+  font-size: 1.5rem;
+  color: #f59e0b;
+  margin-bottom: 0.5rem;
+}
+
+.ratings-breakdown-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid var(--fb-border);
+  padding: 1.75rem;
+}
+
+.subrating-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.subrating-row:last-child {
+  margin-bottom: 0;
+}
+
+.subrating-label {
+  font-weight: 600;
+  font-size: 0.925rem;
+  color: var(--fb-text);
+  width: 180px;
+}
+
+.subrating-bar-container {
+  flex: 1;
+  height: 10px;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  margin: 0 1rem;
+  overflow: hidden;
+}
+
+.subrating-bar-fill {
+  height: 100%;
+  background: #0f766e;
+  border-radius: 9999px;
+}
+
+.subrating-score {
+  font-weight: 700;
+  font-size: 0.925rem;
+  color: var(--fb-text);
+  width: 60px;
+  text-align: right;
+}
+
+/* Feedback Submissions Table / Cards */
+.feedback-list-section {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid var(--fb-border);
+  overflow: hidden;
+}
+
+.feedback-filter-bar {
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--fb-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filter-input {
+  border: 1px solid var(--fb-border);
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.feedback-card-item {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--fb-border);
+}
+
+.feedback-card-item:last-child {
+  border-bottom: none;
+}
+
+.feedback-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.participant-badge {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--fb-text);
+}
+
+.submission-date {
+  font-size: 0.8rem;
+  color: var(--fb-muted);
+}
+
+.feedback-text-quote {
+  background: #f8fafc;
+  border-left: 3px solid #0f766e;
+  padding: 0.75rem 1rem;
+  border-radius: 0 0.375rem 0.375rem 0;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: #334155;
+}
+
+.feedback-text-quote strong {
+  color: var(--fb-text);
+  display: block;
+  margin-bottom: 0.25rem;
+}

@@ -53,6 +53,23 @@ const registrationSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    feedbackToken: {
+      type: String,
+      default: null,
+    },
+    feedbackTokenHash: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    feedbackSubmitted: {
+      type: Boolean,
+      default: false,
+    },
+    feedbackSubmittedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

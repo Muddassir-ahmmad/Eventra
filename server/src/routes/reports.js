@@ -3,6 +3,7 @@ import Event from "../models/Event.js";
 import Registration from "../models/Registration.js";
 import User from "../models/User.js";
 import PostEventReport from "../models/PostEventReport.js";
+import Feedback from "../models/Feedback.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getEventEndDateTime, isEventCompleted } from "../utils/eventTiming.js";
 import { calculateReportAnalytics } from "../utils/reportAnalytics.js";
@@ -47,12 +48,13 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
       });
     }
 
-    const [registrations, existingReport] = await Promise.all([
+    const [registrations, feedbacks, existingReport] = await Promise.all([
       Registration.find({ eventId: event._id }).lean(),
+      Feedback.find({ eventId: event._id }).lean(),
       PostEventReport.findOne({ eventId: event._id }).lean(),
     ]);
 
-    const analytics = calculateReportAnalytics(registrations);
+    const analytics = calculateReportAnalytics(registrations, feedbacks);
     const defaultContent = generateDefaultReportContent(event, organizer, analytics);
 
     const reportData = existingReport
@@ -185,13 +187,14 @@ router.get("/event/:eventId/pdf", requireAuth, async (req, res) => {
       });
     }
 
-    const [organizer, registrations, savedReport] = await Promise.all([
+    const [organizer, registrations, feedbacks, savedReport] = await Promise.all([
       User.findById(event.organizerId).select("name email organization").lean(),
       Registration.find({ eventId: event._id }).lean(),
+      Feedback.find({ eventId: event._id }).lean(),
       PostEventReport.findOne({ eventId: event._id }).lean(),
     ]);
 
-    const analytics = calculateReportAnalytics(registrations);
+    const analytics = calculateReportAnalytics(registrations, feedbacks);
     const defaultContent = generateDefaultReportContent(event, organizer, analytics);
     const reportData = savedReport
       ? { ...defaultContent, ...savedReport }

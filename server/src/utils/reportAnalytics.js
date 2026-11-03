@@ -1,11 +1,12 @@
 /**
  * Computes all registration, attendance, department-wise, and college-wise
- * analytics for an event from real registration documents.
+ * analytics for an event from real registration documents, plus actual feedback metrics.
  *
  * @param {Array<Object>} registrations Array of registration documents
+ * @param {Array<Object>} feedbacks Array of feedback documents
  * @returns {Object}
  */
-export function calculateReportAnalytics(registrations = []) {
+export function calculateReportAnalytics(registrations = [], feedbacks = []) {
   const totalRegistrations = registrations.length;
   const confirmed = registrations.filter((r) => r.status === "confirmed");
   const cancelled = registrations.filter((r) => r.status === "cancelled");
@@ -59,6 +60,46 @@ export function calculateReportAnalytics(registrations = []) {
     }
   }
 
+  // Feedback Metrics
+  const feedbackSubmissions = feedbacks.length;
+  const feedbackResponseRate = confirmedCount > 0
+    ? Math.round((feedbackSubmissions / confirmedCount) * 1000) / 10
+    : 0;
+
+  let avgRatingOverall = 0;
+  let avgRatingOrg = 0;
+  let avgRatingSpeakers = 0;
+  let avgRatingVenue = 0;
+  const ratingDistribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+
+  if (feedbackSubmissions > 0) {
+    let sumOverall = 0;
+    let sumOrg = 0;
+    let sumSpeakers = 0;
+    let sumVenue = 0;
+
+    for (const f of feedbacks) {
+      sumOverall += (f.ratingOverall || 0);
+      sumOrg += (f.ratingOrganization || 0);
+      sumSpeakers += (f.ratingSpeakers || 0);
+      sumVenue += (f.ratingVenue || 0);
+
+      const r = f.ratingOverall;
+      if (ratingDistribution[r] !== undefined) {
+        ratingDistribution[r]++;
+      }
+    }
+
+    avgRatingOverall = Math.round((sumOverall / feedbackSubmissions) * 10) / 10;
+    avgRatingOrg = Math.round((sumOrg / feedbackSubmissions) * 10) / 10;
+    avgRatingSpeakers = Math.round((sumSpeakers / feedbackSubmissions) * 10) / 10;
+    avgRatingVenue = Math.round((sumVenue / feedbackSubmissions) * 10) / 10;
+  }
+
+  const feedbackLiked = feedbacks.map((f) => f.liked).filter(Boolean).slice(0, 5);
+  const feedbackImprovements = feedbacks.map((f) => f.improvements).filter(Boolean).slice(0, 5);
+  const feedbackSuggestions = feedbacks.map((f) => f.suggestions).filter(Boolean).slice(0, 5);
+
   return {
     totalRegistrations,
     confirmedCount,
@@ -69,5 +110,15 @@ export function calculateReportAnalytics(registrations = []) {
     registrationToAttendanceRate,
     departmentCounts,
     collegeCounts,
+    feedbackSubmissions,
+    feedbackResponseRate,
+    avgRatingOverall,
+    avgRatingOrg,
+    avgRatingSpeakers,
+    avgRatingVenue,
+    ratingDistribution,
+    feedbackLiked,
+    feedbackImprovements,
+    feedbackSuggestions,
   };
 }
