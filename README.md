@@ -70,3 +70,15 @@ AI_MODEL=gpt-4o-mini
 ```
 
 The service-role key and email credentials must never be added to client environment variables. Storage buckets are created by the server when first needed. AI theme suggestions are shown only when `AI_API_KEY` is configured; SMTP delivery and the test-email action are enabled only when `SMTP_HOST` and `EMAIL_FROM` are configured. The existing MongoDB event and registration store remains the shared source of truth for this branch.
+
+
+## Post-Event Reports
+
+The Post-Event Report module is accessible for completed events (after the event date and end time have passed, or when the event status is closed). It automatically calculates registration and attendance analytics from real MongoDB records, generates 12 customizable report sections, supports optional AI-assisted text enhancements, and produces a professional multi-page PDF report.
+
+### Report API Endpoints
+- `GET /api/reports/event/:eventId`: Fetch event details, verified attendance analytics, completion status, and saved/default report sections.
+- `POST /api/reports/event/:eventId`: Save or update post-event report draft or completed state.
+- `PUT /api/reports/event/:eventId`: Update narrative sections and completion status.
+- `GET /api/reports/event/:eventId/pdf`: Download the official multi-page PDF evaluation report.
+- `POST /api/reports/event/:eventId/ai-assist`: Request AI text improvements for a selected report section when `AI_API_KEY` is configured.

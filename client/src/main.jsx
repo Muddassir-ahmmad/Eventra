@@ -6,7 +6,9 @@ import "./styles.css";
 import "./styles-registration.css";
 import "./eventra-edit-delete.css";
 import "./eventra-builder.css"
-import "./certificate-manager.css"
+import "./certificate-manager.css";
+import "./report-manager.css";;
+import "./report-manager.css";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>

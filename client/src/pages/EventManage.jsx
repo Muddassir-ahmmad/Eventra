@@ -43,6 +43,8 @@ export default function EventManage() {
     return <main className="center-page"><div className="spinner" /><p>Loading event...</p></main>;
   }
 
+  const isCompleted = event.status === "closed" || (event.date && new Date(event.date).getTime() < Date.now());
+
   const modules = [
     ["Overview", "⌂", true, ""],
     ["Registrations", "◎", true, `/dashboard/events/${eventId}/registrations`],
@@ -50,6 +52,7 @@ export default function EventManage() {
     ["Attendance", "✓", false, ""],
     ["Volunteers", "♙", false, ""],
     ["Certificates", "◇", true, `/dashboard/events/${eventId}/certificates`],
+    ["Post-Event Report", "📄", true, `/dashboard/events/${eventId}/report`],
     ["Payments", "₹", false, ""],
     ["Analytics", "↗", false, ""]
   ];
@@ -87,23 +90,19 @@ export default function EventManage() {
                 </Link>
               ) : (
                 <button key={name} className="sidebar-link sidebar-disabled">
-                  <span>{icon}</span>
-                  <div><strong>{name}</strong><small>Coming soon</small></div>
+                  <span>{icon}</span><strong>{name}</strong>
+                  <em>soon</em>
                 </button>
               )
             )}
 
-            <div className="sidebar-divider" />
-            <Link className="sidebar-link" to={`/dashboard/events/${eventId}/edit`}>
-              <span>✎</span><strong>Edit Event</strong>
-            </Link>
-            <Link className="sidebar-link" to="/create-event">
-              <span>＋</span><strong>Create another event</strong>
-            </Link>
-
-            <div className="sidebar-danger">
-              <button onClick={deleteEvent} disabled={deleting}>
-                <span>⌫</span>
+            <div className="manage-danger-zone">
+              <p className="sidebar-label danger-label">DANGER ZONE</p>
+              <button
+                className="button button-danger full-width"
+                onClick={deleteEvent}
+                disabled={deleting}
+              >
                 {deleting ? "Deleting..." : "Delete Event"}
               </button>
             </div>
@@ -114,7 +113,7 @@ export default function EventManage() {
               <div>
                 <span className="live-dot">● {event.status}</span>
                 <h2>Event overview</h2>
-                <p>Your event workspace. Edit your event whenever you need. Tickets, QR entry, volunteers, certificates, payments and analytics will live here.</p>
+                <p>Your event workspace. Edit your event whenever you need. Tickets, QR entry, volunteers, certificates, payments, reports and analytics live here.</p>
               </div>
               <div className="overview-symbol">✦</div>
             </div>
@@ -123,7 +122,18 @@ export default function EventManage() {
               <Overview title="Registrations" value="—" text={`Maximum ${event.capacity} participants`} to={`/dashboard/events/${eventId}/registrations`} />
               <Overview title="QR Entry" value={event.qrEnabled ? "ON" : "OFF"} text="QR check-in will be activated in the ticket phase." />
               <Overview title="Volunteers" value={event.volunteerEnabled ? "ON" : "OFF"} text="Volunteer management is coming next." />
-              <Overview title="Certificates" value={event.certificateEnabled ? "ON" : "OFF"} text="Certificate builder is coming next." />
+              <Overview
+                title="Certificates"
+                value={event.certificateEnabled ? "ON" : "OFF"}
+                text="Configure designs, preview certificates and issue them to attendees."
+                to={`/dashboard/events/${eventId}/certificates`}
+              />
+              <Overview
+                title="Post-Event Report"
+                value={isCompleted ? "AVAILABLE" : "UPCOMING"}
+                text={isCompleted ? "Review analytics, edit 12 report sections, and download multi-page PDF." : "Unlocks automatically once the event date and end time have passed."}
+                to={`/dashboard/events/${eventId}/report`}
+              />
             </div>
 
             <div className="manage-note">
