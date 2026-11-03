@@ -16,6 +16,7 @@ import EventRegistrations from "./pages/EventRegistrations";
 import EventManage from "./pages/EventManage";
 import EventBuilder from "./pages/EventBuilder";
 import CertificateManager from "./pages/CertificateManager";
+import EmailManager from "./pages/EmailManager";
 
 export default function App() {
   const location = useLocation();

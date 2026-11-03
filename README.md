@@ -71,3 +71,14 @@ AI_MODEL=gpt-4o-mini
 ```
 
 Cloudinary credentials, AI keys, and email credentials must never be added to client environment variables. Uploads are limited to PNG/JPEG images of 5 MB or less. AI suggestions are available only when `AI_API_KEY` is configured; SMTP delivery is available only when `SMTP_HOST` and `EMAIL_FROM` are configured. The existing MongoDB event and registration collections remain the source of truth.
+
+## Email Notification Module
+
+The Email Notification Module provides a centralized, reusable email service powered by Nodemailer and MongoDB `EmailLog` tracking:
+
+- **Participant Registration Confirmation:** Dispatched automatically upon successful registration with event metadata, venue, date, time, and ticket access links.
+- **Digital Ticket Email:** Attached PDF ticket generated with embedded dynamic QR code and participant registration ID.
+- **Certificate Email Delivery:** Individual and bulk email delivery for eligible, checked-in participants with attached PDF certificates.
+- **Organizer Alerts:** Configurable real-time notifications for new registrations and sold-out event capacity.
+- **Organizer Email Manager UI:** Dedicated dashboard at `/dashboard/events/:eventId/emails` with real-time delivery logs, filter by status and type, search, SMTP provider status, and one-click retry for failed messages.
+- **Reliability & Safeguards:** Strict RFC email syntax validation, 60-second cooldown duplicate-send prevention, non-blocking asynchronous dispatch, and zero fake delivery logging.

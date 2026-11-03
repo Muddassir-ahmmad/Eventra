@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth.js";
 import eventRoutes from "./routes/events.js";
 import registrationRoutes from "./routes/registrations.js";
 import certificateRoutes from "./routes/certificates.js";
+import emailRoutes from "./routes/emails.js";
 
 const app = express();
 const uploadDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../uploads");
@@ -31,6 +32,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/registrations", registrationRoutes);
 app.use("/api/certificates", certificateRoutes);
+app.use("/api/emails", emailRoutes);
 
 const PORT = process.env.PORT || 5000;
 

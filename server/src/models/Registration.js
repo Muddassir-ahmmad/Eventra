@@ -53,6 +53,14 @@ const registrationSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    confirmationEmailedAt: {
+      type: Date,
+      default: null,
+    },
+    ticketEmailedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

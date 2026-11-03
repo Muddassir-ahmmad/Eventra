@@ -50,6 +50,7 @@ export default function EventManage() {
     ["Attendance", "✓", false, ""],
     ["Volunteers", "♙", false, ""],
     ["Certificates", "◇", true, `/dashboard/events/${eventId}/certificates`],
+    ["Emails & Delivery", "✉", true, `/dashboard/events/${eventId}/emails`],
     ["Payments", "₹", false, ""],
     ["Analytics", "↗", false, ""]
   ];

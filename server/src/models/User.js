@@ -24,6 +24,16 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    emailNotifications: {
+      notifyOnRegistration: {
+        type: Boolean,
+        default: true,
+      },
+      notifyOnCapacity: {
+        type: Boolean,
+        default: true,
+      },
+    },
   },
   { timestamps: true }
 );

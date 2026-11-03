@@ -266,6 +266,33 @@ export default function CertificateManager() {
     }
   }
 
+  async function bulkEmailCertificates() {
+    if (!emailConfigured) {
+      setError("Email delivery requires SMTP configuration on the server.");
+      return;
+    }
+    const withCerts = participants.filter((p) => p.certificate).map((p) => p._id);
+    if (withCerts.length === 0) {
+      setError("No generated certificates available to deliver.");
+      return;
+    }
+    const targetIds = selected.length > 0 ? selected : withCerts;
+    setWorking(true);
+    setError("");
+    setNotice("");
+    try {
+      const { data } = await api.post(`/certificates/event/${eventId}/email-bulk`, {
+        registrationIds: targetIds,
+      });
+      setNotice(data.message || "Bulk certificate emails processed.");
+      await loadCertificates();
+    } catch (bulkErr) {
+      setError(bulkErr.response?.data?.message || "Could not deliver certificates in bulk.");
+    } finally {
+      setWorking(false);
+    }
+  }
+
   async function emailCertificate(person) {
     setWorking(true);
     setError("");
@@ -472,6 +499,16 @@ export default function CertificateManager() {
               </button>
               <button type="button" className="cert-button cert-button-primary" onClick={() => generate()} disabled={working || !selected.length || !settings.certificateEnabled}>Generate selected</button>
               {selectedWithCertificates > 0 && <button type="button" className="cert-button cert-button-danger" onClick={() => generate(selected, true)} disabled={working}>Regenerate selected</button>}
+              <button
+                type="button"
+                className="cert-button"
+                style={{ background: "#0f766e", color: "#ffffff" }}
+                onClick={bulkEmailCertificates}
+                disabled={working || !emailConfigured || !participants.some((p) => p.certificate)}
+                title={!emailConfigured ? "SMTP is not configured" : "Deliver certificates via email"}
+              >
+                ✉ Email Certificates
+              </button>
             </div>
           </div>
           {!settings.certificateEnabled && <p className="certificate-inline-warning">Enable certificates and save settings before issuing certificates.</p>}

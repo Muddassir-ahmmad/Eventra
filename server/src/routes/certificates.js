@@ -9,6 +9,7 @@ import Event from "../models/Event.js";
 import Registration from "../models/Registration.js";
 import User from "../models/User.js";
 import { requireAuth } from "../middleware/auth.js";
+import emailService from "../services/emailService.js";
 import {
   CERTIFICATE_TEMPLATES,
   DEFAULT_CERTIFICATE_DESCRIPTION,
@@ -611,28 +612,11 @@ router.get("/event/:eventId/:registrationId/download", requireAuth, async (req, 
   }
 });
 
-async function emailTransport() {
-  if (!process.env.SMTP_HOST || !process.env.EMAIL_FROM) return null;
-  const { default: nodemailer } = await import("nodemailer");
-  const auth = process.env.SMTP_USER && process.env.SMTP_PASS
-    ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-    : undefined;
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === "true",
-    auth,
-  });
-}
-
 router.post("/event/:eventId/:registrationId/email", requireAuth, async (req, res) => {
   try {
     const event = await findOwnedEvent(req.params.eventId, req.userId);
     if (!event) return res.status(404).json({ message: "Event not found" });
-    const transport = await emailTransport();
-    if (!transport) {
-      return res.status(503).json({ message: "Email delivery is not configured on the server." });
-    }
+
     const [certificate, registration] = await Promise.all([
       Certificate.findOne({ eventId: event._id, registrationId: req.params.registrationId }).select("+pdfData"),
       Registration.findOne({
@@ -642,23 +626,105 @@ router.post("/event/:eventId/:registrationId/email", requireAuth, async (req, re
         checkedIn: true,
       }),
     ]);
+
     if (!certificate || !registration) {
       return res.status(404).json({ message: "Eligible generated certificate not found." });
     }
+
     const pdf = await getCertificatePdf(event, registration, certificate);
-    await transport.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: registration.email,
-      subject: `${event.certificateTitle || DEFAULT_CERTIFICATE_TITLE} - ${event.title}`,
-      text: `Hello ${registration.name},\n\nYour certificate for ${event.title} is attached.`,
-      attachments: [{ filename: "eventra-certificate.pdf", content: pdf, contentType: "application/pdf" }],
-    });
+    const result = await emailService.sendCertificateEmail(event, registration, pdf);
+
+    if (!result.success) {
+      const statusCode = !emailService.isConfigured() ? 503 : 502;
+      return res.status(statusCode).json({
+        message: result.error || "Could not send certificate email. Check SMTP settings and try again.",
+      });
+    }
+
     certificate.lastEmailedAt = new Date();
     await certificate.save();
-    res.json({ message: `Certificate emailed to ${registration.email}`, lastEmailedAt: certificate.lastEmailedAt });
+
+    res.json({
+      message: `Certificate emailed to ${registration.email}`,
+      lastEmailedAt: certificate.lastEmailedAt,
+    });
   } catch (error) {
     console.error("Email certificate error:", error);
     res.status(502).json({ message: "Could not send certificate email. Check SMTP settings and try again." });
+  }
+});
+
+router.post("/event/:eventId/email-bulk", requireAuth, async (req, res) => {
+  try {
+    const event = await findOwnedEvent(req.params.eventId, req.userId);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    if (!emailService.isConfigured()) {
+      return res.status(503).json({ message: "Email delivery is not configured on the server." });
+    }
+
+    const requestedIds = Array.isArray(req.body.registrationIds) && req.body.registrationIds.length > 0
+      ? req.body.registrationIds
+      : null;
+
+    const certQuery = { eventId: event._id };
+    if (requestedIds) {
+      certQuery.registrationId = { $in: requestedIds };
+    }
+
+    const certificates = await Certificate.find(certQuery).select("+pdfData");
+    if (certificates.length === 0) {
+      return res.status(400).json({ message: "No certificates found to deliver." });
+    }
+
+    const registrationIds = certificates.map((c) => c.registrationId);
+    const registrations = await Registration.find({
+      _id: { $in: registrationIds },
+      eventId: event._id,
+      status: "confirmed",
+      checkedIn: true,
+    });
+    const regMap = new Map(registrations.map((r) => [String(r._id), r]));
+
+    const sent = [];
+    const failed = [];
+    const skipped = [];
+
+    for (const cert of certificates) {
+      const reg = regMap.get(String(cert.registrationId));
+      if (!reg) {
+        skipped.push({ registrationId: cert.registrationId, reason: "Ineligible or absent" });
+        continue;
+      }
+
+      // Prevent duplicate emails within 5 minutes unless force is set
+      if (cert.lastEmailedAt && req.body.force !== true && (Date.now() - new Date(cert.lastEmailedAt).getTime() < 300000)) {
+        skipped.push({ registrationId: reg._id, name: reg.name, reason: "Recently emailed" });
+        continue;
+      }
+
+      try {
+        const pdf = await getCertificatePdf(event, reg, cert);
+        const result = await emailService.sendCertificateEmail(event, reg, pdf);
+        if (result.success) {
+          sent.push({ registrationId: reg._id, name: reg.name, email: reg.email });
+        } else {
+          failed.push({ registrationId: reg._id, name: reg.name, email: reg.email, error: result.error });
+        }
+      } catch (err) {
+        failed.push({ registrationId: reg._id, name: reg.name, email: reg.email, error: err.message });
+      }
+    }
+
+    res.json({
+      message: `Bulk delivery finished: ${sent.length} sent, ${failed.length} failed, ${skipped.length} skipped.`,
+      sent,
+      failed,
+      skipped,
+    });
+  } catch (error) {
+    console.error("Bulk certificate email error:", error);
+    res.status(500).json({ message: "Could not deliver certificates in bulk." });
   }
 });
 
@@ -666,20 +732,20 @@ router.post("/event/:eventId/email/test", requireAuth, async (req, res) => {
   try {
     const event = await findOwnedEvent(req.params.eventId, req.userId);
     if (!event) return res.status(404).json({ message: "Event not found" });
-    const transport = await emailTransport();
-    if (!transport) {
+
+    if (!emailService.isConfigured()) {
       return res.status(503).json({ message: "Email delivery is not configured on the server." });
     }
-    const organizer = await User.findById(event.organizerId).select("email").lean();
+
+    const organizer = await User.findById(event.organizerId).select("email name").lean();
     if (!organizer?.email) return res.status(400).json({ message: "Organizer account email is unavailable." });
-    await transport.verify();
-    await transport.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: organizer.email,
-      subject: "EVENTRA certificate email test",
-      text: `Email delivery is configured for ${event.title}.`,
-    });
-    res.json({ message: `Test email sent to ${organizer.email}` });
+
+    const verifyResult = await emailService.verifySmtpConnection();
+    if (!verifyResult.ok) {
+      return res.status(502).json({ message: verifyResult.error || "Email configuration test failed." });
+    }
+
+    res.json({ message: `SMTP provider verified operational for ${organizer.email}` });
   } catch (error) {
     console.error("Email configuration test failed:", error);
     res.status(502).json({ message: "Email configuration test failed. Check the server SMTP settings." });

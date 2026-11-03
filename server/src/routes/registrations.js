@@ -3,6 +3,7 @@ import Event from "../models/Event.js";
 import Registration from "../models/Registration.js";
 import { requireAuth } from "../middleware/auth.js";
 import { makeRegistrationId } from "../utils/registrationId.js";
+import emailService from "../services/emailService.js";
 
 const router = express.Router();
 
@@ -75,6 +76,27 @@ router.post("/public/:slug", async (req, res) => {
       department,
       registrationId,
     });
+
+    // Asynchronously dispatch confirmation & ticket emails in background
+    const newCount = registrationCount + 1;
+    emailService.sendRegistrationConfirmation(event, registration).catch((err) => {
+      console.error("Background registration confirmation email error:", err.message);
+    });
+
+    emailService.sendTicketEmail(event, registration).catch((err) => {
+      console.error("Background ticket email error:", err.message);
+    });
+
+    // Notify organizer in background
+    emailService.sendOrganizerRegistrationAlert(event, registration, newCount).catch((err) => {
+      console.error("Background organizer alert error:", err.message);
+    });
+
+    if (newCount >= event.capacity) {
+      emailService.sendOrganizerCapacityAlert(event, newCount).catch((err) => {
+        console.error("Background organizer capacity alert error:", err.message);
+      });
+    }
 
     res.status(201).json({
       message: "Registration successful",
