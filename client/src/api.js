@@ -1,7 +1,19 @@
 import axios from "axios";
 
+// Read API URL from environment variable if configured (for Vercel / production),
+// otherwise default to localhost:5000 for local development.
+let rawBaseURL =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:5000/api";
+
+// Ensure /api suffix if not already present
+if (!rawBaseURL.endsWith("/api") && !rawBaseURL.endsWith("/api/")) {
+  rawBaseURL = `${rawBaseURL.replace(/\/+$/, "")}/api`;
+}
+
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: rawBaseURL,
 });
 
 export function setToken(token) {
