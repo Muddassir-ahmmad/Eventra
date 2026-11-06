@@ -216,7 +216,16 @@ class EmailService {
     if (process.env.RESEND_API_KEY) {
       try {
         const fromName = process.env.EMAIL_FROM_NAME || "EVENTRA Notifications";
-        const fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
+        let fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
+        const replyToEmail = process.env.EMAIL_FROM || "eventra.notify@gmail.com";
+
+        // Free email providers like @gmail.com cannot be used directly in Resend 'from' without a custom domain.
+        // We automatically use 'onboarding@resend.dev' and set reply_to to the user's Gmail.
+        const isFreeDomain = /@(gmail|yahoo|hotmail|outlook)\.com$/i.test(fromEmail);
+        if (isFreeDomain || !fromEmail) {
+          fromEmail = "onboarding@resend.dev";
+        }
+
         const fromHeader = `${fromName} <${fromEmail}>`;
 
         const resendAttachments = attachments.map((a) => ({
@@ -234,6 +243,7 @@ class EmailService {
           subject,
           html,
           text: text || undefined,
+          reply_to: replyToEmail,
         };
         if (resendAttachments.length > 0) {
           resendPayload.attachments = resendAttachments;
