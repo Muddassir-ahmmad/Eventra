@@ -75,7 +75,6 @@ export default function AdminLayout({ children, title = "Super Admin Console" })
     { label: "Overview", path: "/admin", icon: "📊" },
     { label: "Organizer Management", path: "/admin/organizers", icon: "👥" },
     { label: "All Events", path: "/admin/events", icon: "🎟️" },
-    { label: "Participants", path: "/admin/participants", icon: "🎓" },
     { label: "Billing & Payments", path: "/admin/billing", icon: "💰", badge: "DEV" },
     { label: "Subscription Plans", path: "/admin/subscriptions", icon: "💳", badge: "DEV" },
     { label: "Analytics", path: "/admin/analytics", icon: "📈" },

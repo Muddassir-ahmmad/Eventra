@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import AdminLayout from "./AdminLayout";
 import api from "../../api";
 
 export default function AdminOrganizerDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -41,6 +42,22 @@ export default function AdminOrganizerDetail() {
     }
   }
 
+  async function handleDeleteOrganizer() {
+    const reason = window.prompt(
+      `CRITICAL ACTION:\nAre you sure you want to permanently delete organizer "${organizer?.name}"?\nAll hosted events, registrations, certificates, and tickets will be permanently removed.\n\nPlease enter the deletion reason to proceed:`,
+      "Administrative removal"
+    );
+    if (!reason) return;
+
+    try {
+      await api.delete(`/admin/organizers/${id}`, { data: { reason } });
+      alert(`Organizer "${organizer?.name}" has been permanently deleted.`);
+      navigate("/admin/organizers");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete organizer.");
+    }
+  }
+
   if (loading) {
     return (
       <AdminLayout title="Organizer Dossier">
@@ -68,10 +85,24 @@ export default function AdminOrganizerDetail() {
 
   return (
     <AdminLayout title={`Organizer: ${organizer.name}`}>
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <Link to="/admin/organizers" className="admin-btn admin-btn-secondary" style={{ fontSize: "0.8rem", padding: "6px 12px" }}>
           ← Back to Organizers Directory
         </Link>
+        <button
+          onClick={handleDeleteOrganizer}
+          className="admin-btn admin-btn-danger"
+          style={{
+            fontSize: "0.8rem",
+            padding: "6px 14px",
+            background: "rgba(244, 63, 94, 0.15)",
+            color: "#fb7185",
+            border: "1px solid rgba(244, 63, 94, 0.4)",
+            cursor: "pointer",
+          }}
+        >
+          🗑️ Permanently Delete Organizer
+        </button>
       </div>
 
       {/* Top Profile Card */}

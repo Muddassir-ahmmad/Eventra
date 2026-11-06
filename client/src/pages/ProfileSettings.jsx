@@ -34,6 +34,13 @@ export default function ProfileSettings() {
   const [profileMsg, setProfileMsg] = useState({ type: "", text: "" });
   const [passwordMsg, setPasswordMsg] = useState({ type: "", text: "" });
 
+  // Delete Account State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
   useEffect(() => {
     loadProfile();
   }, []);
@@ -164,6 +171,37 @@ export default function ProfileSettings() {
       });
     } finally {
       setSavingPassword(false);
+    }
+  }
+
+  async function handleDeleteAccount(e) {
+    e.preventDefault();
+    setDeleteError("");
+
+    if (!deletePassword) {
+      setDeleteError("Please enter your current password to confirm deletion.");
+      return;
+    }
+
+    if (deleteConfirmText.trim().toUpperCase() !== "DELETE") {
+      setDeleteError("Please type 'DELETE' in all caps to confirm.");
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+      const res = await api.delete("/auth/account", {
+        data: { password: deletePassword },
+      });
+      alert(res.data.message || "Your organizer account has been permanently deleted.");
+      setToken(null);
+      localStorage.removeItem("eventra_token");
+      localStorage.removeItem("eventra_user_name");
+      navigate("/login");
+    } catch (err) {
+      setDeleteError(err.response?.data?.message || "Failed to delete account.");
+    } finally {
+      setDeleteLoading(false);
     }
   }
 
@@ -379,7 +417,213 @@ export default function ProfileSettings() {
             </div>
           </form>
         </section>
+
+        {/* 3. Danger Zone: Delete Organizer Account */}
+        <section
+          className="settings-card"
+          style={{
+            borderColor: "rgba(239, 68, 68, 0.35)",
+            background: "rgba(239, 68, 68, 0.04)",
+          }}
+        >
+          <div className="settings-card-head">
+            <div
+              className="settings-card-icon"
+              style={{
+                background: "rgba(239, 68, 68, 0.15)",
+                borderColor: "rgba(239, 68, 68, 0.35)",
+                color: "#f87171",
+              }}
+            >
+              ⚠️
+            </div>
+            <div>
+              <h2 style={{ color: "#f87171" }}>Danger Zone: Delete Organizer Account</h2>
+              <p>Permanently remove your organizer account and all associated events and records.</p>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: 12,
+              padding: "16px",
+              borderRadius: 8,
+              background: "rgba(0, 0, 0, 0.2)",
+              border: "1px solid rgba(239, 68, 68, 0.2)",
+            }}
+          >
+            <p style={{ margin: "0 0 12px 0", fontSize: "0.88rem", color: "#fca5a5", lineHeight: 1.5 }}>
+              Once you delete your account, <strong>all of your events, attendee registrations, QR ticket passes, and issued certificates will be permanently purged from the database</strong>. This action is irreversible.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowDeleteModal(true);
+                setDeleteError("");
+                setDeletePassword("");
+                setDeleteConfirmText("");
+              }}
+              style={{
+                background: "#dc2626",
+                color: "#ffffff",
+                padding: "10px 20px",
+                fontSize: "0.88rem",
+                fontWeight: 600,
+                border: "none",
+                borderRadius: 8,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              🗑️ Delete My Organizer Account
+            </button>
+          </div>
+        </section>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(4px)",
+            display: "grid",
+            placeItems: "center",
+            padding: 16,
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              background: "#1e2235",
+              border: "1px solid rgba(239, 68, 68, 0.4)",
+              borderRadius: 12,
+              maxWidth: 480,
+              width: "100%",
+              padding: 24,
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: "1.2rem", color: "#f87171", display: "flex", alignItems: "center", gap: 8 }}>
+                <span>⚠️</span> Permanently Delete Account?
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                style={{ background: "transparent", border: "none", color: "#94a3b8", fontSize: "1.4rem", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: "0.88rem", color: "#cbd5e1", lineHeight: 1.6, marginBottom: 16 }}>
+              This will <strong>permanently delete</strong> your organizer profile, all events you have published, participant registration records, tickets, and certificates.
+            </p>
+
+            {deleteError && (
+              <div
+                style={{
+                  background: "rgba(239, 68, 68, 0.15)",
+                  border: "1px solid rgba(239, 68, 68, 0.4)",
+                  color: "#fca5a5",
+                  padding: "10px 14px",
+                  borderRadius: 6,
+                  fontSize: "0.85rem",
+                  marginBottom: 16,
+                }}
+              >
+                ⚠️ {deleteError}
+              </div>
+            )}
+
+            <form onSubmit={handleDeleteAccount}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: 6 }}>
+                  1. Enter your current password to authenticate:
+                </label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Enter current password"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    background: "rgba(15, 23, 42, 0.6)",
+                    border: "1px solid #334155",
+                    borderRadius: 6,
+                    color: "#fff",
+                    fontSize: "0.9rem",
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: 6 }}>
+                  2. Type <strong>DELETE</strong> below to confirm:
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    background: "rgba(15, 23, 42, 0.6)",
+                    border: "1px solid #334155",
+                    borderRadius: 6,
+                    color: "#fff",
+                    fontSize: "0.9rem",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  disabled={deleteLoading}
+                  onClick={() => setShowDeleteModal(false)}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.08)",
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    color: "#cbd5e1",
+                    padding: "9px 16px",
+                    borderRadius: 6,
+                    fontSize: "0.86rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deleteLoading || deleteConfirmText.trim().toUpperCase() !== "DELETE"}
+                  style={{
+                    background: deleteConfirmText.trim().toUpperCase() === "DELETE" ? "#dc2626" : "#64748b",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "9px 18px",
+                    borderRadius: 6,
+                    fontSize: "0.86rem",
+                    fontWeight: 700,
+                    cursor: deleteConfirmText.trim().toUpperCase() === "DELETE" ? "pointer" : "not-allowed",
+                  }}
+                >
+                  {deleteLoading ? "Deleting Account…" : "Confirm Permanent Deletion"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

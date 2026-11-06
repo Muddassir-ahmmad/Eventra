@@ -34,7 +34,6 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOrganizers from "./pages/admin/AdminOrganizers";
 import AdminOrganizerDetail from "./pages/admin/AdminOrganizerDetail";
 import AdminEvents from "./pages/admin/AdminEvents";
-import AdminParticipants from "./pages/admin/AdminParticipants";
 import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
 import AdminBilling from "./pages/admin/AdminBilling";
 import AdminInvoices from "./pages/admin/AdminInvoices";
@@ -188,7 +187,6 @@ export default function App() {
         <Route path="/admin/organizers" element={<AdminOrganizers />} />
         <Route path="/admin/organizers/:id" element={<AdminOrganizerDetail />} />
         <Route path="/admin/events" element={<AdminEvents />} />
-        <Route path="/admin/participants" element={<AdminParticipants />} />
         <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
         <Route path="/admin/billing" element={<AdminBilling />} />
         <Route path="/admin/invoices" element={<AdminInvoices />} />

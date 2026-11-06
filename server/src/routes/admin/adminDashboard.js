@@ -32,11 +32,11 @@ router.get("/stats", async (req, res) => {
       deactivatedOrganizers,
       verifiedOrganizers,
     ] = await Promise.all([
-      User.countDocuments({ role: { $in: ["ORGANIZER", "SUPER_ADMIN"] } }),
-      User.countDocuments({ role: "ORGANIZER", status: "ACTIVE" }),
-      User.countDocuments({ role: "ORGANIZER", status: "SUSPENDED" }),
-      User.countDocuments({ role: "ORGANIZER", status: "DEACTIVATED" }),
-      User.countDocuments({ role: "ORGANIZER", verificationStatus: "VERIFIED" }),
+      User.countDocuments({ role: { $ne: "SUPER_ADMIN" } }),
+      User.countDocuments({ role: { $ne: "SUPER_ADMIN" }, status: "ACTIVE" }),
+      User.countDocuments({ role: { $ne: "SUPER_ADMIN" }, status: "SUSPENDED" }),
+      User.countDocuments({ role: { $ne: "SUPER_ADMIN" }, status: "DEACTIVATED" }),
+      User.countDocuments({ role: { $ne: "SUPER_ADMIN" }, verificationStatus: "VERIFIED" }),
     ]);
 
     // 2. Event Statistics

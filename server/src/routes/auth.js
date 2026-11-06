@@ -2,6 +2,11 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Event from "../models/Event.js";
+import Registration from "../models/Registration.js";
+import Certificate from "../models/Certificate.js";
+import SupportTicket from "../models/SupportTicket.js";
+import PaymentTransaction from "../models/PaymentTransaction.js";
 import SubscriptionPlan from "../models/SubscriptionPlan.js";
 import OrganizerSubscription from "../models/OrganizerSubscription.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -344,6 +349,62 @@ router.put("/password", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("Change password error:", err);
     res.status(500).json({ message: "Could not update password." });
+  }
+});
+
+/**
+ * DELETE /api/auth/account
+ * Organizer self-service account deletion.
+ * Requires current password verification.
+ * Cascade deletes all hosted events, attendee registrations, tickets, certificates, and subscriptions.
+ */
+router.delete("/account", requireAuth, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || typeof password !== "string") {
+      return res.status(400).json({ message: "Current password is required to confirm account deletion." });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: "Account not found." });
+    }
+
+    if (user.role === "SUPER_ADMIN") {
+      return res.status(403).json({ message: "Super Admin accounts cannot be deleted via organizer self-service." });
+    }
+
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return res.status(400).json({ message: "Incorrect password. Account deletion cancelled." });
+    }
+
+    // 1. Find all events hosted by this organizer
+    const events = await Event.find({ organizerId: user._id }).select("_id").lean();
+    const eventIds = events.map((e) => e._id);
+
+    // 2. Cascade delete all registrations and certificates for these events
+    if (eventIds.length > 0) {
+      await Registration.deleteMany({ eventId: { $in: eventIds } });
+      await Certificate.deleteMany({ eventId: { $in: eventIds } });
+      await Event.deleteMany({ organizerId: user._id });
+    }
+
+    // 3. Remove organizer support tickets, subscriptions, and payment records
+    await SupportTicket.deleteMany({ organizer: user._id });
+    await OrganizerSubscription.deleteMany({ organizer: user._id });
+    await PaymentTransaction.deleteMany({ organizer: user._id });
+
+    // 4. Delete organizer account record
+    await User.findByIdAndDelete(user._id);
+
+    res.json({
+      success: true,
+      message: "Your organizer account and all associated events have been permanently deleted.",
+    });
+  } catch (err) {
+    console.error("Account self-deletion error:", err);
+    res.status(500).json({ message: "Could not delete account: " + err.message });
   }
 });
 

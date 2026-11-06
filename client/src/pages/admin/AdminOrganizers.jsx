@@ -23,6 +23,14 @@ export default function AdminOrganizers() {
     durationDays: "indefinite",
   });
 
+  // Delete Modal State
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    organizer: null,
+    reason: "Administrative removal",
+    loading: false,
+  });
+
   useEffect(() => {
     fetchOrganizers(1);
   }, [statusFilter, verificationFilter]);
@@ -107,6 +115,33 @@ export default function AdminOrganizers() {
       fetchOrganizers(pagination.page);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to toggle verification.");
+    }
+  }
+
+  // Open Delete Modal
+  function openDeleteModal(org) {
+    setDeleteModal({
+      open: true,
+      organizer: org,
+      reason: "Administrative removal",
+      loading: false,
+    });
+  }
+
+  // Submit Delete
+  async function submitDelete() {
+    if (!deleteModal.organizer) return;
+    try {
+      setDeleteModal((prev) => ({ ...prev, loading: true }));
+      const res = await api.delete(`/admin/organizers/${deleteModal.organizer._id}`, {
+        data: { reason: deleteModal.reason },
+      });
+      alert(res.data.message || `Organizer ${deleteModal.organizer.name} has been permanently deleted.`);
+      setDeleteModal({ open: false, organizer: null, reason: "", loading: false });
+      fetchOrganizers(pagination.page);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete organizer.");
+      setDeleteModal((prev) => ({ ...prev, loading: false }));
     }
   }
 
@@ -294,6 +329,21 @@ export default function AdminOrganizers() {
                             >
                               {org.verificationStatus === "VERIFIED" ? "Revoke 💎" : "Verify 💎"}
                             </button>
+
+                            <button
+                              onClick={() => openDeleteModal(org)}
+                              className="admin-btn admin-btn-danger"
+                              style={{
+                                padding: "4px 8px",
+                                fontSize: "0.74rem",
+                                background: "rgba(244, 63, 94, 0.12)",
+                                color: "#fb7185",
+                                border: "1px solid rgba(244, 63, 94, 0.35)",
+                              }}
+                              title="Permanently remove organizer"
+                            >
+                              🗑️ Delete
+                            </button>
                           </>
                         )}
                       </div>
@@ -416,6 +466,83 @@ export default function AdminOrganizers() {
                 onClick={submitSuspension}
               >
                 Confirm Account Suspension
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Permanent Delete Confirmation Modal */}
+      {deleteModal.open && (
+        <div className="admin-modal-backdrop">
+          <div className="admin-modal" style={{ maxWidth: 480 }}>
+            <div className="admin-modal-header" style={{ borderColor: "rgba(244, 63, 94, 0.3)" }}>
+              <h3 style={{ margin: 0, fontSize: "1.1rem", color: "#fb7185", display: "flex", alignItems: "center", gap: 8 }}>
+                <span>⚠️</span> Permanently Delete Organizer
+              </h3>
+              <button
+                onClick={() => setDeleteModal({ open: false, organizer: null, reason: "", loading: false })}
+                style={{ background: "transparent", border: "none", color: "#FFF", cursor: "pointer", fontSize: "1.2rem" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="admin-modal-body">
+              <p style={{ color: "#fca5a5", fontSize: "0.88rem", lineHeight: 1.5, marginBottom: 16 }}>
+                Are you sure you want to delete organizer <strong>{deleteModal.organizer?.name}</strong> (<em>{deleteModal.organizer?.email}</em>)?
+              </p>
+              <div
+                style={{
+                  background: "rgba(244, 63, 94, 0.08)",
+                  border: "1px solid rgba(244, 63, 94, 0.2)",
+                  borderRadius: 8,
+                  padding: 12,
+                  marginBottom: 16,
+                  fontSize: "0.82rem",
+                  color: "#cbd5e1",
+                  lineHeight: 1.5,
+                }}
+              >
+                ⚠️ <strong>CRITICAL DATA WARNING:</strong> This action will permanently purge:
+                <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
+                  <li>All events hosted by this organizer</li>
+                  <li>All participant ticket registrations and check-in records</li>
+                  <li>All issued certificates and support tickets</li>
+                  <li>The organizer's account credentials</li>
+                </ul>
+              </div>
+
+              <div className="admin-form-group">
+                <label className="admin-form-label">Deletion Reason / Audit Note</label>
+                <input
+                  type="text"
+                  className="admin-search-input"
+                  style={{ width: "100%" }}
+                  placeholder="e.g. Terms violation, fraudulent activity, organizer requested..."
+                  value={deleteModal.reason}
+                  onChange={(e) => setDeleteModal({ ...deleteModal, reason: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="admin-btn admin-btn-secondary"
+                disabled={deleteModal.loading}
+                onClick={() => setDeleteModal({ open: false, organizer: null, reason: "", loading: false })}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-btn admin-btn-danger"
+                disabled={deleteModal.loading}
+                onClick={submitDelete}
+                style={{ background: "#dc2626", color: "#fff", fontWeight: 700 }}
+              >
+                {deleteModal.loading ? "Deleting…" : "🗑️ Permanently Delete"}
               </button>
             </div>
           </div>

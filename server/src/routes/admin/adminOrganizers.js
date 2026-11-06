@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import User from "../../models/User.js";
 import Event from "../../models/Event.js";
 import Registration from "../../models/Registration.js";
+import Certificate from "../../models/Certificate.js";
+import SupportTicket from "../../models/SupportTicket.js";
 import PaymentTransaction from "../../models/PaymentTransaction.js";
 import OrganizerSubscription from "../../models/OrganizerSubscription.js";
 import AdminAuditLog from "../../models/AdminAuditLog.js";
@@ -25,7 +27,7 @@ router.get("/", async (req, res) => {
 
     const { search, status, verificationStatus, sortBy = "createdAt", sortOrder = "desc" } = req.query;
 
-    const query = { role: { $in: ["ORGANIZER", "SUPER_ADMIN"] } };
+    const query = { role: { $ne: "SUPER_ADMIN" } };
 
     if (search && search.trim()) {
       const reg = new RegExp(search.trim(), "i");
@@ -167,6 +169,10 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ message: "Organizer not found." });
     }
 
+    if (organizer.role === "SUPER_ADMIN") {
+      return res.status(400).json({ message: "This account is a Super Admin, not an organizer." });
+    }
+
     // Hosted events with stats
     const events = await Event.find({ organizerId: id })
       .sort({ createdAt: -1 })
@@ -306,6 +312,10 @@ router.post("/:id/reactivate", async (req, res) => {
       return res.status(404).json({ message: "Organizer not found." });
     }
 
+    if (organizer.role === "SUPER_ADMIN") {
+      return res.status(400).json({ message: "This account is a Super Admin, not an organizer." });
+    }
+
     organizer.status = "ACTIVE";
     organizer.suspension = {
       isSuspended: false,
@@ -358,6 +368,10 @@ router.post("/:id/verify", async (req, res) => {
       return res.status(404).json({ message: "Organizer not found." });
     }
 
+    if (organizer.role === "SUPER_ADMIN") {
+      return res.status(400).json({ message: "This account is a Super Admin, not an organizer." });
+    }
+
     organizer.verificationStatus =
       organizer.verificationStatus === "VERIFIED" ? "UNVERIFIED" : "VERIFIED";
 
@@ -398,6 +412,10 @@ router.put("/:id/notes", async (req, res) => {
       return res.status(404).json({ message: "Organizer not found." });
     }
 
+    if (organizer.role === "SUPER_ADMIN") {
+      return res.status(400).json({ message: "This account is a Super Admin, not an organizer." });
+    }
+
     organizer.adminNotes = String(notes).trim();
     await organizer.save();
 
@@ -409,6 +427,62 @@ router.put("/:id/notes", async (req, res) => {
   } catch (error) {
     console.error("Update notes error:", error);
     res.status(500).json({ message: "Failed to update notes." });
+  }
+});
+
+/**
+ * DELETE /api/admin/organizers/:id
+ * Permanently delete / remove an organizer account and all associated events/registrations.
+ */
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const organizer = await User.findById(id);
+    if (!organizer) {
+      return res.status(404).json({ message: "Organizer not found." });
+    }
+
+    if (organizer.role === "SUPER_ADMIN") {
+      return res.status(403).json({ message: "Super Admin accounts cannot be deleted from this portal." });
+    }
+
+    // 1. Find all events created by this organizer
+    const events = await Event.find({ organizerId: id }).select("_id").lean();
+    const eventIds = events.map((e) => e._id);
+
+    // 2. Cascade delete registrations & certificates for these events
+    if (eventIds.length > 0) {
+      await Registration.deleteMany({ eventId: { $in: eventIds } });
+      await Certificate.deleteMany({ eventId: { $in: eventIds } });
+      await Event.deleteMany({ organizerId: id });
+    }
+
+    // 3. Delete support tickets, subscriptions, and transactions
+    await SupportTicket.deleteMany({ organizer: id });
+    await OrganizerSubscription.deleteMany({ organizer: id });
+
+    // 4. Delete the organizer user record
+    await User.findByIdAndDelete(id);
+
+    // 5. Log security audit action
+    await logAdminAction({
+      actor: req.user,
+      action: "ORGANIZER_DELETED",
+      targetEntity: "User",
+      targetId: id,
+      targetName: `${organizer.name} (${organizer.email})`,
+      reason: req.body?.reason || "Permanently removed by Super Admin",
+      req,
+    });
+
+    res.json({
+      success: true,
+      message: `Organizer ${organizer.name} and all associated event records have been permanently deleted.`,
+    });
+  } catch (error) {
+    console.error("Delete organizer error:", error);
+    res.status(500).json({ message: "Failed to delete organizer: " + error.message });
   }
 });
 
