@@ -18,20 +18,38 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 class EmailService {
   /**
-   * Checks if SMTP credentials are configured on the server.
+   * Checks if email credentials (Resend API or SMTP) are configured on the server.
    * @returns {boolean}
    */
   isConfigured() {
-    return Boolean(process.env.SMTP_HOST && process.env.EMAIL_FROM);
+    return Boolean(
+      process.env.RESEND_API_KEY ||
+      (process.env.SMTP_HOST && process.env.EMAIL_FROM)
+    );
   }
 
   /**
-   * Returns sanitized SMTP configuration status (never exposing password/secret).
+   * Returns sanitized SMTP/HTTP configuration status (never exposing password/secret).
    * @returns {Object}
    */
   getSmtpStatus() {
+    if (process.env.RESEND_API_KEY) {
+      return {
+        configured: true,
+        provider: "Resend HTTP API (Port 443 — Cloud Friendly)",
+        host: "api.resend.com",
+        port: 443,
+        secure: true,
+        authConfigured: true,
+        user: "api",
+        emailFrom: process.env.EMAIL_FROM || "onboarding@resend.dev",
+        emailFromName: process.env.EMAIL_FROM_NAME || "EVENTRA Notifications",
+      };
+    }
+
     return {
       configured: this.isConfigured(),
+      provider: "SMTP (Nodemailer)",
       host: process.env.SMTP_HOST || null,
       port: Number(process.env.SMTP_PORT || 587),
       secure: process.env.SMTP_SECURE === "true",
@@ -47,11 +65,14 @@ class EmailService {
    * @returns {nodemailer.Transporter|null}
    */
   getTransport() {
-    if (!this.isConfigured()) return null;
+    if (!this.isConfigured() || process.env.RESEND_API_KEY) return null;
+
+    const rawPass = process.env.SMTP_PASS || "";
+    const cleanPass = rawPass.replace(/\s+/g, "");
 
     const auth =
-      process.env.SMTP_USER && process.env.SMTP_PASS
-        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      process.env.SMTP_USER && rawPass
+        ? { user: process.env.SMTP_USER, pass: cleanPass }
         : undefined;
 
     return nodemailer.createTransport({
@@ -59,9 +80,9 @@ class EmailService {
       port: Number(process.env.SMTP_PORT || 587),
       secure: process.env.SMTP_SECURE === "true",
       auth,
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
     });
   }
 
@@ -76,7 +97,7 @@ class EmailService {
   }
 
   /**
-   * Verifies connection to the configured SMTP server.
+   * Verifies connection to the configured SMTP server or Resend API.
    * @returns {Promise<Object>}
    */
   async verifySmtpConnection() {
@@ -84,14 +105,34 @@ class EmailService {
       return {
         configured: false,
         ok: false,
-        error: "SMTP provider is not configured. Set SMTP_HOST and EMAIL_FROM in server environment.",
+        error: "Email provider is not configured. Set RESEND_API_KEY or SMTP credentials in server environment.",
       };
+    }
+
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const resp = await fetch("https://api.resend.com/api-keys", {
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+        });
+        if (resp.ok) {
+          return { configured: true, ok: true, provider: "Resend HTTP API (Port 443)" };
+        }
+        const data = await resp.json().catch(() => ({}));
+        return {
+          configured: true,
+          ok: false,
+          error: `Resend authentication failed: ${data.message || resp.statusText}`,
+        };
+      } catch (err) {
+        return { configured: true, ok: false, error: err.message };
+      }
     }
 
     try {
       const transport = this.getTransport();
+      if (!transport) throw new Error("Could not initialize SMTP transport.");
       await transport.verify();
-      return { configured: true, ok: true };
+      return { configured: true, ok: true, provider: "SMTP (Nodemailer)" };
     } catch (err) {
       console.error("SMTP verification error:", err.message);
       return {
@@ -103,7 +144,8 @@ class EmailService {
   }
 
   /**
-   * Core mail dispatch method that enforces validation, error logging, and duplicate prevention.
+   * Core mail dispatch method that enforces validation, error logging, duplicate prevention,
+   * and dispatches via Resend HTTPS (Port 443) or Nodemailer SMTP.
    */
   async sendMail({
     to,
@@ -170,17 +212,74 @@ class EmailService {
       metadata,
     });
 
-    // 4. Verify transport availability
+    // 4. Dispatch via Resend HTTP API (Port 443 — Cloud Friendly for Render)
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const fromName = process.env.EMAIL_FROM_NAME || "EVENTRA Notifications";
+        const fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
+        const fromHeader = `${fromName} <${fromEmail}>`;
+
+        const resendAttachments = attachments.map((a) => ({
+          filename: a.filename || "document.pdf",
+          content: Buffer.isBuffer(a.content)
+            ? a.content.toString("base64")
+            : typeof a.content === "string"
+            ? Buffer.from(a.content).toString("base64")
+            : a.content,
+        }));
+
+        const resendPayload = {
+          from: fromHeader,
+          to: [cleanTo],
+          subject,
+          html,
+          text: text || undefined,
+        };
+        if (resendAttachments.length > 0) {
+          resendPayload.attachments = resendAttachments;
+        }
+
+        const resp = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(resendPayload),
+        });
+
+        const data = await resp.json().catch(() => ({}));
+
+        if (!resp.ok) {
+          throw new Error(data.message || `Resend error: ${resp.status} ${resp.statusText}`);
+        }
+
+        log.deliveryStatus = "sent";
+        log.sentAt = new Date();
+        log.errorMessage = "";
+        await log.save();
+
+        return { success: true, messageId: data.id, logId: log._id };
+      } catch (err) {
+        console.error(`Resend email delivery failure [${emailType}] to ${cleanTo}:`, err.message);
+        log.deliveryStatus = "failed";
+        log.errorMessage = err.message || "Resend API delivery error.";
+        await log.save();
+        return { success: false, error: log.errorMessage, logId: log._id };
+      }
+    }
+
+    // 5. Fallback: Dispatch via Nodemailer SMTP Transport
     const transport = this.getTransport();
     if (!transport) {
-      const errorMsg = "Email delivery is not configured on the server. Set SMTP credentials in .env.";
+      const errorMsg =
+        "Email delivery is not configured on the server. Set RESEND_API_KEY or SMTP credentials in environment.";
       log.deliveryStatus = "failed";
       log.errorMessage = errorMsg;
       await log.save();
       return { success: false, error: errorMsg, logId: log._id };
     }
 
-    // 5. Send mail
     try {
       const fromName = process.env.EMAIL_FROM_NAME || "EVENTRA";
       const fromHeader = `"${fromName}" <${process.env.EMAIL_FROM}>`;
@@ -201,7 +300,7 @@ class EmailService {
 
       return { success: true, messageId: info.messageId, logId: log._id };
     } catch (err) {
-      console.error(`Email delivery failure [${emailType}] to ${cleanTo}:`, err.message);
+      console.error(`SMTP delivery failure [${emailType}] to ${cleanTo}:`, err.message);
       log.deliveryStatus = "failed";
       log.errorMessage = err.message || "Unknown SMTP provider error.";
       await log.save();
