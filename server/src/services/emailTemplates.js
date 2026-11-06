@@ -36,7 +36,8 @@ export function renderRegistrationConfirmationEmail({ event, registration, clien
   const timeStr = event.startTime
     ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ""}`
     : "Scheduled Event Time";
-  const venueStr = [event.venue, event.location].filter(Boolean).join(", ") || "Main Venue";
+  const cleanLocation = event.location && !/^https?:\/\//i.test(event.location.trim()) ? event.location.trim() : "";
+  const venueStr = [event.venue, cleanLocation].filter(Boolean).join(", ") || "Main Venue";
   const eventLink = `${clientUrl}/events/${event.slug}`;
 
   const html = `
@@ -136,7 +137,8 @@ export function renderTicketEmail({ event, registration, qrDataUrl, clientUrl = 
   const timeStr = event.startTime
     ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ""}`
     : "Standard Entry Timing";
-  const venueStr = [event.venue, event.location].filter(Boolean).join(", ") || "Main Venue";
+  const cleanLocation = event.location && !/^https?:\/\//i.test(event.location.trim()) ? event.location.trim() : "";
+  const venueStr = [event.venue, cleanLocation].filter(Boolean).join(", ") || "Main Venue";
 
   const html = `
 <!DOCTYPE html>
@@ -234,7 +236,7 @@ export function renderCertificateEmail({ event, registration }) {
 <body>
   <div class="email-wrapper">
     <div class="email-header">
-      <span class="brand-pill">EVENTRA RECOGNITION</span>
+      <span class="brand-pill">EVENTRA · EVENT CERTIFICATE</span>
       <h1>${certificateTitle}</h1>
       <p>${event.title}</p>
     </div>
@@ -478,3 +480,4 @@ export function renderTestEmail({ host, from }) {
 
   return { subject: "EVENTRA Email Configuration Test Succeeded", html, text };
 }
+

@@ -76,7 +76,8 @@ export async function generateTicketPdf(event, registration) {
       const timeStr = event.startTime
         ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ""}`
         : "Standard Entry Timing";
-      const venueStr = [event.venue, event.location].filter(Boolean).join(", ") || "Designated Venue";
+      const cleanLocation = event.location && !/^https?:\/\//i.test(event.location.trim()) ? event.location.trim() : "";
+      const venueStr = [event.venue, cleanLocation].filter(Boolean).join(", ") || "Designated Venue";
 
       doc.font("Helvetica-Bold").fontSize(8).fillColor("#64748b").text("DATE & TIME", 42, 80);
       doc.font("Helvetica").fontSize(9.5).fillColor("#1e293b").text(`${dateStr}  ·  ${timeStr}`, 42, 92, { width: 380 });
@@ -133,3 +134,4 @@ export async function generateTicketPdf(event, registration) {
     }
   });
 }
+

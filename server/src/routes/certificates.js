@@ -18,6 +18,11 @@ import {
   normalizeCertificateSettings,
   resolveCertificateDescription,
 } from "../utils/certificateDesign.js";
+import {
+  generateGeminiContent,
+  generateGeminiCertificateDesign,
+  isGeminiConfigured,
+} from "../services/geminiService.js";
 
 const router = express.Router();
 const uploadRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../uploads");
@@ -209,7 +214,8 @@ function renderCertificate(event, registration, organization, images) {
           edge: "#ded0ad",
           font: "Times-Roman",
           titleFont: "Times-Bold",
-          layout: "center",
+          layout: "classic",
+          headerText: "CERTIFICATE OF EXCELLENCE",
         },
         modern: {
           paper: "#f4f7f5",
@@ -219,6 +225,7 @@ function renderCertificate(event, registration, organization, images) {
           font: "Helvetica",
           titleFont: "Helvetica-Bold",
           layout: "left",
+          headerText: "HONORARY RECOGNITION",
         },
         academic: {
           paper: "#f4f0e5",
@@ -228,6 +235,57 @@ function renderCertificate(event, registration, organization, images) {
           font: "Times-Roman",
           titleFont: "Times-Bold",
           layout: "academic",
+          headerText: "ACADEMIC DISTINCTION",
+        },
+        royalGold: {
+          paper: "#090d16",
+          ink: "#f8fafc",
+          accent: "#f59e0b",
+          edge: "#d97706",
+          font: "Times-Roman",
+          titleFont: "Times-Bold",
+          layout: "royalGold",
+          headerText: "ROYAL MERIT & DISTINCTION",
+        },
+        techAurora: {
+          paper: "#090e1a",
+          ink: "#e2e8f0",
+          accent: "#6366f1",
+          edge: "#38bdf8",
+          font: "Helvetica",
+          titleFont: "Helvetica-Bold",
+          layout: "techAurora",
+          headerText: "TECH INNOVATION & MERIT",
+        },
+        emeraldExecutive: {
+          paper: "#f0fdf4",
+          ink: "#064e3b",
+          accent: "#059669",
+          edge: "#a7f3d0",
+          font: "Helvetica",
+          titleFont: "Helvetica-Bold",
+          layout: "emeraldExecutive",
+          headerText: "EXECUTIVE LEADERSHIP DIPLOMA",
+        },
+        crimsonLuxe: {
+          paper: "#fff1f2",
+          ink: "#881337",
+          accent: "#be123c",
+          edge: "#fecdd3",
+          font: "Times-Roman",
+          titleFont: "Times-Bold",
+          layout: "crimsonLuxe",
+          headerText: "PRESTIGIOUS HONORS AWARD",
+        },
+        vintageParchment: {
+          paper: "#fefce8",
+          ink: "#451a03",
+          accent: "#78350f",
+          edge: "#fde68a",
+          font: "Times-Roman",
+          titleFont: "Times-Bold",
+          layout: "vintageParchment",
+          headerText: "TESTIMONIAL OF MERIT",
         },
       };
       const style = themes[event.certificateTemplate] || themes.classic;
@@ -255,12 +313,38 @@ function renderCertificate(event, registration, organization, images) {
         doc.rect(58, 42, width - 94, height - 84).lineWidth(1).strokeColor(style.edge).stroke();
         doc.circle(68, 72, 5).fill(style.accent);
         doc.circle(width - 55, height - 62, 5).fill(style.accent);
-      } else {
+      } else if (style.layout === "academic") {
         doc.lineWidth(5).strokeColor(style.accent).rect(25, 25, width - 50, height - 50).stroke();
         doc.lineWidth(1).strokeColor(style.edge).rect(37, 37, width - 74, height - 74).stroke();
         doc.circle(width / 2, 73, 21).lineWidth(1.5).strokeColor(style.accent).stroke();
         doc.moveTo(width / 2 - 9, 73).lineTo(width / 2 + 9, 73).lineWidth(1).strokeColor(style.accent).stroke();
         doc.moveTo(width / 2, 64).lineTo(width / 2, 82).stroke();
+      } else if (style.layout === "royalGold") {
+        doc.lineWidth(3).strokeColor(style.accent).rect(24, 24, width - 48, height - 48).stroke();
+        doc.lineWidth(1).strokeColor(style.edge).rect(34, 34, width - 68, height - 68).stroke();
+        doc.rect(20, 20, 8, 8).fill(style.accent);
+        doc.rect(width - 28, 20, 8, 8).fill(style.accent);
+        doc.rect(20, height - 28, 8, 8).fill(style.accent);
+        doc.rect(width - 28, height - 28, 8, 8).fill(style.accent);
+      } else if (style.layout === "techAurora") {
+        doc.lineWidth(2).strokeColor(style.accent).rect(22, 22, width - 44, height - 44).stroke();
+        doc.lineWidth(1).strokeColor(style.edge).rect(32, 32, width - 64, height - 64).stroke();
+        doc.moveTo(42, 52).lineTo(42, 42).lineTo(52, 42).lineWidth(2).strokeColor(style.edge).stroke();
+        doc.moveTo(width - 42, 52).lineTo(width - 42, 42).lineTo(width - 52, 42).lineWidth(2).strokeColor(style.edge).stroke();
+        doc.moveTo(42, height - 52).lineTo(42, height - 42).lineTo(52, height - 42).lineWidth(2).strokeColor(style.edge).stroke();
+        doc.moveTo(width - 42, height - 52).lineTo(width - 42, height - 42).lineTo(width - 52, height - 42).lineWidth(2).strokeColor(style.edge).stroke();
+      } else if (style.layout === "emeraldExecutive") {
+        doc.lineWidth(4).strokeColor(style.accent).rect(24, 24, width - 48, height - 48).stroke();
+        doc.lineWidth(1).strokeColor(style.edge).rect(34, 34, width - 68, height - 68).stroke();
+        doc.rect(width / 2 - 25, 30, 50, 6).fill(style.accent);
+      } else if (style.layout === "crimsonLuxe") {
+        doc.lineWidth(4.5).strokeColor(style.accent).rect(24, 24, width - 48, height - 48).stroke();
+        doc.lineWidth(1).strokeColor(style.edge).rect(36, 36, width - 72, height - 72).stroke();
+        doc.circle(width / 2, 70, 16).lineWidth(1.5).strokeColor(style.accent).stroke();
+      } else {
+        doc.lineWidth(3).strokeColor(style.accent).rect(22, 22, width - 44, height - 44).stroke();
+        doc.lineWidth(1).strokeColor(style.edge).rect(30, 30, width - 60, height - 60).stroke();
+        doc.lineWidth(0.5).strokeColor(style.accent).rect(36, 36, width - 72, height - 72).stroke();
       }
 
       if (images.logo) {
@@ -272,10 +356,9 @@ function renderCertificate(event, registration, organization, images) {
       }
 
       const headerY = images.logo ? 93 : style.layout === "academic" ? 108 : 82;
-      if (visibleOrganization) {
-        doc.font("Helvetica").fontSize(9).fillColor(style.ink)
-          .text(visibleOrganization, left, headerY, { width: contentWidth, align, lineBreak: false, ellipsis: true });
-      }
+      const topHeadline = (visibleOrganization || style.headerText || "CERTIFICATE OF EXCELLENCE").toUpperCase();
+      doc.font("Helvetica-Bold").fontSize(10).fillColor(style.accent)
+        .text(topHeadline, left, headerY, { width: contentWidth, align, characterSpacing: 1.5 });
       const titleY = style.layout === "academic" ? 139 : 139;
       doc.font(style.titleFont).fontSize(fitFontSize(doc, title, style.titleFont, contentWidth, 29, 17))
         .fillColor(style.ink)
@@ -356,10 +439,10 @@ function renderCertificate(event, registration, organization, images) {
             ellipsis: true,
           });
       }
-      if (visibleOrganization) {
-        doc.font("Helvetica").fontSize(8).fillColor(style.ink)
-          .text(visibleOrganization, left, height - 43, { width: contentWidth, align, lineBreak: false, ellipsis: true });
-      }
+
+      // Standardized footer at the end of every certificate
+      doc.font("Helvetica-Bold").fontSize(8).fillColor(style.accent)
+        .text("EVENTRA · EVENT CERTIFICATE", left, height - 38, { width: contentWidth, align: "center", characterSpacing: 1.8 });
       doc.end();
     }).catch(reject);
   });
@@ -379,12 +462,13 @@ async function generatePdf(event, registration, organization) {
 }
 
 async function organizerOrganization(event) {
-  if (!event.certificateShowOrganization) return "";
+  if (event.certificateShowOrganization === false) return "";
   const customOrg = String(event.certificateOrganization || "").trim();
-  if (customOrg) return /^sahyadri/i.test(customOrg) ? "" : customOrg;
+  if (customOrg) return customOrg;
   const organizer = await User.findById(event.organizerId).select("organization").lean();
   const org = String(organizer?.organization || "").trim();
-  return /^sahyadri/i.test(org) ? "" : org;
+  if (org) return org;
+  return "EVENTRA";
 }
 
 function certificatePayload(certificate) {
@@ -407,17 +491,32 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
     const issuedByRegistration = new Map(
       certificates.map((certificate) => [String(certificate.registrationId), certificatePayload(certificate)])
     );
-    const participants = registrations.map((registration) => ({
-      _id: registration._id,
-      name: registration.name,
-      email: registration.email,
-      status: registration.status,
-      checkedIn: isAttendedRegistration(registration),
-      checkedInAt: registration.checkedInAt,
-      certificate: issuedByRegistration.get(String(registration._id)) || null,
-    }));
+    const participants = registrations.map((registration) => {
+      const checkedIn = isAttendedRegistration(registration);
+      const feedbackSubmitted = registration.feedbackSubmitted === true;
+      let eligibilityStatus = "ineligible_absent";
+      if (checkedIn) {
+        if (event.requireFeedbackForCertificate && !feedbackSubmitted) {
+          eligibilityStatus = "feedback_pending";
+        } else {
+          eligibilityStatus = "eligible";
+        }
+      }
+      return {
+        _id: String(registration._id),
+        name: registration.name,
+        email: registration.email,
+        status: registration.status,
+        checkedIn,
+        checkedInAt: registration.checkedInAt,
+        feedbackSubmitted,
+        eligibilityStatus,
+        certificate: issuedByRegistration.get(String(registration._id)) || null,
+      };
+    });
     const confirmedCount = registrations.filter((item) => item.status === "confirmed").length;
     const attendedCount = participants.filter((item) => item.checkedIn).length;
+    const eligibleCount = participants.filter((item) => item.eligibilityStatus === "eligible").length;
     const generatedCount = participants.filter((item) => item.certificate).length;
 
     res.json({
@@ -429,7 +528,7 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
       counts: {
         registered: confirmedCount,
         attended: attendedCount,
-        eligible: attendedCount,
+        eligible: eligibleCount,
         generated: generatedCount,
         cancelled: registrations.filter((item) => item.status === "cancelled").length,
       },
@@ -438,7 +537,7 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
         ? (cloudinaryConfiguration() ? "cloudinary" : "unconfigured")
         : "local",
       emailConfigured,
-      aiConfigured: Boolean(process.env.AI_API_KEY),
+      aiConfigured: isGeminiConfigured(),
     });
   } catch (error) {
     console.error("Load certificates error:", error);
@@ -522,12 +621,15 @@ router.post("/event/:eventId/generate", requireAuth, async (req, res) => {
     if (ids.length > 500 || ids.some((id) => !isValidEventId(id))) {
       return res.status(400).json({ message: "Select up to 500 valid participants at a time." });
     }
-    const registrations = await Registration.find({
+    const eligibleRegs = await Registration.find({
       _id: { $in: ids },
       eventId: event._id,
       status: "confirmed",
       checkedIn: true,
     });
+    const registrations = event.requireFeedbackForCertificate
+      ? eligibleRegs.filter((item) => item.feedbackSubmitted === true)
+      : eligibleRegs;
     const eligibleIds = new Set(registrations.map((item) => String(item._id)));
     const ineligible = ids.filter((id) => !eligibleIds.has(id));
     const issued = [];
@@ -595,6 +697,7 @@ router.get("/event/:eventId/:registrationId/download", requireAuth, async (req, 
         eventId: event._id,
         status: "confirmed",
         checkedIn: true,
+        ...(event.requireFeedbackForCertificate ? { feedbackSubmitted: true } : {}),
       }),
     ]);
     if (!certificate || !registration) {
@@ -612,6 +715,157 @@ router.get("/event/:eventId/:registrationId/download", requireAuth, async (req, 
   }
 });
 
+/*
+  PUBLIC CERTIFICATE STATUS FOR ATTENDEE (BY REGISTRATION ID)
+*/
+router.get("/public/:registrationId/status", async (req, res) => {
+  try {
+    const registration = await Registration.findOne({
+      $or: [
+        { registrationId: req.params.registrationId },
+        { _id: isValidEventId(req.params.registrationId) ? req.params.registrationId : null },
+      ],
+    });
+
+    if (!registration) {
+      return res.status(404).json({ message: "Registration not found." });
+    }
+
+    const event = await Event.findById(registration.eventId).select(
+      "title date venue requireFeedbackForCertificate certificateEnabled certificateTitle"
+    );
+
+    if (!event) {
+      return res.status(404).json({ message: "Associated event not found." });
+    }
+
+    const certificate = await Certificate.findOne({
+      eventId: event._id,
+      registrationId: registration._id,
+    }).select("generatedAt generation lastEmailedAt");
+
+    const attended = isAttendedRegistration(registration);
+    const feedbackSubmitted = registration.feedbackSubmitted === true;
+    const requireFeedback = Boolean(event.requireFeedbackForCertificate);
+
+    let eligible = false;
+    let reason = "";
+
+    if (!event.certificateEnabled) {
+      reason = "Certificates are not enabled for this event.";
+    } else if (!attended) {
+      reason = "Attendance was not verified at the event.";
+    } else if (requireFeedback && !feedbackSubmitted) {
+      reason = "Participant feedback survey must be submitted before certificate access.";
+    } else {
+      eligible = true;
+    }
+
+    res.json({
+      eligible,
+      reason,
+      attended,
+      feedbackSubmitted,
+      requireFeedback,
+      feedbackToken: registration.feedbackToken || null,
+      certificateAvailable: Boolean(certificate),
+      certificate: certificate
+        ? {
+            generatedAt: certificate.generatedAt,
+            generation: certificate.generation,
+          }
+        : null,
+      event: {
+        title: event.title,
+        date: event.date,
+        venue: event.venue,
+        certificateTitle: event.certificateTitle,
+      },
+    });
+  } catch (err) {
+    console.error("Public certificate status error:", err);
+    res.status(500).json({ message: "Could not retrieve certificate status." });
+  }
+});
+
+/*
+  PUBLIC CERTIFICATE DOWNLOAD FOR ATTENDEE (BY REGISTRATION ID)
+*/
+router.get("/public/:registrationId/download", async (req, res) => {
+  try {
+    const registration = await Registration.findOne({
+      $or: [
+        { registrationId: req.params.registrationId },
+        { _id: isValidEventId(req.params.registrationId) ? req.params.registrationId : null },
+      ],
+    });
+
+    if (!registration) {
+      return res.status(404).json({ message: "Registration not found." });
+    }
+
+    const event = await Event.findById(registration.eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Associated event not found." });
+    }
+
+    if (!event.certificateEnabled) {
+      return res.status(403).json({ message: "Certificates are not enabled for this event." });
+    }
+
+    if (!isAttendedRegistration(registration)) {
+      return res.status(403).json({ message: "Only attendees who attended this event can receive certificates." });
+    }
+
+    if (event.requireFeedbackForCertificate && !registration.feedbackSubmitted) {
+      return res.status(403).json({
+        message: "You must complete the event feedback survey before downloading your certificate.",
+        feedbackRequired: true,
+        feedbackToken: registration.feedbackToken,
+      });
+    }
+
+    let certificate = await Certificate.findOne({
+      eventId: event._id,
+      registrationId: registration._id,
+    }).select("+pdfData");
+
+    const organization = await organizerOrganization(event);
+    let pdf;
+    if (certificate?.pdfData?.length) {
+      pdf = certificate.pdfData;
+    } else {
+      const images = await certificateImages(event);
+      pdf = await renderCertificate(event, registration, organization, images);
+      // Auto-save generated certificate record
+      certificate = await Certificate.findOneAndUpdate(
+        { eventId: event._id, registrationId: registration._id },
+        {
+          $set: {
+            issuedTo: registration.name,
+            email: registration.email,
+            generatedAt: new Date(),
+            generation: 1,
+            pdfData: pdf,
+            storagePath: "",
+          },
+          $setOnInsert: { eventId: event._id, registrationId: registration._id },
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="eventra-certificate-${registration.registrationId || registration._id}.pdf"`,
+    });
+    res.send(pdf);
+  } catch (err) {
+    console.error("Public certificate download error:", err);
+    res.status(500).json({ message: "Could not download certificate." });
+  }
+});
+
 router.post("/event/:eventId/:registrationId/email", requireAuth, async (req, res) => {
   try {
     const event = await findOwnedEvent(req.params.eventId, req.userId);
@@ -624,6 +878,7 @@ router.post("/event/:eventId/:registrationId/email", requireAuth, async (req, re
         eventId: event._id,
         status: "confirmed",
         checkedIn: true,
+        ...(event.requireFeedbackForCertificate ? { feedbackSubmitted: true } : {}),
       }),
     ]);
 
@@ -756,55 +1011,27 @@ router.post("/event/:eventId/ai-suggestion", requireAuth, async (req, res) => {
   try {
     const event = await findOwnedEvent(req.params.eventId, req.userId);
     if (!event) return res.status(404).json({ message: "Event not found" });
-    if (!process.env.AI_API_KEY) {
+    if (!isGeminiConfigured()) {
       return res.json({
         configured: false,
-        message: "Configure AI_API_KEY on the server to enable certificate suggestions.",
+        message: "Configure AI_API_KEY or GEMINI_API_KEY on the server to enable Gemini certificate suggestions.",
       });
     }
 
-    const response = await fetch(process.env.AI_API_URL || "https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.AI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      signal: AbortSignal.timeout(20000),
-      body: JSON.stringify({
-        model: process.env.AI_MODEL || "gpt-4o-mini",
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content: "Design a professional event certificate. Return JSON with template (classic, modern, or academic), title, description, and reason. Explain why the theme fits the event. Use {name}, {event}, and {date} as placeholders in the description.",
-          },
-          {
-            role: "user",
-            content: JSON.stringify({
-              title: event.title,
-              eventType: String(req.body.eventType || event.eventType || "").slice(0, 80),
-              description: String(event.description || "").slice(0, 1500),
-            }),
-          },
-        ],
-      }),
+    const suggestion = await generateGeminiCertificateDesign({
+      eventTitle: event.title,
+      eventType: String(req.body.eventType || event.eventType || "").slice(0, 80),
+      description: String(event.description || "").slice(0, 1500),
+      customPrompt: String(req.body.customPrompt || "").slice(0, 300),
     });
-    if (!response.ok) throw new Error(`AI provider returned ${response.status}`);
-    const payload = await response.json();
-    const suggestion = JSON.parse(payload.choices?.[0]?.message?.content || "{}");
-    const templates = CERTIFICATE_TEMPLATES;
+
     res.json({
       configured: true,
-      suggestion: {
-        template: templates.includes(suggestion.template) ? suggestion.template : "classic",
-        title: String(suggestion.title || DEFAULT_CERTIFICATE_TITLE).slice(0, 100),
-        description: String(suggestion.description || DEFAULT_CERTIFICATE_DESCRIPTION).slice(0, 500),
-        reason: String(suggestion.reason || "").slice(0, 500),
-      },
+      suggestion,
     });
   } catch (error) {
-    console.error("Certificate AI suggestion error:", error);
-    res.status(502).json({ message: "Could not retrieve a certificate suggestion from the configured AI provider." });
+    console.error("Gemini certificate suggestion error:", error.message);
+    res.status(502).json({ message: "Gemini AI certificate suggestion failed. Check your API key or try again." });
   }
 });
 

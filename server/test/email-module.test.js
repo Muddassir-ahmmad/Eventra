@@ -6,6 +6,10 @@ import test from "node:test";
 import express from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+
+process.env.JWT_SECRET = process.env.JWT_SECRET || "eventra-test-jwt-secret-long-random-email";
+process.env.MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/eventra";
+
 import Event from "../src/models/Event.js";
 import Registration from "../src/models/Registration.js";
 import Certificate from "../src/models/Certificate.js";
@@ -69,6 +73,7 @@ test("complete email notification module test suite", async (t) => {
 
   const server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  server.unref();
   const baseUrl = `http://127.0.0.1:${server.address().port}/api`;
 
   const organizerId = new mongoose.Types.ObjectId();
@@ -99,7 +104,7 @@ test("complete email notification module test suite", async (t) => {
   });
 
   try {
-    await mongoose.connect(process.env.MONGODB_URI, { dbName: databaseName, serverSelectionTimeoutMS: 5000 });
+    await mongoose.connect(process.env.MONGODB_URI, { dbName: databaseName, serverSelectionTimeoutMS: 1500 });
   } catch {
     t.skip("Could not establish connection to local MongoDB test database.");
     return;
@@ -415,3 +420,4 @@ test("complete email notification module test suite", async (t) => {
     assert.ok(payload.message);
   });
 });
+

@@ -1,17 +1,23 @@
 # Dependencies
 node_modules/
+**/node_modules/
+.vite/
+**/.vite/
 
 # Environment variables and secrets
 .env
 .env.*
-.env.example
+!.env.example
 
 # Build files
 dist/
+**/dist/
 build/
+**/build/
 
 # Uploads
 uploads/
+**/uploads/
 
 # Logs
 *.log

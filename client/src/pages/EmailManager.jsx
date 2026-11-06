@@ -106,7 +106,7 @@ export default function EmailManager() {
 
       <header className="email-dash-header">
         <div>
-          <span className="brand-pill" style={{ background: "#0f766e", color: "#fff" }}>
+          <span className="brand-pill">
             EMAIL NOTIFICATION MODULE
           </span>
           <h1>{event.title} — Email Delivery</h1>
@@ -211,9 +211,10 @@ export default function EmailManager() {
             Type Breakdown
           </div>
           <div style={{ fontSize: "0.825rem", color: "#334155", marginTop: "0.5rem", lineHeight: 1.6 }}>
-            <div>Confirmations: <strong>{stats.breakdown.registration_confirmation || 0}</strong></div>
-            <div>Tickets: <strong>{stats.breakdown.ticket_delivery || 0}</strong></div>
-            <div>Certificates: <strong>{stats.breakdown.certificate_delivery || 0}</strong></div>
+            <div>Confirmations: <strong>{stats.breakdown?.registration_confirmation || 0}</strong></div>
+            <div>Tickets: <strong>{stats.breakdown?.ticket_delivery || 0}</strong></div>
+            <div>Certificates: <strong>{stats.breakdown?.certificate_delivery || 0}</strong></div>
+            <div>Feedback Surveys: <strong>{stats.breakdown?.feedback_request || 0}</strong></div>
           </div>
         </div>
       </section>
@@ -256,6 +257,7 @@ export default function EmailManager() {
               <option value="registration_confirmation">Registration Confirmation</option>
               <option value="ticket_delivery">Ticket Delivery</option>
               <option value="certificate_delivery">Certificate Delivery</option>
+              <option value="feedback_request">Feedback Survey</option>
               <option value="organizer_alert">Organizer Alert</option>
             </select>
           </div>
@@ -283,6 +285,8 @@ export default function EmailManager() {
                   ? "type-ticket"
                   : log.emailType.includes("certificate")
                   ? "type-certificate"
+                  : log.emailType.includes("feedback")
+                  ? "type-feedback"
                   : log.emailType.includes("test")
                   ? "type-test"
                   : "type-alert";
@@ -365,3 +369,4 @@ export default function EmailManager() {
     </main>
   );
 }
+

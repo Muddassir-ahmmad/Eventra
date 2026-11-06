@@ -1,0 +1,923 @@
+import React, { useEffect, useState, useRef } from "react";
+import { Link, useParams } from "react-router-dom";
+import jsQR from "jsqr";
+import api from "../api";
+import "../attendance-dashboard.css";
+
+// Helper to reliably extract registration ID from raw QR strings, JSON payloads, or pass URLs
+function extractRegistrationIdentifier(raw) {
+  if (!raw || typeof raw !== "string") return "";
+  let clean = raw.trim();
+
+  // 1. JSON QR payload e.g. from generated PDF tickets
+  if (clean.startsWith("{") && clean.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(clean);
+      if (parsed.regId) return String(parsed.regId).trim();
+      if (parsed.registrationId) return String(parsed.registrationId).trim();
+      if (parsed.id) return String(parsed.id).trim();
+    } catch (_) {}
+  }
+
+  // 2. URL containing /tickets/:id
+  try {
+    if (clean.includes("/tickets/")) {
+      const parts = clean.split("/tickets/")[1].split(/[?#/]/);
+      if (parts[0]) return decodeURIComponent(parts[0]).trim();
+    }
+  } catch (_) {}
+
+  return clean;
+}
+
+export default function AttendanceDashboard() {
+  const { eventId } = useParams();
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [scanInput, setScanInput] = useState("");
+  const [processingScan, setProcessingScan] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState(null); // { type: 'success'|'warning'|'error', message, participant }
+
+  // Filter & Search
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'attended' | 'absent'
+
+  // Camera QR Scanner State & Refs
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const [facingMode, setFacingMode] = useState("environment"); // 'environment' | 'user'
+  const [scannedFlash, setScannedFlash] = useState(false);
+  const [uploadingScan, setUploadingScan] = useState(false);
+
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const canvasRef = useRef(null);
+  const animFrameIdRef = useRef(null);
+  const cameraActiveRef = useRef(false);
+  const lastScannedCodeRef = useRef("");
+  const lastScannedTimeRef = useRef(0);
+  const audioCtxRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    loadAttendanceData();
+    return () => stopCamera();
+  }, [eventId]);
+
+  // Synchronize stream attachment when video mounts
+  useEffect(() => {
+    if (cameraActive && streamRef.current && videoRef.current) {
+      const video = videoRef.current;
+      if (video.srcObject !== streamRef.current) {
+        video.srcObject = streamRef.current;
+        video.setAttribute("playsinline", "true");
+        video.muted = true;
+        video.play().catch((err) => console.debug("Video play catch:", err));
+      }
+    }
+  }, [cameraActive]);
+
+  async function loadAttendanceData() {
+    try {
+      const res = await api.get(`/registrations/event/${eventId}`);
+      setData(res.data);
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not load event attendance records.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Audio tone synthesizer for instant gate entry feedback
+  function playScanBeep(success = true) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") {
+        ctx.resume();
+      }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(success ? 880 : 330, ctx.currentTime);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.16);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.16);
+    } catch (_) {}
+  }
+
+  // Start Camera Stream
+  async function startCamera(mode = facingMode) {
+    setCameraError("");
+    setCameraReady(false);
+    stopCamera();
+
+    // Prepare audio context on user action
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx && !audioCtxRef.current) {
+        audioCtxRef.current = new AudioCtx();
+      }
+      if (audioCtxRef.current?.state === "suspended") {
+        audioCtxRef.current.resume();
+      }
+    } catch (_) {}
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError("Camera access is not supported on this browser or connection is not secure (requires HTTPS or localhost).");
+        return;
+      }
+
+      cameraActiveRef.current = true;
+      setCameraActive(true);
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: mode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+      } catch (streamErr) {
+        // Fallback without width/height constraints
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: mode },
+          audio: false,
+        });
+      }
+
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        const video = videoRef.current;
+        video.srcObject = stream;
+        video.setAttribute("playsinline", "true");
+        video.muted = true;
+        try {
+          await video.play();
+        } catch (_) {}
+      }
+
+      // Start continuous scanning loop
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+      animFrameIdRef.current = requestAnimationFrame(scanVideoFrame);
+    } catch (err) {
+      console.error("Camera access error:", err);
+      cameraActiveRef.current = false;
+      setCameraActive(false);
+      setCameraReady(false);
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        setCameraError("Camera permission denied. Please allow camera permissions in your browser address bar.");
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        setCameraError("No camera device was detected on your computer or phone.");
+      } else {
+        setCameraError(`Camera error: ${err.message || "Could not access video feed."}`);
+      }
+    }
+  }
+
+  // Stop Camera Stream
+  function stopCamera() {
+    cameraActiveRef.current = false;
+    if (animFrameIdRef.current) {
+      cancelAnimationFrame(animFrameIdRef.current);
+      animFrameIdRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+    setCameraReady(false);
+  }
+
+  // Flip front/back camera
+  function toggleCameraFlip() {
+    const nextMode = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(nextMode);
+    startCamera(nextMode);
+  }
+
+  // Continuous frame analysis loop
+  async function scanVideoFrame() {
+    if (!cameraActiveRef.current) return;
+
+    try {
+      const video = videoRef.current;
+      if (video && streamRef.current) {
+        // Ensure stream is bound to video element
+        if (!video.srcObject) {
+          video.srcObject = streamRef.current;
+          video.setAttribute("playsinline", "true");
+          video.muted = true;
+          video.play().catch(() => {});
+        }
+
+        // Ready to analyze when video has loaded current data and dimensions
+        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+          setCameraReady(true);
+          await analyzeVideoFrame(video);
+        }
+      }
+    } catch (loopErr) {
+      console.debug("Video scan loop tick:", loopErr);
+    } finally {
+      // Loop NEVER terminates prematurely while camera is active
+      if (cameraActiveRef.current) {
+        animFrameIdRef.current = requestAnimationFrame(scanVideoFrame);
+      }
+    }
+  }
+
+  // Frame Decoder: BarcodeDetector + jsQR fallback
+  async function analyzeVideoFrame(video) {
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+    if (!width || !height) return;
+
+    let detectedCode = null;
+
+    // 1. Try Native BarcodeDetector (hardware accelerated)
+    if ("BarcodeDetector" in window) {
+      try {
+        const detector = new window.BarcodeDetector({ formats: ["qr_code", "code_128"] });
+        const barcodes = await detector.detect(video);
+        if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+          detectedCode = barcodes[0].rawValue;
+        }
+      } catch (_) {
+        // Fallback to jsQR
+      }
+    }
+
+    // 2. jsQR Engine (reliable fallback across all browsers and inverted QR tickets)
+    if (!detectedCode) {
+      try {
+        if (!canvasRef.current) {
+          canvasRef.current = document.createElement("canvas");
+        }
+        const canvas = canvasRef.current;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, width, height);
+          const imageData = ctx.getImageData(0, 0, width, height);
+          const qrResult = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "attemptBoth",
+          });
+          if (qrResult && qrResult.data) {
+            detectedCode = qrResult.data;
+          }
+        }
+      } catch (scanErr) {
+        console.debug("Frame decode error:", scanErr);
+      }
+    }
+
+    // 3. Handle detected QR Code
+    if (detectedCode && detectedCode.trim()) {
+      const cleanRaw = detectedCode.trim();
+      const extractedId = extractRegistrationIdentifier(cleanRaw);
+      const now = Date.now();
+
+      // Debounce: don't scan the exact same code within 3 seconds
+      if (extractedId !== lastScannedCodeRef.current || now - lastScannedTimeRef.current > 3000) {
+        lastScannedCodeRef.current = extractedId;
+        lastScannedTimeRef.current = now;
+
+        // Flash green border on camera
+        setScannedFlash(true);
+        setTimeout(() => setScannedFlash(false), 900);
+
+        // Trigger check-in
+        handleCheckIn(extractedId);
+      }
+    }
+  }
+
+  // Scan QR code from uploaded image or ticket screenshot
+  async function handleImageUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingScan(true);
+    setScanFeedback(null);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0, img.width, img.height);
+          const imageData = ctx.getImageData(0, 0, img.width, img.height);
+          const qr = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "attemptBoth",
+          });
+
+          if (qr && qr.data) {
+            playScanBeep(true);
+            const extracted = extractRegistrationIdentifier(qr.data);
+            handleCheckIn(extracted);
+          } else {
+            playScanBeep(false);
+            setScanFeedback({
+              type: "error",
+              message: "❌ No QR code detected in the uploaded image. Please ensure the QR code is clear and not cropped.",
+            });
+          }
+          setUploadingScan(false);
+        };
+        img.onerror = () => {
+          setUploadingScan(false);
+          setScanFeedback({ type: "error", message: "Could not decode image file." });
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setUploadingScan(false);
+      setScanFeedback({ type: "error", message: "Failed to process image file." });
+    }
+  }
+
+  // Handle Check-In Submission
+  async function handleCheckIn(rawIdentifier) {
+    const identifier = extractRegistrationIdentifier(rawIdentifier);
+    if (!identifier || !identifier.trim()) return;
+
+    setProcessingScan(true);
+    setScanFeedback(null);
+
+    try {
+      const res = await api.post(`/registrations/event/${eventId}/checkin`, {
+        identifier: identifier.trim(),
+      });
+
+      if (res.data.alreadyCheckedIn) {
+        playScanBeep(false);
+        setScanFeedback({
+          type: "warning",
+          message: `⚠️ Already Checked In: ${res.data.registration?.name} was checked in earlier (${res.data.message})`,
+          participant: res.data.registration,
+        });
+      } else {
+        playScanBeep(true);
+        setScanFeedback({
+          type: "success",
+          message: `✓ Verified! Welcome, ${res.data.registration.name} (${res.data.registration.ticketType || "General"})`,
+          participant: res.data.registration,
+        });
+      }
+
+      setScanInput("");
+      loadAttendanceData();
+    } catch (err) {
+      playScanBeep(false);
+      setScanFeedback({
+        type: "error",
+        message: `❌ ${err.response?.data?.message || "Check-in failed. Registration not found for this event."}`,
+      });
+    } finally {
+      setProcessingScan(false);
+    }
+  }
+
+  // Handle Quick Toggle
+  async function handleToggleAttendance(registrationId) {
+    try {
+      await api.post(`/registrations/event/${eventId}/registrations/${registrationId}/toggle-attendance`);
+      loadAttendanceData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Could not toggle attendance status.");
+    }
+  }
+
+  // Handle Delete Registration (e.g. duplicate booking, revoked attendee)
+  async function handleDeleteRegistration(reg) {
+    if (!reg) return;
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete the registration for "${reg.name}" (${reg.registrationId})?\n\nThis will remove the attendee, revoke their ticket pass, and release 1 seat back to event capacity.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await api.delete(`/registrations/event/${eventId}/registrations/${reg._id}`);
+      setScanFeedback({
+        type: "success",
+        message: `Registration for ${reg.name} (${reg.registrationId}) deleted successfully.`,
+        participant: null,
+      });
+      loadAttendanceData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Could not delete registration.");
+    }
+  }
+
+  // CSV Export
+  function exportCsv() {
+    if (!data?.registrations?.length) return;
+
+    const headers = [
+      "Registration ID",
+      "Full Name",
+      "Email",
+      "Phone",
+      "College",
+      "Department",
+      "Ticket Tier",
+      "Gate Status",
+      "Checked In At",
+    ];
+
+    const rows = data.registrations.map((r) => [
+      `"${r.registrationId || ""}"`,
+      `"${r.name || ""}"`,
+      `"${r.email || ""}"`,
+      `"${r.phone || ""}"`,
+      `"${r.college || ""}"`,
+      `"${r.department || ""}"`,
+      `"${r.ticketType || "General"}"`,
+      r.checkedIn ? '"Attended"' : '"Absent"',
+      r.checkedInAt ? `"${new Date(r.checkedInAt).toLocaleString()}"` : '""',
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `eventra-attendance-${eventId}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  if (loading) {
+    return (
+      <main className="attendance-page-root">
+        <div className="attendance-container" style={{ textAlign: "center", padding: 60 }}>
+          <div className="spinner" style={{ margin: "0 auto 16px" }} />
+          <p style={{ color: "#94a3b8" }}>Loading attendance manager...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <main className="attendance-page-root">
+        <div className="attendance-container" style={{ textAlign: "center", padding: 60 }}>
+          <h1>{error || "Could not load attendance"}</h1>
+          <Link className="btn-hero-primary" to={`/dashboard/events/${eventId}`}>
+            Back to Event Hub
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const { event, stats, registrations } = data;
+
+  const filteredList = registrations.filter((r) => {
+    const matchesSearch =
+      r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.registrationId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.college?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.department?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    if (statusFilter === "attended") return r.checkedIn === true;
+    if (statusFilter === "absent") return r.status === "confirmed" && !r.checkedIn;
+    return true;
+  });
+
+  return (
+    <main className="attendance-page-root">
+      <div className="attendance-container">
+        {/* Navigation & Header */}
+        <div style={{ marginBottom: 16 }}>
+          <Link to={`/dashboard/events/${eventId}`} style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>
+            ← Back to Event Overview
+          </Link>
+        </div>
+
+        <div className="attendance-header">
+          <div className="attendance-title-box">
+            <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#10b981", letterSpacing: "0.12em" }}>
+              LIVE ATTENDANCE DESK
+            </span>
+            <h1>{event.title}</h1>
+            <p style={{ color: "#94a3b8", margin: "4px 0 0", fontSize: "0.9rem" }}>
+              📅 {event.date ? new Date(event.date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : ""} · 📍 {event.venue}
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              className="btn-hero-secondary"
+              style={{ padding: "10px 16px", fontSize: "0.85rem" }}
+              onClick={exportCsv}
+            >
+              📥 Export CSV Report
+            </button>
+            <Link
+              className="btn-hero-secondary"
+              style={{ padding: "10px 16px", fontSize: "0.85rem" }}
+              to={`/dashboard/events/${eventId}/registrations`}
+            >
+              📋 All Registrations
+            </Link>
+          </div>
+        </div>
+
+        {/* 1. ATTENDANCE METRICS */}
+        <div className="attendance-stats-grid">
+          <div className="attendance-stat-card">
+            <span>Total Registered</span>
+            <strong>{stats.confirmedRegistrations}</strong>
+          </div>
+
+          <div className="attendance-stat-card highlight">
+            <span>Attended / Verified</span>
+            <strong>{stats.attendedParticipants}</strong>
+          </div>
+
+          <div className="attendance-stat-card">
+            <span>Absent Attendees</span>
+            <strong>{stats.absentParticipants}</strong>
+          </div>
+
+          <div className="attendance-stat-card highlight">
+            <span>Attendance Rate</span>
+            <strong>{stats.attendancePercentage}%</strong>
+          </div>
+
+          <div className="attendance-stat-card">
+            <span>Total Capacity</span>
+            <strong>{event.capacity}</strong>
+          </div>
+        </div>
+
+        {/* 2. SCANNER & FAST CHECK-IN DESK */}
+        <div className="scanner-checkin-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#a855f7", letterSpacing: "0.08em" }}>
+                GATE SCANNER &amp; FAST ENTRY
+              </span>
+              <h2 style={{ fontSize: "1.4rem", margin: "4px 0 0", color: "#ffffff" }}>
+                Scan QR Pass or Enter Registration Code
+              </h2>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+
+              <button
+                type="button"
+                className="btn-hero-secondary"
+                style={{ padding: "8px 16px", fontSize: "0.85rem" }}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingScan}
+              >
+                {uploadingScan ? "Reading Image…" : "📁 Scan QR Image / Screenshot"}
+              </button>
+
+              {cameraActive && (
+                <button
+                  type="button"
+                  className="btn-hero-secondary"
+                  style={{ padding: "8px 16px", fontSize: "0.85rem" }}
+                  onClick={toggleCameraFlip}
+                  title="Switch front and back camera"
+                >
+                  🔄 Flip Camera ({facingMode === "environment" ? "Back" : "Front"})
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="btn-hero-primary"
+                style={{ padding: "8px 18px", fontSize: "0.85rem" }}
+                onClick={cameraActive ? stopCamera : () => startCamera()}
+              >
+                {cameraActive ? "⏹ Stop Camera" : "📷 Start Camera QR Scanner"}
+              </button>
+            </div>
+          </div>
+
+          {/* Camera Scanner Viewport */}
+          {cameraActive && (
+            <div style={{ marginTop: 22, textAlign: "center" }}>
+              <div className={`camera-scan-viewport ${scannedFlash ? "scanned" : ""}`}>
+                <video
+                  ref={(el) => {
+                    videoRef.current = el;
+                    if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                      el.srcObject = streamRef.current;
+                      el.setAttribute("playsinline", "true");
+                      el.muted = true;
+                      el.play().catch(() => {});
+                    }
+                  }}
+                  playsInline
+                  muted
+                  autoPlay
+                  onLoadedMetadata={() => {
+                    if (videoRef.current) {
+                      videoRef.current.play().catch(() => {});
+                      setCameraReady(true);
+                    }
+                  }}
+                  onPlaying={() => setCameraReady(true)}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                />
+
+                {/* Loading state indicator before webcam frames arrive */}
+                {!cameraReady && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(8, 12, 22, 0.92)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 12,
+                      zIndex: 3,
+                    }}
+                  >
+                    <div className="spinner" />
+                    <p style={{ margin: 0, fontSize: "0.85rem", color: "#94a3b8" }}>
+                      Connecting camera feed…
+                    </p>
+                  </div>
+                )}
+
+                {/* Real-time moving green laser scan line */}
+                {cameraReady && <div className="scan-laser-line" />}
+
+                {/* Target Framing Box */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: "68%",
+                    height: "68%",
+                    border: "2px dashed rgba(255, 255, 255, 0.8)",
+                    borderRadius: 14,
+                    boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.45)",
+                    pointerEvents: "none",
+                    zIndex: 4,
+                  }}
+                />
+
+                {scannedFlash && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(16, 185, 129, 0.35)",
+                      display: "grid",
+                      placeItems: "center",
+                      color: "#ffffff",
+                      fontWeight: 900,
+                      fontSize: "1.4rem",
+                      letterSpacing: "0.08em",
+                      pointerEvents: "none",
+                      zIndex: 10,
+                    }}
+                  >
+                    ✓ SCANNED!
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop: 12, display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: cameraReady ? "#10b981" : "#f59e0b",
+                    boxShadow: cameraReady ? "0 0 10px #10b981" : "none",
+                  }}
+                />
+                <small style={{ color: "#a5b4fc", fontWeight: 700, fontSize: "0.84rem" }}>
+                  {cameraReady
+                    ? "Live Camera Scanner Active — Center attendee's QR ticket pass in the frame"
+                    : "Connecting camera feed…"}
+                </small>
+              </div>
+            </div>
+          )}
+
+          {cameraError && (
+            <p style={{ color: "#f87171", fontSize: "0.85rem", marginTop: 12 }}>
+              {cameraError}
+            </p>
+          )}
+
+          {/* Manual Input / Barcode Scanner Input */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCheckIn(scanInput);
+            }}
+            className="scan-input-row"
+          >
+            <input
+              type="text"
+              value={scanInput}
+              onChange={(e) => setScanInput(e.target.value)}
+              placeholder="Paste / scan Registration ID (e.g. EVT-2026-XXXX) or attendee email"
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="btn-hero-primary"
+              disabled={processingScan || !scanInput.trim()}
+              style={{ padding: "12px 24px" }}
+            >
+              {processingScan ? "Verifying..." : "Verify & Check-In →"}
+            </button>
+          </form>
+
+          {/* Scan Feedback Banner */}
+          {scanFeedback && (
+            <div className={`scan-feedback-banner ${scanFeedback.type}`}>
+              <div>
+                <strong>{scanFeedback.message}</strong>
+                {scanFeedback.participant && (
+                  <span style={{ display: "block", fontSize: "0.82rem", opacity: 0.9, marginTop: 2 }}>
+                    ID: {scanFeedback.participant.registrationId} · Email: {scanFeedback.participant.email} · {scanFeedback.participant.college}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 3. ATTENDEE DIRECTORY & CHECK-IN TABLE */}
+        <div className="attendee-table-wrap">
+          <div className="attendee-toolbar">
+            <input
+              type="text"
+              className="attendee-search-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="🔍 Search by name, email, code, college..."
+            />
+
+            <div className="filter-pills">
+              <button
+                type="button"
+                className={`filter-pill ${statusFilter === "all" ? "active" : ""}`}
+                onClick={() => setStatusFilter("all")}
+              >
+                All ({registrations.length})
+              </button>
+              <button
+                type="button"
+                className={`filter-pill ${statusFilter === "attended" ? "active" : ""}`}
+                onClick={() => setStatusFilter("attended")}
+              >
+                Checked In ({stats.attendedParticipants})
+              </button>
+              <button
+                type="button"
+                className={`filter-pill ${statusFilter === "absent" ? "active" : ""}`}
+                onClick={() => setStatusFilter("absent")}
+              >
+                Absent ({stats.absentParticipants})
+              </button>
+            </div>
+          </div>
+
+          <div style={{ overflowX: "auto" }}>
+            <table className="registration-table" style={{ margin: 0 }}>
+              <thead>
+                <tr>
+                  <th>Ticket / Reg ID</th>
+                  <th>Attendee Name</th>
+                  <th>Contact Details</th>
+                  <th>College &amp; Dept</th>
+                  <th>Gate Status</th>
+                  <th style={{ textAlign: "right" }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredList.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>
+                      No attendee matches your search filter.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredList.map((reg) => (
+                    <tr key={reg._id}>
+                      <td>
+                        <span style={{ padding: "4px 8px", background: "rgba(255,255,255,0.06)", borderRadius: 6, fontSize: "0.8rem", color: "#38bdf8", fontWeight: 700 }}>
+                          {reg.registrationId}
+                        </span>
+                        <small style={{ display: "block", color: "#64748b", marginTop: 4 }}>
+                          {reg.ticketType || "General"}
+                        </small>
+                      </td>
+                      <td>
+                        <strong style={{ color: "#ffffff" }}>{reg.name}</strong>
+                      </td>
+                      <td>
+                        <div>{reg.email}</div>
+                        <small style={{ color: "#64748b" }}>{reg.phone}</small>
+                      </td>
+                      <td>
+                        <div>{reg.college}</div>
+                        <small style={{ color: "#64748b" }}>{reg.department || "General"}</small>
+                      </td>
+                      <td>
+                        {reg.checkedIn ? (
+                          <span className="status-badge present">
+                            ✓ Present ({new Date(reg.checkedInAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})
+                          </span>
+                        ) : (
+                          <span className="status-badge absent">
+                            ● Absent
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: 8, alignItems: "center", justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            className={reg.checkedIn ? "button button-ghost small" : "button button-primary small"}
+                            style={{ padding: "6px 14px", fontSize: "0.78rem" }}
+                            onClick={() => handleToggleAttendance(reg._id)}
+                          >
+                            {reg.checkedIn ? "Undo Entry" : "Mark Present ✓"}
+                          </button>
+                          <button
+                            type="button"
+                            className="button button-ghost small"
+                            style={{
+                              padding: "6px 10px",
+                              fontSize: "0.78rem",
+                              color: "#fb7185",
+                              borderColor: "rgba(244, 63, 94, 0.35)",
+                              background: "rgba(244, 63, 94, 0.1)",
+                              cursor: "pointer",
+                            }}
+                            onClick={() => handleDeleteRegistration(reg)}
+                            title={`Delete registration for ${reg.name}`}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}

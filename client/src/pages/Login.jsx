@@ -15,6 +15,9 @@ export default function Login() {
     try {
       const { data } = await api.post("/auth/login", form);
       setToken(data.token);
+      if (data.user?.name) {
+        localStorage.setItem("eventra_user_name", data.user.name);
+      }
       navigate("/dashboard");
     } catch (err) {
       setError(
@@ -47,6 +50,12 @@ export default function Login() {
         <button className="primary full">Login</button>
       </form>
       <p className="muted">New organizer? <Link to="/register">Create an account</Link></p>
+      <p className="muted" style={{ fontSize: "0.76rem", marginTop: 12 }}>
+        By signing in, you agree to EVENTRA's{" "}
+        <Link to="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#818cf8", textDecoration: "underline" }}>
+          Terms &amp; Conditions
+        </Link>.
+      </p>
     </AuthLayout>
   );
 }

@@ -11,17 +11,25 @@ export default function Register() {
     password: "",
     organization: "",
   });
-
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState("");
 
   async function submit(e) {
     e.preventDefault();
     setError("");
 
+    if (!agreeTerms) {
+      setError("Please accept the Terms and Conditions to create your account.");
+      return;
+    }
+
     try {
       const { data } = await api.post("/auth/register", form);
 
       setToken(data.token);
+      if (data.user?.name) {
+        localStorage.setItem("eventra_user_name", data.user.name);
+      }
 
       navigate("/dashboard");
     } catch (err) {
@@ -99,6 +107,23 @@ export default function Register() {
               {error}
             </p>
           )}
+
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, margin: "14px 0 6px", textAlign: "left" }}>
+            <input
+              type="checkbox"
+              id="termsAgreement"
+              checked={agreeTerms}
+              onChange={(e) => setAgreeTerms(e.target.checked)}
+              required
+              style={{ width: 18, height: 18, marginTop: 2, accentColor: "#6366f1", cursor: "pointer", flexShrink: 0 }}
+            />
+            <label htmlFor="termsAgreement" style={{ fontSize: "0.82rem", color: "#cbd5e1", cursor: "pointer", lineHeight: 1.45 }}>
+              I agree to the{" "}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#818cf8", fontWeight: 700, textDecoration: "underline" }}>
+                Terms and Conditions
+              </Link>
+            </label>
+          </div>
 
           <button
             type="submit"

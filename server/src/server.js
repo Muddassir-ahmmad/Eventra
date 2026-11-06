@@ -9,6 +9,8 @@ import eventRoutes from "./routes/events.js";
 import registrationRoutes from "./routes/registrations.js";
 import certificateRoutes from "./routes/certificates.js";
 import emailRoutes from "./routes/emails.js";
+import feedbackRoutes from "./routes/feedback.js";
+import reportRoutes from "./routes/reports.js";
 
 const app = express();
 const uploadDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../uploads");
@@ -25,7 +27,12 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 app.get("/api/health", (req, res) => {
-  res.json({ message: "EVENTRA API is running" });
+  res.json({
+    status: "ok",
+    message: "EVENTRA API is running",
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.use("/api/auth", authRoutes);
@@ -33,6 +40,8 @@ app.use("/api/events", eventRoutes);
 app.use("/api/registrations", registrationRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/emails", emailRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/reports", reportRoutes);
 
 const PORT = process.env.PORT || 5000;
 

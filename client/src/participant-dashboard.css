@@ -1,0 +1,320 @@
+/* =========================================================================
+   EVENTRA - PARTICIPANT PORTAL & DASHBOARD STYLES
+   Theme: Midnight Luxe & Electric Aurora (Modern, Attractive, High-Converting)
+   ========================================================================= */
+
+.participant-page-root {
+  min-height: 100vh;
+  background: var(--bg-canvas, #090d16);
+  color: var(--text-main, #cbd5e1);
+  position: relative;
+  overflow-x: hidden;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+
+.participant-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 32px;
+  background: rgba(9, 13, 22, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.participant-brand {
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.participant-brand span {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.participant-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.participant-hero-section {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 56px 24px 36px;
+  text-align: center;
+}
+
+.participant-kicker {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.16);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #c7d2fe;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.participant-hero-section h1 {
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  margin: 0 0 14px;
+  color: #ffffff;
+}
+
+.participant-hero-section p {
+  color: #94a3b8;
+  font-size: 1.05rem;
+  max-width: 620px;
+  margin: 0 auto 36px;
+  line-height: 1.65;
+}
+
+.participant-search-bar {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  gap: 10px;
+  background: rgba(14, 20, 36, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 6px 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.participant-search-bar:focus-within {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.participant-search-bar input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  padding: 10px 14px;
+  color: #ffffff;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.participant-search-bar input::placeholder {
+  color: #64748b;
+}
+
+.participant-tickets-container {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+
+.participant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.participant-card {
+  background: rgba(14, 20, 36, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+}
+
+.participant-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.15);
+}
+
+.participant-card-cover {
+  height: 140px;
+  background: linear-gradient(135deg, #131d36 0%, #1e1b4b 100%);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  padding: 16px;
+}
+
+.participant-card-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.35;
+}
+
+.participant-card-status-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(14, 20, 36, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.participant-card-status-badge.attended {
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.participant-card-status-badge.expired {
+  color: #fb7185;
+  border-color: rgba(244, 63, 94, 0.4);
+  background: rgba(244, 63, 94, 0.15);
+}
+
+.participant-card-status-badge.upcoming {
+  color: #818cf8;
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.participant-search-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: rgba(14, 20, 36, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+}
+
+.participant-search-meta-text {
+  font-size: 0.88rem;
+  color: #94a3b8;
+}
+
+.participant-search-meta-text strong {
+  color: #ffffff;
+}
+
+.participant-search-meta-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-clear-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-clear-search:hover {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: rgba(244, 63, 94, 0.5);
+  color: #ffffff;
+}
+
+.participant-card-body {
+  padding: 22px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.participant-card-body h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 0 0 10px;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.participant-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+
+.participant-ticket-pill {
+  margin: 16px 0;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.participant-ticket-pill span {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.participant-ticket-pill strong {
+  font-size: 0.92rem;
+  color: #818cf8;
+  font-family: monospace;
+}
+
+.participant-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.participant-empty-box {
+  text-align: center;
+  padding: 64px 24px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  background: rgba(14, 20, 36, 0.5);
+  margin-top: 28px;
+  color: #94a3b8;
+}
+
+.participant-empty-icon {
+  font-size: 2.8rem;
+  margin-bottom: 14px;
+  display: inline-block;
+  color: #818cf8;
+}

@@ -1,13 +1,29 @@
 export const DEFAULT_CERTIFICATE_TITLE = "Certificate of Participation";
 export const DEFAULT_CERTIFICATE_DESCRIPTION =
   "This certificate is proudly presented to {name} for participating in {event}.";
-export const CERTIFICATE_TEMPLATES = ["classic", "modern", "academic"];
+export const CERTIFICATE_TEMPLATES = [
+  "classic",
+  "modern",
+  "academic",
+  "royalGold",
+  "techAurora",
+  "emeraldExecutive",
+  "crimsonLuxe",
+  "vintageParchment",
+];
 
 export function resolveCertificateDescription(description, participant, event, date) {
+  const pName = participant || "Participant";
+  const eName = event || "Event";
+  const dStr = date || "Event date";
+
   return (description || DEFAULT_CERTIFICATE_DESCRIPTION)
-    .replaceAll("{name}", participant || "Participant")
-    .replaceAll("{event}", event || "Event")
-    .replaceAll("{date}", date || "Event date")
+    .replaceAll("{participantName}", pName)
+    .replaceAll("{name}", pName)
+    .replaceAll("{eventName}", eName)
+    .replaceAll("{event}", eName)
+    .replaceAll("{eventDate}", dStr)
+    .replaceAll("{date}", dStr)
     .replace(/\{[^{}]+\}/g, "")
     .trim();
 }
@@ -19,6 +35,7 @@ export function isAttendedRegistration(registration) {
 export function normalizeCertificateSettings(settings) {
   return {
     certificateEnabled: settings.certificateEnabled === true,
+    requireFeedbackForCertificate: settings.requireFeedbackForCertificate === true,
     certificateTemplate: CERTIFICATE_TEMPLATES.includes(settings.certificateTemplate)
       ? settings.certificateTemplate
       : "classic",

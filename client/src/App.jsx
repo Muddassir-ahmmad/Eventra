@@ -17,13 +17,25 @@ import EventManage from "./pages/EventManage";
 import EventBuilder from "./pages/EventBuilder";
 import CertificateManager from "./pages/CertificateManager";
 import EmailManager from "./pages/EmailManager";
+import EventFeedback from "./pages/EventFeedback";
+import PublicFeedback from "./pages/PublicFeedback";
+import PostEventReport from "./pages/PostEventReport";
+import TicketPass from "./pages/TicketPass";
+import AttendanceDashboard from "./pages/AttendanceDashboard";
+import ParticipantDashboard from "./pages/ParticipantDashboard";
+import Terms from "./pages/Terms";
+import ProfileSettings from "./pages/ProfileSettings";
 
 export default function App() {
   const location = useLocation();
 
   // Public participant pages should not show organizer navigation.
   const publicPage =
-    location.pathname.startsWith("/events/");
+    location.pathname.startsWith("/events/") ||
+    location.pathname.startsWith("/tickets/") ||
+    location.pathname.startsWith("/feedback/") ||
+    location.pathname.startsWith("/terms") ||
+    location.pathname.startsWith("/participant");
 
   return (
     <>
@@ -33,9 +45,18 @@ export default function App() {
         {/* Home */}
         <Route path="/" element={<Home />} />
 
+        {/* Participant dashboard & tickets portal */}
+        <Route path="/participant/dashboard" element={<ParticipantDashboard />} />
+        <Route path="/participant-dashboard" element={<ParticipantDashboard />} />
+        <Route path="/my-tickets" element={<ParticipantDashboard />} />
+
         {/* Organizer authentication */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+
+        {/* Legal & Terms */}
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/terms-and-conditions" element={<Terms />} />
 
         {/* Organizer dashboard */}
         <Route path="/dashboard" element={<Dashboard />} />
@@ -58,6 +79,22 @@ export default function App() {
           element={<EventRegistration />}
         />
 
+        {/* Digital ticket pass view */}
+        <Route
+          path="/tickets/:registrationId"
+          element={<TicketPass />}
+        />
+
+        {/* Public participant feedback survey */}
+        <Route
+          path="/events/:eventId/feedback"
+          element={<PublicFeedback />}
+        />
+        <Route
+          path="/feedback/:token"
+          element={<PublicFeedback />}
+        />
+
         {/* Organizer event management */}
         <Route
           path="/dashboard/events/:eventId"
@@ -76,36 +113,73 @@ export default function App() {
           element={<EventRegistrations />}
         />
 
+        {/* Organizer attendance and fast QR check-in */}
+        <Route
+          path="/dashboard/events/:eventId/attendance"
+          element={<AttendanceDashboard />}
+        />
+
+        {/* Organizer certificates */}
         <Route
           path="/dashboard/events/:eventId/certificates"
           element={<CertificateManager />}
+        />
+
+        {/* Organizer email delivery management */}
+        <Route
+          path="/dashboard/events/:eventId/emails"
+          element={<EmailManager />}
+        />
+
+        {/* Organizer participant feedback analytics */}
+        <Route
+          path="/dashboard/events/:eventId/feedback"
+          element={<EventFeedback />}
+        />
+
+        {/* Organizer post-event report studio */}
+        <Route
+          path="/dashboard/events/:eventId/report"
+          element={<PostEventReport />}
+        />
+
+        {/* Organizer profile & account settings */}
+        <Route
+          path="/dashboard/settings"
+          element={<ProfileSettings />}
+        />
+        <Route
+          path="/dashboard/profile"
+          element={<ProfileSettings />}
+        />
+        <Route
+          path="/settings"
+          element={<ProfileSettings />}
         />
       </Routes>
     </>
   );
 }
 
-
 function OrganizerHeader() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
   const token = localStorage.getItem("eventra_token");
+  const userName = localStorage.getItem("eventra_user_name") || "Organizer";
+  const userInitial = userName[0] ? userName[0].toUpperCase() : "O";
 
   function logout() {
     localStorage.removeItem("eventra_token");
+    localStorage.removeItem("eventra_user_name");
     navigate("/login");
   }
 
   return (
     <header className="app-header">
       <div className="header-inner">
-
         {/* Logo */}
-        <Link
-          className="brand"
-          to="/"
-        >
+        <Link className="brand" to="/">
           EVENT<span>RA</span>
         </Link>
 
@@ -113,148 +187,142 @@ function OrganizerHeader() {
           <>
             {/* Organizer navigation */}
             <nav className="main-nav">
-
-              <Link to="/dashboard">
-                Dashboard
-              </Link>
-
-              <Link to="/dashboard">
-                My Events
-              </Link>
-
+              <Link to="/dashboard">Dashboard</Link>
+              <Link to="/dashboard">My Events</Link>
             </nav>
 
             {/* Organizer profile */}
             <div className="profile-wrap">
-
               <button
                 className="profile-button"
                 onClick={() => setOpen(!open)}
               >
-                <span className="avatar">
-                  M
-                </span>
-
-                <span className="profile-name">
-                  Organizer
-                </span>
-
-                <span>
-                  ⌄
-                </span>
+                <span className="avatar">{userInitial}</span>
+                <span className="profile-name">{userName}</span>
+                <span>⌄</span>
               </button>
 
               {open && (
                 <div className="profile-menu">
-
                   <div className="profile-menu-head">
-                    <strong>
-                      Organizer Account
-                    </strong>
-
-                    <span>
-                      EVENTRA Organizer
-                    </span>
+                    <strong>{userName}</strong>
+                    <span>EVENTRA Organizer</span>
                   </div>
-
-                  <button
-                    onClick={() => setOpen(false)}
-                  >
-                    Profile
+                  <button onClick={() => { setOpen(false); navigate("/dashboard/settings"); }}>
+                    👤 Profile Settings
                   </button>
-
-                  <button
-                    onClick={() => setOpen(false)}
-                  >
-                    Settings
+                  <button onClick={() => { setOpen(false); navigate("/dashboard/settings"); }}>
+                    🔒 Change Password
                   </button>
-
-                  <button
-                    className="danger-item"
-                    onClick={logout}
-                  >
+                  <button className="danger-item" onClick={logout}>
                     Logout
                   </button>
-
                 </div>
               )}
-
             </div>
           </>
         ) : (
-
           <nav className="main-nav">
-
-            <Link to="/login">
-              Organizer Login
-            </Link>
-
-            <Link
-              className="header-cta"
-              to="/register"
-            >
+            <Link to="/login">Organizer Login</Link>
+            <Link className="header-cta" to="/register">
               Get Started
             </Link>
-
           </nav>
-
         )}
-
       </div>
     </header>
   );
 }
 
-
 function Home() {
+  const token = typeof window !== "undefined" ? localStorage.getItem("eventra_token") : null;
+
+  const features = [
+    {
+      step: "01",
+      title: "Smart Event Studio",
+      desc: "Comprehensive 9-step builder with AI & vector poster generator, custom fields, ticket tiers, and instant slug publishing.",
+    },
+    {
+      step: "02",
+      title: "Digital Pass & QR Tickets",
+      desc: "Automated vector PDF tickets with encrypted QR tokens delivered directly to participant inboxes and instant print passes.",
+    },
+    {
+      step: "03",
+      title: "Fast Attendance Scanner",
+      desc: "Live camera barcode scanning, multi-field search, manual check-in toggle, and real-time attendance analytics.",
+    },
+    {
+      step: "04",
+      title: "Feedback-Gated Certificates",
+      desc: "Anti-fraud certificate generation gated by attendance verification and feedback survey completion with direct PDF export.",
+    },
+    {
+      step: "05",
+      title: "Closure & Feedback Automation",
+      desc: "One-click event closure triggers automated cryptographic feedback request emails and real-time rating dashboards.",
+    },
+    {
+      step: "06",
+      title: "Executive Post-Event Reports",
+      desc: "12-section multi-page vector PDF reports with running headers, footers, KPI metrics, and attendance analysis.",
+    },
+  ];
+
   return (
     <main className="landing">
-
       <section className="landing-hero">
-
         <div className="hero-content">
-
-          <div className="hero-badge">
-            ✦ SMART EVENT MANAGEMENT
-          </div>
-
+          <div className="hero-badge">✦ SMART EVENT MANAGEMENT PLATFORM</div>
           <h1>
             Your event.
             <br />
-            <span>
-              One powerful platform.
-            </span>
+            <span>One powerful platform.</span>
           </h1>
-
           <p>
-            Create, publish and manage events
-            with registration, tickets, QR entry,
-            volunteers and certificates —
-            all from one place.
+            Create, publish and manage end-to-end events with registration, digital tickets,
+            QR entry, feedback surveys, automated certificates, and comprehensive post-event reporting.
           </p>
-
           <div className="hero-actions">
-
-            <Link
-              className="button button-primary"
-              to="/register"
-            >
-              Create an Event
-            </Link>
-
-            <Link
-              className="button button-ghost"
-              to="/login"
-            >
-              Organizer Login
-            </Link>
-
+            {token ? (
+              <>
+                <Link className="button button-primary" to="/create-event">
+                  ✦ Create New Event
+                </Link>
+                <Link className="button button-ghost" to="/dashboard">
+                  Organizer Dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link className="button button-primary" to="/register">
+                  Get Started Free
+                </Link>
+                <Link className="button button-ghost" to="/login">
+                  Organizer Login
+                </Link>
+              </>
+            )}
           </div>
-
         </div>
-
       </section>
 
+      <section className="landing-features">
+        {features.map((f) => (
+          <div key={f.step} className="landing-feature">
+            <span>STEP {f.step}</span>
+            <h3>{f.title}</h3>
+            <p>{f.desc}</p>
+          </div>
+        ))}
+      </section>
+
+      <footer style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", padding: "28px 24px", textAlign: "center", fontSize: "0.82rem", color: "#94a3b8", background: "rgba(9, 13, 22, 0.9)" }}>
+        <p style={{ margin: 0 }}>
+          © 2026 EVENTRA Smart Event Management Platform · <Link to="/terms" style={{ color: "#818cf8", textDecoration: "underline" }}>Terms &amp; Conditions</Link>
+        </p>
+      </footer>
     </main>
   );
 }

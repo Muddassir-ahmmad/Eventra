@@ -26,6 +26,7 @@ const emailLogSchema = new mongoose.Schema(
         "registration_confirmation",
         "ticket_delivery",
         "certificate_delivery",
+        "feedback_request",
         "organizer_alert",
         "custom_notification",
         "test_email",
@@ -77,3 +78,4 @@ emailLogSchema.index({ eventId: 1, deliveryStatus: 1 });
 emailLogSchema.index({ registrationId: 1, emailType: 1 });
 
 export default mongoose.model("EmailLog", emailLogSchema);
+

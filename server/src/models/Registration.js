@@ -40,6 +40,15 @@ const registrationSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    ticketType: {
+      type: String,
+      default: "General",
+    },
+    customAnswers: {
+      type: Map,
+      of: String,
+      default: {},
+    },
     status: {
       type: String,
       enum: ["confirmed", "cancelled"],
@@ -58,6 +67,23 @@ const registrationSchema = new mongoose.Schema(
       default: null,
     },
     ticketEmailedAt: {
+      type: Date,
+      default: null,
+    },
+    feedbackToken: {
+      type: String,
+      default: null,
+    },
+    feedbackTokenHash: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    feedbackSubmitted: {
+      type: Boolean,
+      default: false,
+    },
+    feedbackSubmittedAt: {
       type: Date,
       default: null,
     },

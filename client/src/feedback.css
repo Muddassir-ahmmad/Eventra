@@ -1,0 +1,483 @@
+/* =========================================================================
+   EVENTRA - POST-EVENT FEEDBACK & SURVEY STYLES
+   Theme: Midnight Luxe & Electric Aurora (Modern, Attractive, High-Converting)
+   ========================================================================= */
+
+:root {
+  --fb-primary: #6366f1;
+  --fb-primary-hover: #4f46e5;
+  --fb-accent: #f59e0b;
+  --fb-bg: #090d16;
+  --fb-card-bg: rgba(14, 20, 36, 0.75);
+  --fb-border: rgba(255, 255, 255, 0.08);
+  --fb-text: #ffffff;
+  --fb-muted: #94a3b8;
+}
+
+/* =========================================================================
+   Public Feedback Form
+   ========================================================================= */
+
+.feedback-public-shell {
+  min-height: 100vh;
+  background: radial-gradient(ellipse 70% 40% at 50% -10%, rgba(99, 102, 241, 0.25), transparent 60%),
+              #090d16;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+}
+
+.feedback-public-card {
+  width: 100%;
+  max-width: 680px;
+  background: rgba(14, 20, 36, 0.88);
+  border-radius: 1.25rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--fb-border, rgba(255, 255, 255, 0.1));
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+
+.feedback-card-header {
+  background: radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.25), transparent 60%),
+              linear-gradient(135deg, #131d36 0%, #1e1b4b 100%);
+  color: #ffffff;
+  padding: 2.25rem 2.25rem 2rem;
+  border-bottom: 1px solid var(--fb-border, rgba(255, 255, 255, 0.08));
+}
+
+.feedback-card-header .brand-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: #c7d2fe !important;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  margin-bottom: 0.75rem;
+}
+
+.feedback-card-header h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.25;
+  color: #ffffff;
+  letter-spacing: -0.03em;
+}
+
+.feedback-card-header p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.feedback-form-body {
+  padding: 2rem 2.25rem;
+}
+
+/* Star Rating Controls */
+.feedback-rating-group {
+  margin-bottom: 1.75rem;
+}
+
+.feedback-rating-label {
+  display: block;
+  font-size: 0.925rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.6rem;
+}
+
+.feedback-rating-subtext {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-top: -0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.star-rating-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.star-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #64748b;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  font-size: 1.35rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.star-btn:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+  transform: translateY(-2px);
+}
+
+.star-btn.is-active {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #f59e0b;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
+}
+
+/* Text Areas & Inputs */
+.feedback-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(10, 15, 28, 0.8);
+  color: #ffffff;
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  outline: none;
+  resize: vertical;
+  min-height: 90px;
+  transition: all 0.16s ease;
+}
+
+.feedback-textarea:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.feedback-submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #ffffff;
+  border: 1px solid #6366f1;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.4);
+  transition: all 0.2s ease;
+  margin-top: 1rem;
+}
+
+.feedback-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.6);
+  transform: translateY(-1px);
+}
+
+.feedback-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Feedback Status View */
+.feedback-status-view {
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.status-icon-circle {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+  margin: 0 auto 1.5rem auto;
+  border: 2px solid rgba(16, 185, 129, 0.35);
+}
+
+.status-icon-circle.is-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.status-icon-circle.is-error {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border-color: rgba(244, 63, 94, 0.35);
+}
+
+.feedback-status-view h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.03em;
+}
+
+.feedback-status-view p {
+  color: #94a3b8;
+  max-width: 440px;
+  margin: 0 auto 1.5rem auto;
+  line-height: 1.6;
+}
+
+.certificate-unlock-notice {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  color: #a7f3d0;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* =========================================================================
+   Organizer Feedback Dashboard
+   ========================================================================= */
+
+.event-feedback-dashboard {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 36px 24px 80px;
+}
+
+.feedback-dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.feedback-dash-header h1 {
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.04em;
+  margin: 0.5rem 0 0.35rem 0;
+}
+
+.feedback-dash-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* KPI Grid */
+.feedback-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.feedback-kpi-card {
+  background: rgba(14, 20, 36, 0.72);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.25rem;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.feedback-kpi-card:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(22, 31, 54, 0.85);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transform: translateY(-2px);
+}
+
+.kpi-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+.kpi-metric {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+  margin-bottom: 0.4rem;
+  letter-spacing: -0.03em;
+}
+
+.kpi-subtext {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Ratings Detailed Section */
+.feedback-ratings-container {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .feedback-ratings-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ratings-main-card {
+  background: rgba(14, 20, 36, 0.72);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(14px);
+}
+
+.rating-big-number {
+  font-size: 3.75rem;
+  font-weight: 900;
+  color: #f59e0b;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.04em;
+}
+
+.rating-big-stars {
+  font-size: 1.5rem;
+  color: #f59e0b;
+  margin-bottom: 0.5rem;
+}
+
+.ratings-breakdown-card {
+  background: rgba(14, 20, 36, 0.72);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.75rem 2rem;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+.subrating-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+}
+
+.subrating-row:last-child {
+  margin-bottom: 0;
+}
+
+.subrating-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  width: 180px;
+}
+
+.subrating-bar-container {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  margin: 0 1.25rem;
+  overflow: hidden;
+}
+
+.subrating-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  border-radius: 9999px;
+}
+
+.subrating-score {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #ffffff;
+  width: 60px;
+  text-align: right;
+}
+
+/* Feedback Submissions Table / Cards */
+.feedback-list-section {
+  background: rgba(14, 20, 36, 0.72);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+.feedback-filter-bar {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.feedback-card-item {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.15s ease;
+}
+
+.feedback-card-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.feedback-card-item:last-child {
+  border-bottom: none;
+}
+
+.feedback-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.participant-badge {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+.submission-date {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.feedback-text-quote {
+  background: rgba(14, 20, 36, 0.6);
+  border-left: 3px solid #6366f1;
+  padding: 0.85rem 1.1rem;
+  border-radius: 0 10px 10px 0;
+  margin-top: 0.75rem;
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.feedback-text-quote strong {
+  color: #ffffff;
+  display: block;
+  margin-bottom: 0.25rem;
+}

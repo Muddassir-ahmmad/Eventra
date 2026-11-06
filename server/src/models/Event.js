@@ -7,25 +7,21 @@ const speakerSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
-
     designation: {
       type: String,
       trim: true,
       default: "",
     },
-
     organization: {
       type: String,
       trim: true,
       default: "",
     },
-
     role: {
       type: String,
       trim: true,
       default: "Speaker",
     },
-
     photoUrl: {
       type: String,
       default: "",
@@ -34,6 +30,47 @@ const speakerSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const agendaItemSchema = new mongoose.Schema(
+  {
+    time: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    title: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    speaker: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+  },
+  { _id: true }
+);
+
+const faqItemSchema = new mongoose.Schema(
+  {
+    question: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    answer: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+  },
+  { _id: true }
+);
 
 const registrationFieldSchema = new mongoose.Schema(
   {
@@ -41,17 +78,14 @@ const registrationFieldSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
     label: {
       type: String,
       required: true,
     },
-
     type: {
       type: String,
       default: "text",
     },
-
     required: {
       type: Boolean,
       default: false,
@@ -60,7 +94,6 @@ const registrationFieldSchema = new mongoose.Schema(
   { _id: false }
 );
 
-
 const ticketTypeSchema = new mongoose.Schema(
   {
     name: {
@@ -68,13 +101,11 @@ const ticketTypeSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
     price: {
       type: Number,
       default: 0,
       min: 0,
     },
-
     capacity: {
       type: Number,
       required: true,
@@ -84,7 +115,6 @@ const ticketTypeSchema = new mongoose.Schema(
   { _id: true }
 );
 
-
 const volunteerRoleSchema = new mongoose.Schema(
   {
     name: {
@@ -92,7 +122,6 @@ const volunteerRoleSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
     limit: {
       type: Number,
       default: 1,
@@ -102,7 +131,6 @@ const volunteerRoleSchema = new mongoose.Schema(
   { _id: true }
 );
 
-
 const signatureSchema = new mongoose.Schema(
   {
     name: {
@@ -110,25 +138,21 @@ const signatureSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
-
     imageUrl: {
       type: String,
       trim: true,
       default: "",
     },
-
     imagePath: {
       type: String,
       trim: true,
       default: "",
     },
-
     role: {
       type: String,
       trim: true,
       default: "",
     },
-
     designation: {
       type: String,
       trim: true,
@@ -137,7 +161,6 @@ const signatureSchema = new mongoose.Schema(
   },
   { _id: true }
 );
-
 
 const eventSchema = new mongoose.Schema(
   {
@@ -149,7 +172,6 @@ const eventSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-
 
     /*
      * BASIC EVENT INFORMATION
@@ -176,6 +198,30 @@ const eventSchema = new mongoose.Schema(
 
     description: {
       type: String,
+      default: "",
+    },
+
+    category: {
+      type: String,
+      trim: true,
+      default: "Technical",
+    },
+
+    mode: {
+      type: String,
+      enum: ["offline", "online", "hybrid"],
+      default: "offline",
+    },
+
+    contactEmail: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    contactPhone: {
+      type: String,
+      trim: true,
       default: "",
     },
 
@@ -217,26 +263,33 @@ const eventSchema = new mongoose.Schema(
       default: null,
     },
 
-
     /*
-     * EVENT DESIGN
+     * EVENT DESIGN & POSTER
      */
     posterUrl: {
       type: String,
       default: "",
     },
 
-    theme: {
+    posterType: {
       type: String,
-      enum: [
-        "aurora",
-        "minimal",
-        "conference",
-        "creative",
-      ],
-      default: "aurora",
+      enum: ["upload", "template", "ai"],
+      default: "template",
     },
 
+    posterTemplateData: {
+      templateId: { type: String, default: "technical" },
+      themeColor: { type: String, default: "#6366f1" },
+      accentColor: { type: String, default: "#8b5cf6" },
+      headline: { type: String, default: "" },
+      tagline: { type: String, default: "" },
+    },
+
+    theme: {
+      type: String,
+      enum: ["aurora", "minimal", "conference", "creative"],
+      default: "aurora",
+    },
 
     /*
      * SPEAKERS / JUDGES / GUESTS
@@ -246,6 +299,21 @@ const eventSchema = new mongoose.Schema(
       default: [],
     },
 
+    /*
+     * AGENDA / SCHEDULE
+     */
+    agenda: {
+      type: [agendaItemSchema],
+      default: [],
+    },
+
+    /*
+     * FREQUENTLY ASKED QUESTIONS
+     */
+    faqs: {
+      type: [faqItemSchema],
+      default: [],
+    },
 
     /*
      * REGISTRATION FORM
@@ -274,7 +342,6 @@ const eventSchema = new mongoose.Schema(
       ],
     },
 
-
     /*
      * TICKETS
      */
@@ -294,7 +361,6 @@ const eventSchema = new mongoose.Schema(
       default: [],
     },
 
-
     /*
      * VOLUNTEERS
      */
@@ -307,7 +373,6 @@ const eventSchema = new mongoose.Schema(
       type: [volunteerRoleSchema],
       default: [],
     },
-
 
     /*
      * CERTIFICATES
@@ -323,6 +388,11 @@ const eventSchema = new mongoose.Schema(
         "classic",
         "modern",
         "academic",
+        "royalGold",
+        "techAurora",
+        "emeraldExecutive",
+        "crimsonLuxe",
+        "vintageParchment",
       ],
       default: "classic",
     },
@@ -373,25 +443,36 @@ const eventSchema = new mongoose.Schema(
       default: [],
     },
 
+    /*
+     * POST-EVENT CLOSURE & FEEDBACK AUTOMATION
+     */
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+
+    feedbackDeadline: {
+      type: Date,
+      default: null,
+    },
+
+    requireFeedbackForCertificate: {
+      type: Boolean,
+      default: false,
+    },
 
     /*
      * EVENT STATUS
      */
     status: {
       type: String,
-      enum: [
-        "draft",
-        "published",
-        "closed",
-      ],
+      enum: ["draft", "published", "closed", "completed"],
       default: "draft",
     },
   },
-
   {
     timestamps: true,
   }
 );
-
 
 export default mongoose.model("Event", eventSchema);

@@ -33,6 +33,21 @@ export default function EventRegistrations() {
     }
   }
 
+  async function handleDelete(reg) {
+    if (!reg) return;
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete the registration for "${reg.name}" (${reg.registrationId})?\n\nThis will remove the attendee, revoke their ticket pass, and release 1 seat back to event capacity.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await api.delete(`/registrations/event/${eventId}/registrations/${reg._id}`);
+      loadRegistrations();
+    } catch (err) {
+      alert(err.response?.data?.message || "Could not delete registration.");
+    }
+  }
+
   return (
     <main className="dashboard">
       <div className="dashboard-head">
@@ -88,6 +103,7 @@ export default function EventRegistrations() {
                     <th>College</th>
                     <th>Department</th>
                     <th>Status</th>
+                    <th style={{ textAlign: "right" }}>Action</th>
                   </tr>
                 </thead>
 
@@ -106,6 +122,24 @@ export default function EventRegistrations() {
                         <span className="status">
                           {registration.status}
                         </span>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <button
+                          type="button"
+                          className="button button-ghost small"
+                          style={{
+                            padding: "6px 12px",
+                            fontSize: "0.78rem",
+                            color: "#fb7185",
+                            borderColor: "rgba(244, 63, 94, 0.35)",
+                            background: "rgba(244, 63, 94, 0.1)",
+                            cursor: "pointer",
+                          }}
+                          onClick={() => handleDelete(registration)}
+                          title={`Delete registration for ${registration.name}`}
+                        >
+                          🗑️ Delete
+                        </button>
                       </td>
                     </tr>
                   ))}

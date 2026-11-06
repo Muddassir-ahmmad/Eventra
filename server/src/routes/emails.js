@@ -175,6 +175,7 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
       registration_confirmation: allEventLogs.filter((l) => l.emailType === "registration_confirmation").length,
       ticket_delivery: allEventLogs.filter((l) => l.emailType === "ticket_delivery").length,
       certificate_delivery: allEventLogs.filter((l) => l.emailType === "certificate_delivery").length,
+      feedback_request: allEventLogs.filter((l) => l.emailType === "feedback_request").length,
       organizer_alert: allEventLogs.filter((l) => l.emailType === "organizer_alert").length,
     };
 
@@ -313,3 +314,4 @@ router.post("/event/:eventId/registrations/:registrationId/confirmation", requir
 });
 
 export default router;
+

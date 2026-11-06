@@ -3,17 +3,37 @@ import { Link, useParams } from "react-router-dom";
 import api from "../api";
 
 const DEFAULT_DESCRIPTION = "This certificate is proudly presented to {name} for participating in {event}.";
-const TEMPLATE_NAMES = ["classic", "modern", "academic"];
+const TEMPLATES = [
+  { id: "royalGold", name: "Royal Gold", category: "Luxury Prestige" },
+  { id: "techAurora", name: "Tech Aurora", category: "Cyber & Dev" },
+  { id: "emeraldExecutive", name: "Emerald", category: "Executive" },
+  { id: "crimsonLuxe", name: "Crimson", category: "Honors Distinction" },
+  { id: "classic", name: "Classic", category: "Traditional" },
+  { id: "modern", name: "Modern", category: "Minimal Sage" },
+  { id: "academic", name: "Academic", category: "University Crest" },
+  { id: "vintageParchment", name: "Vintage", category: "Antique Parchment" },
+];
+const TEMPLATE_NAMES = TEMPLATES.map((t) => t.id);
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+const PLACEHOLDER_TAGS = [
+  { tag: "{name}", label: "Participant Name" },
+  { tag: "{participantName}", label: "Full Name" },
+  { tag: "{event}", label: "Event Name" },
+  { tag: "{eventName}", label: "Full Title" },
+  { tag: "{date}", label: "Event Date" },
+  { tag: "{eventDate}", label: "Full Date" },
+];
 
 function certificateSettings(event) {
   return {
     certificateEnabled: event.certificateEnabled ?? false,
+    requireFeedbackForCertificate: event.requireFeedbackForCertificate === true,
     certificateTemplate: event.certificateTemplate || "classic",
     certificateTitle: event.certificateTitle || "Certificate of Participation",
     certificateDescription: event.certificateDescription || DEFAULT_DESCRIPTION,
-    certificateShowOrganization: event.certificateShowOrganization === true,
-    certificateOrganization: event.certificateOrganization || "",
+    certificateShowOrganization: event.certificateShowOrganization !== false,
+    certificateOrganization: event.certificateOrganization || "EVENTRA",
     certificateLogoUrl: event.certificateLogoUrl || "",
     certificateLogoPath: event.certificateLogoPath || "",
     eventType: event.eventType || "",
@@ -34,6 +54,7 @@ export default function CertificateManager() {
   const [selected, setSelected] = useState([]);
   const [previewId, setPreviewId] = useState("");
   const [suggestion, setSuggestion] = useState(null);
+  const [customAiPrompt, setCustomAiPrompt] = useState("");
   const [imageStorage, setImageStorage] = useState("local");
   const [emailConfigured, setEmailConfigured] = useState(false);
   const [aiConfigured, setAiConfigured] = useState(false);
@@ -61,7 +82,7 @@ export default function CertificateManager() {
       setAiConfigured(Boolean(data.aiConfigured));
       setSettings(certificateSettings(data.event));
       setSelected((data.participants || [])
-        .filter((person) => person.checkedIn && !person.certificate)
+        .filter((person) => person.eligibilityStatus === "eligible" && !person.certificate)
         .map((person) => person._id));
       setPreviewId((data.participants || []).find((person) => person.checkedIn)?._id || "");
     } catch (loadError) {
@@ -74,6 +95,11 @@ export default function CertificateManager() {
   function update(key, value) {
     setSettings((current) => ({ ...current, [key]: value }));
     setNotice("");
+  }
+
+  function insertPlaceholder(tag) {
+    const current = settings.certificateDescription || "";
+    update("certificateDescription", current ? `${current} ${tag}` : tag);
   }
 
   function updateSignature(index, key, value) {
@@ -101,6 +127,7 @@ export default function CertificateManager() {
       setEvent(data.event);
       setSettings(certificateSettings(data.event));
       setNotice("Certificate settings saved.");
+      await loadCertificates();
     } catch (saveError) {
       setError(saveError.response?.data?.message || "Could not save certificate settings.");
     } finally {
@@ -179,10 +206,11 @@ export default function CertificateManager() {
     try {
       const { data } = await api.post(`/certificates/event/${eventId}/ai-suggestion`, {
         eventType: settings.eventType,
+        customPrompt: customAiPrompt,
       });
       if (!data.configured) {
         setAiConfigured(false);
-        setNotice(data.message || "Configure AI_API_KEY on the server to enable suggestions.");
+        setNotice(data.message || "Configure GEMINI_API_KEY on the server to enable suggestions.");
         return;
       }
       setSuggestion(data.suggestion);
@@ -202,7 +230,7 @@ export default function CertificateManager() {
       certificateDescription: suggestion.description,
     }));
     setSuggestion(null);
-    setNotice("Suggestion applied. Save settings to keep it.");
+    setNotice("AI certificate design applied! Click 'Save settings' above to persist.");
   }
 
   function toggleParticipant(id) {
@@ -212,10 +240,10 @@ export default function CertificateManager() {
   }
 
   function toggleAllEligible() {
-    const eligible = participants
-      .filter((person) => person.checkedIn && !person.certificate)
+    const eligibleIds = participants
+      .filter((person) => person.eligibilityStatus === "eligible" && !person.certificate)
       .map((person) => person._id);
-    setSelected((current) => current.length === eligible.length ? [] : eligible);
+    setSelected((current) => current.length === eligibleIds.length ? [] : eligibleIds);
   }
 
   async function generate(ids = selected, regenerate = false) {
@@ -238,7 +266,7 @@ export default function CertificateManager() {
       const parts = [];
       if (data.issued.length) parts.push(`${data.issued.length} generated`);
       if (data.alreadyIssued.length) parts.push(`${data.alreadyIssued.length} already issued`);
-      if (data.ineligible.length) parts.push(`${data.ineligible.length} not eligible`);
+      if (data.ineligible.length) parts.push(`${data.ineligible.length} not eligible (absent or feedback pending)`);
       setNotice(parts.join(" · ") || "No certificates were generated.");
       await loadCertificates();
     } catch (generateError) {
@@ -326,9 +354,9 @@ export default function CertificateManager() {
   if (error && !event) return <main className="center-page"><h1>{error}</h1><Link className="button button-primary" to="/dashboard">Back to dashboard</Link></main>;
   if (!event || !settings) return null;
 
-  const eligible = participants.filter((person) => person.checkedIn);
+  const eligibleList = participants.filter((person) => person.eligibilityStatus === "eligible");
   const selectedWithCertificates = participants.filter((person) => selected.includes(person._id) && person.certificate).length;
-  const previewPerson = eligible.find((person) => person._id === previewId) || participants.find((person) => person._id === previewId) || eligible[0] || participants[0] || { name: "Jordan Lee" };
+  const previewPerson = eligibleList.find((person) => person._id === previewId) || participants.find((person) => person._id === previewId) || eligibleList[0] || participants[0] || { name: "Jordan Lee" };
   const storageAvailable = imageStorage === "local" || imageStorage === "cloudinary";
 
   return (
@@ -365,16 +393,21 @@ export default function CertificateManager() {
             </div>
 
             <div className="certificate-template-list" role="radiogroup" aria-label="Certificate template">
-              {TEMPLATE_NAMES.map((template) => (
+              {TEMPLATES.map((tmpl) => (
                 <button
-                  key={template}
+                  key={tmpl.id}
                   type="button"
-                  className={`certificate-template-choice ${settings.certificateTemplate === template ? "is-selected" : ""}`}
-                  aria-pressed={settings.certificateTemplate === template}
-                  onClick={() => update("certificateTemplate", template)}
+                  className={`certificate-template-choice ${settings.certificateTemplate === tmpl.id ? "is-selected" : ""}`}
+                  aria-pressed={settings.certificateTemplate === tmpl.id}
+                  onClick={() => update("certificateTemplate", tmpl.id)}
                 >
-                  <span className={`certificate-template-swatch template-${template}`}><i /><b /><em /></span>
-                  <span>{template[0].toUpperCase() + template.slice(1)}</span>
+                  <span className={`certificate-template-swatch template-${tmpl.id}`}><i /><b /><em /></span>
+                  <div style={{ minWidth: 0, overflow: "hidden" }}>
+                    <strong style={{ display: "block", fontSize: "0.74rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {tmpl.name}
+                    </strong>
+                    <span style={{ fontSize: "0.64rem", color: "#94a3b8" }}>{tmpl.category}</span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -384,25 +417,70 @@ export default function CertificateManager() {
               <input maxLength="100" value={settings.certificateTitle} onChange={(change) => update("certificateTitle", change.target.value)} />
             </label>
             <label className="certificate-field">
+              <span>Certificate Top Header (Organization / Brand)</span>
+              <input
+                maxLength="100"
+                value={settings.certificateOrganization}
+                onChange={(change) => update("certificateOrganization", change.target.value)}
+                placeholder="EVENTRA"
+              />
+              <small style={{ color: "#94a3b8", fontSize: "0.72rem" }}>
+                Displays at the very top of the certificate (defaults to "EVENTRA", can be changed to your organization or institution).
+              </small>
+            </label>
+            <label className="certificate-field">
               <span>Event type</span>
-              <input maxLength="80" value={settings.eventType} onChange={(change) => update("eventType", change.target.value)} placeholder="Workshop, conference, course…" />
+              <input maxLength="80" value={settings.eventType} onChange={(change) => update("eventType", change.target.value)} placeholder="Workshop, conference, symposium, course…" />
             </label>
             <label className="certificate-field">
               <span>Certificate description</span>
               <textarea rows="4" maxLength="500" value={settings.certificateDescription} onChange={(change) => update("certificateDescription", change.target.value)} />
-              <small>Use {"{name}"}, {"{event}"} and {"{date}"} to insert participant and event details.</small>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                <span style={{ fontSize: "0.75rem", color: "#94a3b8", width: "100%" }}>Insert dynamic placeholder:</span>
+                {PLACEHOLDER_TAGS.map(({ tag, label }) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    style={{
+                      background: "rgba(255, 255, 255, 0.06)",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      borderRadius: 4,
+                      padding: "2px 8px",
+                      fontSize: "0.72rem",
+                      color: "#38bdf8",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => insertPlaceholder(tag)}
+                    title={`Insert ${label}`}
+                  >
+                    + {tag}
+                  </button>
+                ))}
+              </div>
             </label>
 
-            <label className="certificate-switch organization-switch">
-              <input type="checkbox" checked={settings.certificateShowOrganization} onChange={(change) => update("certificateShowOrganization", change.target.checked)} />
-              <span>Show organization branding</span>
-            </label>
-            {settings.certificateShowOrganization && (
-              <label className="certificate-field">
-                <span>Organization / Institution name</span>
-                <input maxLength="100" placeholder="Enter organization name" value={settings.certificateOrganization !== undefined ? settings.certificateOrganization : (organizer.organization && !/^sahyadri/i.test(organizer.organization) ? organizer.organization : "")} onChange={(change) => update("certificateOrganization", change.target.value)} />
+            {/* Feedback Gating Toggle */}
+            <div
+              style={{
+                marginTop: 14,
+                padding: "12px 14px",
+                background: "rgba(255, 255, 255, 0.03)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: 8,
+              }}
+            >
+              <label className="certificate-switch" style={{ margin: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={settings.requireFeedbackForCertificate}
+                  onChange={(change) => update("requireFeedbackForCertificate", change.target.checked)}
+                />
+                <span style={{ fontWeight: 600 }}>Require Feedback Before Issuing</span>
               </label>
-            )}
+              <small style={{ display: "block", color: "#94a3b8", marginTop: 4, fontSize: "0.78rem" }}>
+                When enabled, attendees must complete their post-event feedback survey before their certificate becomes eligible.
+              </small>
+            </div>
 
             <div className="certificate-logo-control">
               <div>
@@ -423,25 +501,129 @@ export default function CertificateManager() {
             </div>
             {!storageAvailable && <p className="certificate-inline-warning">Image uploads are unavailable. Configure Cloudinary in production.</p>}
 
-            <div className="certificate-ai">
-              <div><strong>AI design suggestion</strong><small>Based on your event title, type and description.</small></div>
-              <button type="button" className="cert-button" onClick={askForSuggestion} disabled={working || !aiConfigured}>Suggest</button>
-            </div>
-            {!aiConfigured && <p className="certificate-empty-line">AI suggestions are unavailable. Configure AI_API_KEY on the server to enable them.</p>}
-            {suggestion && (
-              <div className="certificate-suggestion">
+            {/* AI Certificate Studio */}
+            <div
+              style={{
+                padding: "14px 16px",
+                background: "rgba(99, 102, 241, 0.08)",
+                border: "1px solid rgba(99, 102, 241, 0.25)",
+                borderRadius: 10,
+                marginTop: 14,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                 <div>
-                  <span className={`suggestion-chip template-${suggestion.template}`}>{suggestion.template}</span>
-                  <strong>{suggestion.title}</strong>
-                  <p>{suggestion.description}</p>
-                  <p><b>Why this fits:</b> {suggestion.reason}</p>
-                </div>
-                <div className="suggestion-actions">
-                  <button type="button" className="cert-button cert-button-primary" onClick={applySuggestion}>Apply suggestion</button>
-                  <button type="button" className="text-action" onClick={() => setSuggestion(null)}>Ignore</button>
+                  <span style={{ fontSize: "0.68rem", fontWeight: 800, color: "#a5b4fc", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    ✦ GEMINI AI STUDIO
+                  </span>
+                  <strong style={{ display: "block", fontSize: "0.92rem", color: "#ffffff", marginTop: 2 }}>
+                    AI Certificate Designer
+                  </strong>
+                  <small style={{ color: "#94a3b8", display: "block", fontSize: "0.74rem", marginTop: 2 }}>
+                    Generate tailored theme recommendations, titles, descriptions & signatories using Google Gemini.
+                  </small>
                 </div>
               </div>
-            )}
+
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <input
+                  type="text"
+                  value={customAiPrompt}
+                  onChange={(e) => setCustomAiPrompt(e.target.value)}
+                  placeholder="Custom goal (e.g. 1st Place Hackathon, Medical Conference, Leadership)..."
+                  style={{
+                    flex: 1,
+                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                    borderRadius: 6,
+                    background: "rgba(14, 20, 36, 0.85)",
+                    color: "#ffffff",
+                    padding: "7px 11px",
+                    fontSize: "0.75rem",
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && askForSuggestion()}
+                />
+                <button
+                  type="button"
+                  className="cert-button cert-button-primary"
+                  onClick={askForSuggestion}
+                  disabled={working || !aiConfigured}
+                  style={{ flexShrink: 0 }}
+                >
+                  {working ? "Designing…" : "Design with AI ✦"}
+                </button>
+              </div>
+
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Quick prompts:</span>
+                {[
+                  "Hackathon Championship",
+                  "Tech Workshop",
+                  "Masterclass Distinction",
+                  "Executive Leadership",
+                ].map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    style={{
+                      background: "rgba(99, 102, 241, 0.14)",
+                      border: "1px solid rgba(99, 102, 241, 0.3)",
+                      borderRadius: 4,
+                      padding: "2px 7px",
+                      fontSize: "0.68rem",
+                      color: "#c7d2fe",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      setCustomAiPrompt(chip);
+                    }}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+
+              {!aiConfigured && (
+                <p className="certificate-empty-line" style={{ marginTop: 8 }}>
+                  AI suggestions unavailable. Configure GEMINI_API_KEY in server .env.
+                </p>
+              )}
+
+              {suggestion && (
+                <div className="certificate-suggestion" style={{ marginTop: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <span className={`suggestion-chip template-${suggestion.template}`}>
+                        {suggestion.template}
+                      </span>
+                      <span style={{ fontSize: "0.7rem", color: "#34d399", fontWeight: 700 }}>
+                        ✓ Gemini Recommended
+                      </span>
+                    </div>
+                    <strong style={{ fontSize: "0.9rem", color: "#ffffff" }}>{suggestion.title}</strong>
+                    <p style={{ marginTop: 4, fontSize: "0.76rem", color: "#cbd5e1", lineHeight: 1.45 }}>
+                      {suggestion.description}
+                    </p>
+                    {suggestion.suggestedSignatories?.length > 0 && (
+                      <div style={{ marginTop: 6, fontSize: "0.7rem", color: "#94a3b8" }}>
+                        <b style={{ color: "#c7d2fe" }}>Recommended Signatories:</b>{" "}
+                        {suggestion.suggestedSignatories.join(", ")}
+                      </div>
+                    )}
+                    <p style={{ marginTop: 6, fontSize: "0.7rem", color: "#818cf8" }}>
+                      <b>Why this fits:</b> {suggestion.reason}
+                    </p>
+                  </div>
+                  <div className="suggestion-actions" style={{ marginLeft: 10 }}>
+                    <button type="button" className="cert-button cert-button-primary" onClick={applySuggestion}>
+                      Apply AI Design
+                    </button>
+                    <button type="button" className="text-action" onClick={() => setSuggestion(null)}>
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="certificate-preview-panel">
@@ -450,14 +632,14 @@ export default function CertificateManager() {
               <label className="preview-participant">
                 <span>Eligible participant</span>
                 <select value={previewId} onChange={(change) => setPreviewId(change.target.value)}>
-                  {eligible.map((person) => <option key={person._id} value={person._id}>{person.name}</option>)}
+                  {eligibleList.map((person) => <option key={person._id} value={person._id}>{person.name}</option>)}
                   {participants.length === 0 && <option value="">Sample participant</option>}
-                  {participants.length > 0 && eligible.length === 0 && <option value={participants[0]._id}>No attended participants yet</option>}
+                  {participants.length > 0 && eligibleList.length === 0 && <option value={participants[0]._id}>No eligible participants yet</option>}
                 </select>
               </label>
             </div>
             <CertificatePreview event={event} organizer={organizer} settings={settings} participant={previewPerson} />
-            <p className="preview-caption">Preview updates as you edit; generated PDFs use the same event details and saved design.</p>
+            <p className="preview-caption">Preview updates in real-time as you edit; generated PDFs use this saved design.</p>
           </div>
         </section>
 
@@ -489,20 +671,20 @@ export default function CertificateManager() {
         <section className="certificate-panel participant-panel">
           <div className="certificate-panel-heading participants-heading">
             <div>
-              <p className="certificate-kicker">03 / ELIGIBILITY</p>
+              <p className="certificate-kicker">03 / ELIGIBILITY &amp; ISSUANCE</p>
               <h2>Participants</h2>
               <p>{counts.registered} registered · {counts.attended} attended · {counts.eligible} eligible · {counts.generated} generated · {counts.cancelled} cancelled</p>
             </div>
             <div className="participant-actions">
-              <button type="button" className="cert-button" onClick={toggleAllEligible} disabled={!eligible.some((person) => !person.certificate)}>
+              <button type="button" className="cert-button" onClick={toggleAllEligible} disabled={!eligibleList.some((person) => !person.certificate)}>
                 {selected.length ? "Clear selection" : "Select all eligible"}
               </button>
-              <button type="button" className="cert-button cert-button-primary" onClick={() => generate()} disabled={working || !selected.length || !settings.certificateEnabled}>Generate selected</button>
+              <button type="button" className="cert-button cert-button-primary" onClick={() => generate()} disabled={working || !selected.length || !settings.certificateEnabled}>Generate selected ({selected.length})</button>
               {selectedWithCertificates > 0 && <button type="button" className="cert-button cert-button-danger" onClick={() => generate(selected, true)} disabled={working}>Regenerate selected</button>}
               <button
                 type="button"
                 className="cert-button"
-                style={{ background: "#0f766e", color: "#ffffff" }}
+                style={{ background: "#4f46e5", color: "#ffffff", borderColor: "#4f46e5" }}
                 onClick={bulkEmailCertificates}
                 disabled={working || !emailConfigured || !participants.some((p) => p.certificate)}
                 title={!emailConfigured ? "SMTP is not configured" : "Deliver certificates via email"}
@@ -511,31 +693,151 @@ export default function CertificateManager() {
               </button>
             </div>
           </div>
+
+          {/* Feedback Gating Alert Banner */}
+          {settings.requireFeedbackForCertificate && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "12px 18px",
+                borderRadius: 10,
+                background: "rgba(245, 158, 11, 0.1)",
+                border: "1px solid rgba(245, 158, 11, 0.3)",
+                color: "#fbbf24",
+                fontSize: "0.88rem",
+                margin: "12px 0 16px",
+              }}
+            >
+              <span style={{ fontSize: "1.2rem" }}>🔒</span>
+              <div>
+                <strong>Feedback Gating Active:</strong> Attendees must submit their post-event feedback survey before their certificate can be generated or downloaded.
+              </div>
+            </div>
+          )}
+
           {!settings.certificateEnabled && <p className="certificate-inline-warning">Enable certificates and save settings before issuing certificates.</p>}
-          <div className="attendance-note"><span>✓</span> Only confirmed registrations with QR attendance marked checked in can receive certificates. Cancelled and absent participants are excluded.</div>
+          <div className="attendance-note"><span>✓</span> Only confirmed registrations with attendance verified at the gate can receive certificates. Cancelled and absent participants are excluded.</div>
+          
           <div className="participant-table-wrap">
             <table className="participant-table">
-              <thead><tr><th><span className="sr-only">Select</span></th><th>Participant</th><th>Email</th><th>Registration</th><th>Attendance</th><th>Certificate</th><th>Delivery</th><th>Actions</th></tr></thead>
+              <thead>
+                <tr>
+                  <th><span className="sr-only">Select</span></th>
+                  <th>Participant</th>
+                  <th>Email</th>
+                  <th>Attendance</th>
+                  <th>Eligibility</th>
+                  <th>Certificate</th>
+                  <th>Delivery</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
               <tbody>
-                {participants.map((person) => (
-                  <tr key={person._id}>
-                    <td><input aria-label={`Select ${person.name}`} type="checkbox" checked={selected.includes(person._id)} disabled={!person.checkedIn} onChange={() => toggleParticipant(person._id)} /></td>
-                    <td><strong>{person.name}</strong></td>
-                    <td>{person.email}</td>
-                    <td>{person.status}</td>
-                    <td><span className={`participant-status ${person.checkedIn ? "is-eligible" : ""}`}>{person.checkedIn ? "Checked in" : "Not checked in"}</span></td>
-                    <td>{person.certificate ? <span className="issued-status">Issued · v{person.certificate.generation}</span> : <span className="not-issued">Not issued</span>}</td>
-                    <td>{person.certificate?.lastEmailedAt ? `Emailed ${new Date(person.certificate.lastEmailedAt).toLocaleDateString()}` : "—"}</td>
-                    <td className="participant-actions-cell">
-                      {person.checkedIn && !person.certificate && <button type="button" className="text-action" onClick={() => generate([person._id])} disabled={working || !settings.certificateEnabled}>Generate</button>}
-                      {person.certificate && <>
-                        <button type="button" className="text-action" onClick={() => downloadCertificate(person)} disabled={working}>Download PDF</button>
-                        <button type="button" className="text-action" onClick={() => emailCertificate(person)} disabled={working || !emailConfigured} title={!emailConfigured ? "Configure SMTP on the server" : "Email certificate"}>Email</button>
-                      </>}
+                {participants.map((person) => {
+                  const isEligible = person.eligibilityStatus === "eligible";
+                  const isPending = person.eligibilityStatus === "feedback_pending";
+                  const isAbsent = !person.checkedIn;
+
+                  return (
+                    <tr key={person._id}>
+                      <td>
+                        <input
+                          aria-label={`Select ${person.name}`}
+                          type="checkbox"
+                          checked={selected.includes(person._id)}
+                          disabled={!isEligible}
+                          onChange={() => toggleParticipant(person._id)}
+                        />
+                      </td>
+                      <td><strong>{person.name}</strong></td>
+                      <td>{person.email}</td>
+                      <td>
+                        <span className={`participant-status ${person.checkedIn ? "is-eligible" : ""}`}>
+                          {person.checkedIn ? "✓ Checked in" : "● Absent"}
+                        </span>
+                      </td>
+                      <td>
+                        {isEligible && (
+                          <span style={{ color: "#34d399", fontWeight: 700, fontSize: "0.82rem" }}>
+                            ✓ Eligible
+                          </span>
+                        )}
+                        {isPending && (
+                          <span
+                            style={{ color: "#f59e0b", fontWeight: 700, fontSize: "0.82rem" }}
+                            title="Attendee checked in, but has not completed the feedback survey yet."
+                          >
+                            ⏳ Feedback Pending
+                          </span>
+                        )}
+                        {isAbsent && (
+                          <span style={{ color: "#64748b", fontSize: "0.82rem" }}>
+                            Ineligible (Absent)
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {person.certificate ? (
+                          <span className="issued-status">Issued · v{person.certificate.generation}</span>
+                        ) : (
+                          <span className="not-issued">Not issued</span>
+                        )}
+                      </td>
+                      <td>
+                        {person.certificate?.lastEmailedAt
+                          ? `Emailed ${new Date(person.certificate.lastEmailedAt).toLocaleDateString()}`
+                          : "—"}
+                      </td>
+                      <td className="participant-actions-cell">
+                        {isEligible && !person.certificate && (
+                          <button
+                            type="button"
+                            className="text-action"
+                            onClick={() => generate([person._id])}
+                            disabled={working || !settings.certificateEnabled}
+                          >
+                            Generate
+                          </button>
+                        )}
+                        {isPending && (
+                          <span style={{ color: "#f59e0b", fontSize: "0.78rem" }}>
+                            Awaiting Survey
+                          </span>
+                        )}
+                        {person.certificate && (
+                          <>
+                            <button
+                              type="button"
+                              className="text-action"
+                              onClick={() => downloadCertificate(person)}
+                              disabled={working}
+                            >
+                              Download PDF
+                            </button>
+                            <button
+                              type="button"
+                              className="text-action"
+                              onClick={() => emailCertificate(person)}
+                              disabled={working || !emailConfigured}
+                              title={!emailConfigured ? "Configure SMTP on the server" : "Email certificate"}
+                            >
+                              Email
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {participants.length === 0 && (
+                  <tr>
+                    <td className="empty-participants" colSpan="8">
+                      No registrations yet. A sample participant is shown in the preview.
                     </td>
                   </tr>
-                ))}
-                {participants.length === 0 && <tr><td className="empty-participants" colSpan="8">No registrations yet. A sample participant is shown in the preview.</td></tr>}
+                )}
               </tbody>
             </table>
           </div>
@@ -557,21 +859,34 @@ function CertificatePreview({ event, organizer, settings, participant }) {
     : "Event date";
   const description = (settings.certificateDescription || DEFAULT_DESCRIPTION)
     .replaceAll("{name}", participant.name || "Participant Name")
+    .replaceAll("{participantName}", participant.name || "Participant Name")
     .replaceAll("{event}", event.title || "Event Name")
+    .replaceAll("{eventName}", event.title || "Event Name")
     .replaceAll("{date}", date)
+    .replaceAll("{eventDate}", date)
     .replace(/\{[^{}]+\}/g, "");
   const signatures = (settings.signatures || []).filter((signature) => signature.name || signature.imageUrl);
-  const rawOrg = settings.certificateOrganization || organizer.organization || "";
-  const organization = settings.certificateShowOrganization && !/^sahyadri/i.test(rawOrg) ? rawOrg : "";
-
+  const organizationDisplay = (settings.certificateOrganization || "EVENTRA").trim();
   return (
     <div className={`certificate-art certificate-art-${settings.certificateTemplate}`}>
       <div className="certificate-art-inner">
         <header className="certificate-art-header">
           {settings.certificateLogoUrl && <img className="certificate-organization-logo" src={settings.certificateLogoUrl} alt="Organization logo" />}
-          {organization && <span className="certificate-organization-name">{organization}</span>}
+          {organizationDisplay && <span className="certificate-organization-name">{organizationDisplay}</span>}
         </header>
-        <span className="certificate-art-brand">EVENTRA · RECOGNITION</span>
+        <span className="certificate-art-brand">
+          {settings.certificateTemplate === "techAurora"
+            ? "✦ TECH MERIT & INNOVATION ✦"
+            : settings.certificateTemplate === "royalGold"
+            ? "✦ ROYAL MERIT & DISTINCTION ✦"
+            : settings.certificateTemplate === "academic"
+            ? "ACADEMIC DISTINCTION"
+            : settings.certificateTemplate === "emeraldExecutive"
+            ? "EXECUTIVE LEADERSHIP"
+            : settings.certificateTemplate === "crimsonLuxe"
+            ? "PRESTIGIOUS HONORS"
+            : "OFFICIAL RECOGNITION"}
+        </span>
         <h3>{settings.certificateTitle || "Certificate of Participation"}</h3>
         <p className="certificate-presented">This certificate is proudly presented to</p>
         <strong className="certificate-recipient">{participant.name || "Participant Name"}</strong>
