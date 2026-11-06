@@ -243,7 +243,7 @@ router.get("/stats", async (req, res) => {
       Registration.find({ status: "confirmed" })
         .sort({ createdAt: -1 })
         .limit(6)
-        .populate("event", "title slug date")
+        .populate("eventId", "title slug date")
         .lean(),
       AdminAuditLog.find()
         .sort({ createdAt: -1 })
@@ -299,7 +299,10 @@ router.get("/stats", async (req, res) => {
       },
       recent: {
         transactions: recentTransactions,
-        registrations: recentRegistrations,
+        registrations: recentRegistrations.map((r) => ({
+          ...r,
+          event: r.eventId,
+        })),
         activities: recentActivities,
       },
     });

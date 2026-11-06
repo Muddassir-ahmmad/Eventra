@@ -62,10 +62,10 @@ router.get("/", async (req, res) => {
 
     const [eventCountsAgg, regCountsAgg] = await Promise.all([
       Event.aggregate([
-        { $match: { organizer: { $in: organizerIds } } },
+        { $match: { organizerId: { $in: organizerIds } } },
         {
           $group: {
-            _id: "$organizer",
+            _id: "$organizerId",
             totalEvents: { $sum: 1 },
             publishedEvents: {
               $sum: { $cond: [{ $eq: ["$status", "published"] }, 1, 0] },
@@ -80,16 +80,16 @@ router.get("/", async (req, res) => {
         {
           $lookup: {
             from: "events",
-            localField: "event",
+            localField: "eventId",
             foreignField: "_id",
             as: "eventInfo",
           },
         },
         { $unwind: "$eventInfo" },
-        { $match: { "eventInfo.organizer": { $in: organizerIds } } },
+        { $match: { "eventInfo.organizerId": { $in: organizerIds } } },
         {
           $group: {
-            _id: "$eventInfo.organizer",
+            _id: "$eventInfo.organizerId",
             totalRegistrations: { $sum: 1 },
             checkedInCount: {
               $sum: { $cond: [{ $eq: ["$checkedIn", true] }, 1, 0] },
@@ -168,7 +168,7 @@ router.get("/:id", async (req, res) => {
     }
 
     // Hosted events with stats
-    const events = await Event.find({ organizer: id })
+    const events = await Event.find({ organizerId: id })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -176,10 +176,10 @@ router.get("/:id", async (req, res) => {
 
     // Event registration counts
     const regAgg = await Registration.aggregate([
-      { $match: { event: { $in: eventIds } } },
+      { $match: { eventId: { $in: eventIds } } },
       {
         $group: {
-          _id: "$event",
+          _id: "$eventId",
           total: { $sum: 1 },
           checkedIn: { $sum: { $cond: [{ $eq: ["$checkedIn", true] }, 1, 0] } },
         },

@@ -45,7 +45,7 @@ router.get("/", async (req, res) => {
         .sort(sortObj)
         .skip(skip)
         .limit(limit)
-        .populate("organizer", "name email organization status verificationStatus")
+        .populate("organizerId", "name email organization status verificationStatus")
         .populate("moderatedBy", "name email")
         .lean(),
     ]);
@@ -53,10 +53,10 @@ router.get("/", async (req, res) => {
     // Aggregate registration counts for these events
     const eventIds = events.map((e) => e._id);
     const regAgg = await Registration.aggregate([
-      { $match: { event: { $in: eventIds }, status: "confirmed" } },
+      { $match: { eventId: { $in: eventIds }, status: "confirmed" } },
       {
         $group: {
-          _id: "$event",
+          _id: "$eventId",
           total: { $sum: 1 },
           checkedIn: { $sum: { $cond: [{ $eq: ["$checkedIn", true] }, 1, 0] } },
         },
@@ -70,6 +70,7 @@ router.get("/", async (req, res) => {
       const r = regMap.get(String(event._id)) || { total: 0, checkedIn: 0 };
       return {
         ...event,
+        organizer: event.organizerId,
         registrationsCount: r.total,
         checkedInCount: r.checkedIn,
         attendanceRate: r.total > 0 ? Math.round((r.checkedIn / r.total) * 100) : 0,
@@ -104,7 +105,7 @@ router.get("/:id", async (req, res) => {
     }
 
     const event = await Event.findById(id)
-      .populate("organizer", "name email organization phone status")
+      .populate("organizerId", "name email organization phone status")
       .populate("moderatedBy", "name email")
       .lean();
 
@@ -112,13 +113,15 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ message: "Event not found." });
     }
 
+    event.organizer = event.organizerId;
+
     const [registrations, regStats] = await Promise.all([
-      Registration.find({ event: id })
+      Registration.find({ eventId: id })
         .sort({ createdAt: -1 })
         .limit(50)
         .lean(),
       Registration.aggregate([
-        { $match: { event: new mongoose.Types.ObjectId(id) } },
+        { $match: { eventId: new mongoose.Types.ObjectId(id) } },
         {
           $group: {
             _id: "$ticketType",
@@ -159,10 +162,11 @@ router.post("/:id/moderate", async (req, res) => {
       return res.status(400).json({ message: "A reason is mandatory when rejecting or flagging an event." });
     }
 
-    const event = await Event.findById(id).populate("organizer", "name email");
+    const event = await Event.findById(id).populate("organizerId", "name email");
     if (!event) {
       return res.status(404).json({ message: "Event not found." });
     }
+    event.organizer = event.organizerId;
 
     let statusUpdate = event.status;
     let moderationStatusUpdate = event.moderationStatus;
