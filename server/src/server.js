@@ -4,6 +4,9 @@ import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { connectDB } from "./config/db.js";
+import { seedDefaultPlansAndSettings } from "./utils/seedDefaults.js";
+
+// Core Routes
 import authRoutes from "./routes/auth.js";
 import eventRoutes from "./routes/events.js";
 import registrationRoutes from "./routes/registrations.js";
@@ -11,6 +14,18 @@ import certificateRoutes from "./routes/certificates.js";
 import emailRoutes from "./routes/emails.js";
 import feedbackRoutes from "./routes/feedback.js";
 import reportRoutes from "./routes/reports.js";
+import organizerBillingRoutes from "./routes/organizerBilling.js";
+
+// Super Admin Suite Routes
+import adminDashboardRoutes from "./routes/admin/adminDashboard.js";
+import adminOrganizersRoutes from "./routes/admin/adminOrganizers.js";
+import adminEventsRoutes from "./routes/admin/adminEvents.js";
+import adminSubscriptionsRoutes from "./routes/admin/adminSubscriptions.js";
+import adminBillingRoutes from "./routes/admin/adminBilling.js";
+import adminSupportRoutes from "./routes/admin/adminSupport.js";
+import adminNotificationsRoutes from "./routes/admin/adminNotifications.js";
+import adminAuditLogsRoutes from "./routes/admin/adminAuditLogs.js";
+import adminSettingsRoutes from "./routes/admin/adminSettings.js";
 
 const app = express();
 const uploadDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../uploads");
@@ -54,6 +69,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// Organizer & Participant APIs
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/registrations", registrationRoutes);
@@ -61,13 +77,24 @@ app.use("/api/certificates", certificateRoutes);
 app.use("/api/emails", emailRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/organizer", organizerBillingRoutes);
+
+// Super Admin Platform APIs
+app.use("/api/admin/dashboard", adminDashboardRoutes);
+app.use("/api/admin/organizers", adminOrganizersRoutes);
+app.use("/api/admin/events", adminEventsRoutes);
+app.use("/api/admin/subscriptions", adminSubscriptionsRoutes);
+app.use("/api/admin/billing", adminBillingRoutes);
+app.use("/api/admin/support", adminSupportRoutes);
+app.use("/api/admin/notifications", adminNotificationsRoutes);
+app.use("/api/admin/audit-logs", adminAuditLogsRoutes);
+app.use("/api/admin/settings", adminSettingsRoutes);
 
 const PORT = process.env.PORT || 5000;
 
-connectDB().then(() => {
+connectDB().then(async () => {
+  await seedDefaultPlansAndSettings();
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(
-      `EVENTRA server running on port ${PORT}`
-    );
+    console.log(`EVENTRA server running on port ${PORT}`);
   });
 });

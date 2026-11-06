@@ -26,16 +26,32 @@ import ParticipantDashboard from "./pages/ParticipantDashboard";
 import Terms from "./pages/Terms";
 import ProfileSettings from "./pages/ProfileSettings";
 
+// Super Admin Console Pages
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminBootstrap from "./pages/admin/AdminBootstrap";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminOrganizers from "./pages/admin/AdminOrganizers";
+import AdminOrganizerDetail from "./pages/admin/AdminOrganizerDetail";
+import AdminEvents from "./pages/admin/AdminEvents";
+import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
+import AdminBilling from "./pages/admin/AdminBilling";
+import AdminInvoices from "./pages/admin/AdminInvoices";
+import AdminSupport from "./pages/admin/AdminSupport";
+import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
+import AdminSettings from "./pages/admin/AdminSettings";
+
 export default function App() {
   const location = useLocation();
 
-  // Public participant pages should not show organizer navigation.
+  // Public participant and admin pages should not show standard organizer navigation.
   const publicPage =
     location.pathname.startsWith("/events/") ||
     location.pathname.startsWith("/tickets/") ||
     location.pathname.startsWith("/feedback/") ||
     location.pathname.startsWith("/terms") ||
-    location.pathname.startsWith("/participant");
+    location.pathname.startsWith("/participant") ||
+    location.pathname.startsWith("/admin");
 
   return (
     <>
@@ -156,6 +172,22 @@ export default function App() {
           path="/settings"
           element={<ProfileSettings />}
         />
+
+        {/* Super Admin Executive Console Routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/bootstrap" element={<AdminBootstrap />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/organizers" element={<AdminOrganizers />} />
+        <Route path="/admin/organizers/:id" element={<AdminOrganizerDetail />} />
+        <Route path="/admin/events" element={<AdminEvents />} />
+        <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
+        <Route path="/admin/billing" element={<AdminBilling />} />
+        <Route path="/admin/invoices" element={<AdminInvoices />} />
+        <Route path="/admin/support" element={<AdminSupport />} />
+        <Route path="/admin/notifications" element={<AdminNotifications />} />
+        <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
       </Routes>
     </>
   );
@@ -320,7 +352,20 @@ function Home() {
 
       <footer style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", padding: "28px 24px", textAlign: "center", fontSize: "0.82rem", color: "#94a3b8", background: "rgba(9, 13, 22, 0.9)" }}>
         <p style={{ margin: 0 }}>
-          © 2026 EVENTRA Smart Event Management Platform · <Link to="/terms" style={{ color: "#818cf8", textDecoration: "underline" }}>Terms &amp; Conditions</Link>
+          © 2026{" "}
+          <Link
+            to="/admin/login"
+            style={{
+              color: "inherit",
+              textDecoration: "none",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+            title=""
+          >
+            EVENTRA
+          </Link>{" "}
+          Smart Event Management Platform · <Link to="/terms" style={{ color: "#818cf8", textDecoration: "underline" }}>Terms &amp; Conditions</Link>
         </p>
       </footer>
     </main>

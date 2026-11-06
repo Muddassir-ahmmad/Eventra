@@ -898,7 +898,14 @@ export default function PublicEvent() {
       {/* 9. FOOTER */}
       <footer className="public-footer">
         <p>
-          Hosted via <strong>EVENTRA</strong> — Smart Event Management & Registration Platform.
+          Hosted via{" "}
+          <Link
+            to="/admin/login"
+            style={{ color: "inherit", textDecoration: "none" }}
+          >
+            <strong>EVENTRA</strong>
+          </Link>{" "}
+          — Smart Event Management &amp; Registration Platform.
         </p>
         <p style={{ marginTop: 4 }}>
           © {new Date().getFullYear()} EVENTRA. All rights reserved. ·{" "}

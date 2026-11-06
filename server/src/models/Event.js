@@ -469,6 +469,30 @@ const eventSchema = new mongoose.Schema(
       enum: ["draft", "published", "closed", "completed"],
       default: "draft",
     },
+
+    /*
+     * SUPER ADMIN MODERATION
+     */
+    moderationStatus: {
+      type: String,
+      enum: ["APPROVED", "PENDING_REVIEW", "FLAGGED", "REJECTED"],
+      default: "APPROVED",
+      index: true,
+    },
+
+    moderationReason: {
+      type: String,
+      default: "",
+    },
+
+    moderatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    moderatedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

@@ -2,17 +2,21 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import SubscriptionPlan from "../models/SubscriptionPlan.js";
+import OrganizerSubscription from "../models/OrganizerSubscription.js";
 import { requireAuth } from "../middleware/auth.js";
+import { logAdminAction } from "../utils/auditLogger.js";
+import { seedDefaultPlansAndSettings } from "../utils/seedDefaults.js";
 
 const router = express.Router();
 
-function createToken(userId) {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
+function createToken(userId, role = "ORGANIZER") {
+  return jwt.sign({ userId, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 }
 
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, organization } = req.body;
+    const { name, email, password, organization, phone } = req.body;
 
     if (!name || typeof email !== "string" || !email.trim() || !password) {
       return res.status(400).json({ message: "Name, email and password are required" });
@@ -26,14 +30,38 @@ router.post("/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
+    // Ensure role is ALWAYS ORGANIZER on public registration - Never SUPER_ADMIN
     const user = await User.create({
-      name,
+      name: name.trim(),
       email: normalizedEmail,
       password: passwordHash,
       organization: organization || "",
+      phone: phone ? String(phone).trim() : "",
+      role: "ORGANIZER",
+      status: "ACTIVE",
+      verificationStatus: "UNVERIFIED",
     });
 
-    const token = createToken(user._id.toString());
+    // Auto-assign default Free subscription plan if available
+    try {
+      const freePlan = await SubscriptionPlan.findOne({ slug: "free", isActive: true });
+      if (freePlan) {
+        const sub = await OrganizerSubscription.create({
+          organizer: user._id,
+          plan: freePlan._id,
+          billingCycle: "monthly",
+          startDate: new Date(),
+          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year free
+          status: "ACTIVE",
+        });
+        user.currentSubscription = sub._id;
+        await user.save();
+      }
+    } catch (subErr) {
+      console.warn("Could not auto-bind free subscription:", subErr.message);
+    }
+
+    const token = createToken(user._id.toString(), "ORGANIZER");
 
     res.status(201).json({
       token,
@@ -42,9 +70,12 @@ router.post("/register", async (req, res) => {
         name: user.name,
         email: user.email,
         organization: user.organization,
+        role: "ORGANIZER",
+        status: "ACTIVE",
       },
     });
   } catch (error) {
+    console.error("Registration error:", error);
     res.status(500).json({ message: "Registration failed" });
   }
 });
@@ -68,7 +99,27 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    const token = createToken(user._id.toString());
+    // Role-based status check: block suspended or deactivated organizers
+    if (user.status === "SUSPENDED" && user.role !== "SUPER_ADMIN") {
+      const untilStr = user.suspension?.suspendedUntil
+        ? ` until ${new Date(user.suspension.suspendedUntil).toLocaleDateString()}`
+        : "";
+      return res.status(403).json({
+        message: `Your organizer account has been suspended${untilStr}. Reason: ${user.suspension?.reason || "Terms of service review"}. Please contact support@eventra.com.`,
+        isSuspended: true,
+        suspensionReason: user.suspension?.reason,
+      });
+    }
+
+    if (user.status === "DEACTIVATED" && user.role !== "SUPER_ADMIN") {
+      return res.status(403).json({
+        message: "Your organizer account has been permanently deactivated. Please contact support@eventra.com.",
+        isDeactivated: true,
+      });
+    }
+
+    const userRole = user.role || "ORGANIZER";
+    const token = createToken(user._id.toString(), userRole);
 
     res.json({
       token,
@@ -77,6 +128,8 @@ router.post("/login", async (req, res) => {
         name: user.name,
         email: user.email,
         organization: user.organization,
+        role: userRole,
+        status: user.status || "ACTIVE",
       },
     });
   } catch (error) {
@@ -85,12 +138,95 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// Get current organizer profile
+// Controlled Super Admin Bootstrap Endpoint
+router.post("/bootstrap-super-admin", async (req, res) => {
+  try {
+    const { name, email, password, bootstrapKey } = req.body;
+
+    // 1. Check if SUPER_ADMIN already exists in database
+    const existingAdmin = await User.findOne({ role: "SUPER_ADMIN" });
+    if (existingAdmin) {
+      return res.status(403).json({
+        message: "Super Admin already initialized on this platform. Bootstrap is permanently locked.",
+      });
+    }
+
+    // 2. Validate bootstrap secret key
+    const expectedKey = process.env.ADMIN_BOOTSTRAP_SECRET || "eventra_super_admin_init_key_2026";
+    if (bootstrapKey !== expectedKey) {
+      return res.status(401).json({
+        message: "Invalid bootstrap authorization secret.",
+      });
+    }
+
+    if (!name || !email || !password || password.length < 6) {
+      return res.status(400).json({
+        message: "Name, email and password (minimum 6 characters) are required.",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    let user = await User.findOne({ email: normalizedEmail });
+
+    if (user) {
+      user.role = "SUPER_ADMIN";
+      user.status = "ACTIVE";
+      user.password = await bcrypt.hash(password, 12);
+      user.verificationStatus = "VERIFIED";
+      await user.save();
+    } else {
+      const passwordHash = await bcrypt.hash(password, 12);
+      user = await User.create({
+        name: name.trim(),
+        email: normalizedEmail,
+        password: passwordHash,
+        role: "SUPER_ADMIN",
+        status: "ACTIVE",
+        organization: "EVENTRA Executive Administration",
+        verificationStatus: "VERIFIED",
+      });
+    }
+
+    // Ensure default subscription plans and settings exist
+    await seedDefaultPlansAndSettings();
+
+    // Log the sensitive bootstrap event
+    await logAdminAction({
+      actor: user,
+      action: "SUPER_ADMIN_BOOTSTRAPPED",
+      targetEntity: "User",
+      targetId: user._id,
+      targetName: user.name,
+      reason: "Initial platform bootstrap",
+      req,
+    });
+
+    const token = createToken(user._id.toString(), "SUPER_ADMIN");
+
+    res.status(201).json({
+      success: true,
+      message: "Super Admin bootstrap completed successfully.",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: "SUPER_ADMIN",
+        status: "ACTIVE",
+      },
+    });
+  } catch (error) {
+    console.error("Super Admin bootstrap error:", error);
+    res.status(500).json({ message: "Bootstrap failed: " + error.message });
+  }
+});
+
+// Get current profile
 router.get("/me", requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.userId).select("-password");
     if (!user) {
-      return res.status(404).json({ message: "Organizer account not found." });
+      return res.status(404).json({ message: "Account not found." });
     }
     res.json({
       user: {
@@ -98,6 +234,10 @@ router.get("/me", requireAuth, async (req, res) => {
         name: user.name,
         email: user.email,
         organization: user.organization || "",
+        phone: user.phone || "",
+        role: user.role || "ORGANIZER",
+        status: user.status || "ACTIVE",
+        verificationStatus: user.verificationStatus || "UNVERIFIED",
         emailNotifications: user.emailNotifications || { notifyOnRegistration: true, notifyOnCapacity: true },
         createdAt: user.createdAt,
       },
@@ -108,13 +248,13 @@ router.get("/me", requireAuth, async (req, res) => {
   }
 });
 
-// Update organizer profile details (name, email, organization, notifications)
+// Update profile details (name, email, organization, phone, notifications)
 router.put("/profile", requireAuth, async (req, res) => {
   try {
-    const { name, email, organization, emailNotifications } = req.body;
+    const { name, email, organization, phone, emailNotifications } = req.body;
     const user = await User.findById(req.userId);
     if (!user) {
-      return res.status(404).json({ message: "Organizer account not found." });
+      return res.status(404).json({ message: "Account not found." });
     }
 
     if (email && typeof email === "string" && email.trim()) {
@@ -136,6 +276,10 @@ router.put("/profile", requireAuth, async (req, res) => {
       user.organization = organization.trim();
     }
 
+    if (typeof phone === "string") {
+      user.phone = phone.trim();
+    }
+
     if (emailNotifications && typeof emailNotifications === "object") {
       user.emailNotifications = {
         notifyOnRegistration: emailNotifications.notifyOnRegistration ?? user.emailNotifications?.notifyOnRegistration ?? true,
@@ -145,8 +289,7 @@ router.put("/profile", requireAuth, async (req, res) => {
 
     await user.save();
 
-    // Generate refreshed token with updated identity
-    const token = createToken(user._id.toString());
+    const token = createToken(user._id.toString(), user.role || "ORGANIZER");
 
     res.json({
       success: true,
@@ -157,6 +300,9 @@ router.put("/profile", requireAuth, async (req, res) => {
         name: user.name,
         email: user.email,
         organization: user.organization,
+        phone: user.phone,
+        role: user.role || "ORGANIZER",
+        status: user.status || "ACTIVE",
         emailNotifications: user.emailNotifications,
       },
     });
@@ -166,7 +312,7 @@ router.put("/profile", requireAuth, async (req, res) => {
   }
 });
 
-// Change organizer account password
+// Change password
 router.put("/password", requireAuth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -180,7 +326,7 @@ router.put("/password", requireAuth, async (req, res) => {
 
     const user = await User.findById(req.userId);
     if (!user) {
-      return res.status(404).json({ message: "Organizer account not found." });
+      return res.status(404).json({ message: "Account not found." });
     }
 
     const valid = await bcrypt.compare(currentPassword, user.password);
