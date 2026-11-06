@@ -253,6 +253,13 @@ router.post("/", requireAuth, async (req, res) => {
       });
     }
 
+    if (ticketMode === "paid") {
+      return res.status(400).json({
+        message: "Paid events are coming soon! Only free events are supported at this time.",
+        comingSoon: true,
+      });
+    }
+
     if (status !== undefined && !["draft", "published"].includes(status)) {
       return res.status(400).json({ message: "Event status must be draft or published" });
     }
@@ -474,6 +481,12 @@ router.put("/:eventId", requireAuth, async (req, res) => {
     if (agenda !== undefined) event.agenda = Array.isArray(agenda) ? agenda : [];
     if (faqs !== undefined) event.faqs = Array.isArray(faqs) ? faqs : [];
     if (registrationFields !== undefined) event.registrationFields = registrationFields;
+    if (ticketMode === "paid") {
+      return res.status(400).json({
+        message: "Paid events are coming soon! Only free events are supported at this time.",
+        comingSoon: true,
+      });
+    }
     if (ticketMode !== undefined) event.ticketMode = ticketMode;
     if (qrEnabled !== undefined) event.qrEnabled = qrEnabled;
     if (ticketTypes !== undefined) event.ticketTypes = Array.isArray(ticketTypes) ? ticketTypes : [];

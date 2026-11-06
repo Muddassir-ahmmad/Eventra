@@ -73,6 +73,45 @@ export default function AdminBilling() {
 
   return (
     <AdminLayout title="Billing & Financial Ledger">
+      {/* Informative Under Development Notice */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%)",
+          border: "1px solid rgba(245, 158, 11, 0.35)",
+          borderRadius: 12,
+          padding: "16px 20px",
+          marginBottom: 24,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 14,
+        }}
+      >
+        <span style={{ fontSize: "1.6rem" }}>🚧</span>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <strong style={{ color: "#F59E0B", fontSize: "0.95rem" }}>
+              BILLING &amp; PAYMENT GATEWAYS — UNDER ACTIVE DEVELOPMENT
+            </strong>
+            <span
+              style={{
+                fontSize: "0.68rem",
+                fontWeight: 800,
+                background: "#F59E0B",
+                color: "#0F172A",
+                padding: "2px 6px",
+                borderRadius: 4,
+              }}
+            >
+              PREVIEW
+            </span>
+          </div>
+          <p style={{ margin: "4px 0 0", color: "#CBD5E1", fontSize: "0.85rem", lineHeight: 1.5 }}>
+            Payment gateway integrations (Razorpay, Stripe) are currently in sandbox staging. No real customer transactions or live payment charges are being executed.
+            Planned upcoming capabilities: Payment Gateway Management, Live Transaction History, Invoicing Automation, Dispute &amp; Refund Management, and Revenue Analytics.
+          </p>
+        </div>
+      </div>
+
       {/* Revenue KPI Cards */}
       <div className="admin-kpi-grid">
         <div className="admin-kpi-card">

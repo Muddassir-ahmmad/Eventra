@@ -1,14 +1,25 @@
 import mongoose from "mongoose";
 
+const ticketAttachmentSchema = new mongoose.Schema(
+  {
+    name: { type: String, default: "attachment" },
+    url: { type: String, required: true },
+    fileType: { type: String, default: "image/png" },
+    size: { type: Number, default: 0 },
+  },
+  { _id: true }
+);
+
 const ticketMessageSchema = new mongoose.Schema(
   {
     sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
     senderName: {
       type: String,
-      default: "",
+      default: "User",
     },
     senderRole: {
       type: String,
@@ -20,6 +31,10 @@ const ticketMessageSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    attachments: {
+      type: [ticketAttachmentSchema],
+      default: [],
+    },
     createdAt: {
       type: Date,
       default: Date.now,
@@ -30,6 +45,10 @@ const ticketMessageSchema = new mongoose.Schema(
 
 const internalNoteSchema = new mongoose.Schema(
   {
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     authorName: {
       type: String,
       default: "Admin",
@@ -47,6 +66,57 @@ const internalNoteSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const ticketHistorySchema = new mongoose.Schema(
+  {
+    action: {
+      type: String,
+      required: true,
+    },
+    actor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    actorName: {
+      type: String,
+      default: "System",
+    },
+    previousValue: {
+      type: String,
+      default: "",
+    },
+    newValue: {
+      type: String,
+      default: "",
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: true }
+);
+
+export const SUPPORT_CATEGORIES = [
+  "Account/Login Issues",
+  "Event Creation Problems",
+  "Event Publishing Issues",
+  "Registration Problems",
+  "QR Scanner and Attendance",
+  "Certificate Generation",
+  "Email Notifications",
+  "Post-Event Reports",
+  "Billing and Payments",
+  "Feature Request",
+  "General Complaint",
+  "Other",
+  // Legacy aliases
+  "Billing",
+  "Payment",
+  "Event",
+  "Account",
+  "Technical",
+];
+
 const supportTicketSchema = new mongoose.Schema(
   {
     ticketNumber: {
@@ -63,8 +133,8 @@ const supportTicketSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["Billing", "Payment", "Event", "Account", "Technical", "Other"],
-      default: "Technical",
+      enum: SUPPORT_CATEGORIES,
+      default: "General Complaint",
       index: true,
     },
     subject: {
@@ -75,6 +145,7 @@ const supportTicketSchema = new mongoose.Schema(
     description: {
       type: String,
       required: true,
+      trim: true,
     },
     priority: {
       type: String,
@@ -84,13 +155,24 @@ const supportTicketSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["OPEN", "IN_PROGRESS", "WAITING_FOR_USER", "RESOLVED", "CLOSED"],
+      enum: [
+        "OPEN",
+        "IN_PROGRESS",
+        "WAITING_FOR_ORGANIZER",
+        "WAITING_FOR_USER",
+        "RESOLVED",
+        "CLOSED",
+      ],
       default: "OPEN",
       index: true,
     },
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+    },
+    attachments: {
+      type: [ticketAttachmentSchema],
+      default: [],
     },
     replies: {
       type: [ticketMessageSchema],
@@ -99,6 +181,20 @@ const supportTicketSchema = new mongoose.Schema(
     internalNotes: {
       type: [internalNoteSchema],
       default: [],
+    },
+    history: {
+      type: [ticketHistorySchema],
+      default: [],
+    },
+    unreadByAdmin: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    unreadByOrganizer: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
     resolvedAt: {
       type: Date,
@@ -111,4 +207,3 @@ const supportTicketSchema = new mongoose.Schema(
 );
 
 export default mongoose.model("SupportTicket", supportTicketSchema);
-

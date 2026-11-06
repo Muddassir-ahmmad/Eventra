@@ -26,6 +26,8 @@ import adminSupportRoutes from "./routes/admin/adminSupport.js";
 import adminNotificationsRoutes from "./routes/admin/adminNotifications.js";
 import adminAuditLogsRoutes from "./routes/admin/adminAuditLogs.js";
 import adminSettingsRoutes from "./routes/admin/adminSettings.js";
+import adminParticipantsRoutes from "./routes/admin/adminParticipants.js";
+import adminAnalyticsRoutes from "./routes/admin/adminAnalytics.js";
 
 const app = express();
 const uploadDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../uploads");
@@ -89,6 +91,8 @@ app.use("/api/admin/support", adminSupportRoutes);
 app.use("/api/admin/notifications", adminNotificationsRoutes);
 app.use("/api/admin/audit-logs", adminAuditLogsRoutes);
 app.use("/api/admin/settings", adminSettingsRoutes);
+app.use("/api/admin/participants", adminParticipantsRoutes);
+app.use("/api/admin/analytics", adminAnalyticsRoutes);
 
 const PORT = process.env.PORT || 5000;
 

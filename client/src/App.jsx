@@ -25,6 +25,7 @@ import AttendanceDashboard from "./pages/AttendanceDashboard";
 import ParticipantDashboard from "./pages/ParticipantDashboard";
 import Terms from "./pages/Terms";
 import ProfileSettings from "./pages/ProfileSettings";
+import OrganizerSupport from "./pages/OrganizerSupport";
 
 // Super Admin Console Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -33,6 +34,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOrganizers from "./pages/admin/AdminOrganizers";
 import AdminOrganizerDetail from "./pages/admin/AdminOrganizerDetail";
 import AdminEvents from "./pages/admin/AdminEvents";
+import AdminParticipants from "./pages/admin/AdminParticipants";
 import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
 import AdminBilling from "./pages/admin/AdminBilling";
 import AdminInvoices from "./pages/admin/AdminInvoices";
@@ -40,6 +42,7 @@ import AdminSupport from "./pages/admin/AdminSupport";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 
 export default function App() {
   const location = useLocation();
@@ -173,6 +176,10 @@ export default function App() {
           element={<ProfileSettings />}
         />
 
+        {/* Organizer Support — Talk to Admin */}
+        <Route path="/dashboard/support" element={<OrganizerSupport />} />
+        <Route path="/support" element={<OrganizerSupport />} />
+
         {/* Super Admin Executive Console Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/bootstrap" element={<AdminBootstrap />} />
@@ -181,9 +188,11 @@ export default function App() {
         <Route path="/admin/organizers" element={<AdminOrganizers />} />
         <Route path="/admin/organizers/:id" element={<AdminOrganizerDetail />} />
         <Route path="/admin/events" element={<AdminEvents />} />
+        <Route path="/admin/participants" element={<AdminParticipants />} />
         <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
         <Route path="/admin/billing" element={<AdminBilling />} />
         <Route path="/admin/invoices" element={<AdminInvoices />} />
+        <Route path="/admin/analytics" element={<AdminAnalytics />} />
         <Route path="/admin/support" element={<AdminSupport />} />
         <Route path="/admin/notifications" element={<AdminNotifications />} />
         <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
@@ -221,6 +230,22 @@ function OrganizerHeader() {
             <nav className="main-nav">
               <Link to="/dashboard">Dashboard</Link>
               <Link to="/dashboard">My Events</Link>
+              <Link
+                to="/dashboard/support"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  color: "#6366f1",
+                  fontWeight: 600,
+                  background: "rgba(99, 102, 241, 0.08)",
+                  padding: "5px 12px",
+                  borderRadius: 20,
+                  border: "1px solid rgba(99, 102, 241, 0.25)",
+                }}
+              >
+                <span>🎧</span> Talk to Admin
+              </Link>
             </nav>
 
             {/* Organizer profile */}
@@ -240,6 +265,9 @@ function OrganizerHeader() {
                     <strong>{userName}</strong>
                     <span>EVENTRA Organizer</span>
                   </div>
+                  <button onClick={() => { setOpen(false); navigate("/dashboard/support"); }}>
+                    🎧 Talk to Admin / Support
+                  </button>
                   <button onClick={() => { setOpen(false); navigate("/dashboard/settings"); }}>
                     👤 Profile Settings
                   </button>

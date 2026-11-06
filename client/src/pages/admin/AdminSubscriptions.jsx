@@ -177,6 +177,45 @@ export default function AdminSubscriptions() {
 
   return (
     <AdminLayout title="Subscription & Plan Architecture">
+      {/* Informative Under Development Notice */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%)",
+          border: "1px solid rgba(245, 158, 11, 0.35)",
+          borderRadius: 12,
+          padding: "16px 20px",
+          marginBottom: 24,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 14,
+        }}
+      >
+        <span style={{ fontSize: "1.6rem" }}>🚧</span>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <strong style={{ color: "#F59E0B", fontSize: "0.95rem" }}>
+              SUBSCRIPTION TIERS &amp; BILLING ENGINES — UNDER DEVELOPMENT
+            </strong>
+            <span
+              style={{
+                fontSize: "0.68rem",
+                fontWeight: 800,
+                background: "#F59E0B",
+                color: "#0F172A",
+                padding: "2px 6px",
+                borderRadius: 4,
+              }}
+            >
+              PREVIEW
+            </span>
+          </div>
+          <p style={{ margin: "4px 0 0", color: "#CBD5E1", fontSize: "0.85rem", lineHeight: 1.5 }}>
+            Automated recurring subscription payments and auto-renewals are currently staged in sandbox development. All active organizers currently operate with standard complimentary platform quotas.
+            Planned capabilities: Tier Limit Enforcement, Auto-Billing Schedules, Corporate Invoicing, Custom Institution Upgrades, and Grace Period Automation.
+          </p>
+        </div>
+      </div>
+
       {/* Plans Section Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>

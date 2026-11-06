@@ -43,6 +43,22 @@ export default function Dashboard() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <Link
+              className="button button-ghost"
+              to="/dashboard/support"
+              style={{
+                fontSize: "0.88rem",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                color: "#6366f1",
+                borderColor: "rgba(99, 102, 241, 0.4)",
+                background: "rgba(99, 102, 241, 0.06)",
+                fontWeight: 600,
+              }}
+            >
+              🎧 Talk to Admin
+            </Link>
             <Link className="button button-ghost" to="/dashboard/settings" style={{ fontSize: "0.88rem" }}>
               ⚙️ Account Settings
             </Link>

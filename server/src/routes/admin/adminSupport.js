@@ -2,6 +2,7 @@ import express from "express";
 import SupportTicket from "../../models/SupportTicket.js";
 import { requireAuth, requireSuperAdmin } from "../../middleware/auth.js";
 import { logAdminAction } from "../../utils/auditLogger.js";
+import emailService from "../../services/emailService.js";
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ router.use(requireAuth, requireSuperAdmin);
 
 /**
  * GET /api/admin/support
- * List tickets with search and status/priority filters.
+ * List tickets with search, status/priority filters, and summary metrics.
  */
 router.get("/", async (req, res) => {
   try {
@@ -29,7 +30,16 @@ router.get("/", async (req, res) => {
       query.$or = [{ ticketNumber: reg }, { subject: reg }, { description: reg }];
     }
 
-    const [total, tickets] = await Promise.all([
+    const [
+      total,
+      tickets,
+      totalCount,
+      openCount,
+      newCount,
+      inProgressCount,
+      urgentCount,
+      resolvedCount,
+    ] = await Promise.all([
       SupportTicket.countDocuments(query),
       SupportTicket.find(query)
         .sort({ updatedAt: -1 })
@@ -38,11 +48,25 @@ router.get("/", async (req, res) => {
         .populate("organizer", "name email organization status")
         .populate("assignedTo", "name email")
         .lean(),
+      SupportTicket.countDocuments(),
+      SupportTicket.countDocuments({ status: "OPEN" }),
+      SupportTicket.countDocuments({ unreadByAdmin: true }),
+      SupportTicket.countDocuments({ status: { $in: ["IN_PROGRESS", "WAITING_FOR_ORGANIZER", "WAITING_FOR_USER"] } }),
+      SupportTicket.countDocuments({ priority: "URGENT", status: { $in: ["OPEN", "IN_PROGRESS", "WAITING_FOR_ORGANIZER"] } }),
+      SupportTicket.countDocuments({ status: { $in: ["RESOLVED", "CLOSED"] } }),
     ]);
 
     res.json({
       success: true,
       tickets,
+      summary: {
+        total: totalCount,
+        open: openCount,
+        newComplaints: newCount,
+        inProgress: inProgressCount,
+        urgent: urgentCount,
+        resolved: resolvedCount,
+      },
       pagination: {
         page,
         limit,
@@ -72,6 +96,12 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ message: "Ticket not found." });
     }
 
+    // Mark as read by admin
+    if (ticket.unreadByAdmin) {
+      await SupportTicket.updateOne({ _id: id }, { unreadByAdmin: false });
+      ticket.unreadByAdmin = false;
+    }
+
     res.json({ success: true, ticket });
   } catch (error) {
     console.error("Ticket detail error:", error);
@@ -86,28 +116,47 @@ router.get("/:id", async (req, res) => {
 router.post("/:id/reply", async (req, res) => {
   try {
     const { id } = req.params;
-    const { message } = req.body;
+    const { message, attachments = [] } = req.body;
 
     if (!message || !message.trim()) {
       return res.status(400).json({ message: "Reply message cannot be empty." });
     }
 
-    const ticket = await SupportTicket.findById(id);
+    const ticket = await SupportTicket.findById(id).populate("organizer", "name email");
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found." });
     }
+
+    const validAttachments = Array.isArray(attachments)
+      ? attachments.slice(0, 5).map((att) => ({
+          name: String(att.name || "attachment").slice(0, 100),
+          url: String(att.url || ""),
+          fileType: String(att.fileType || "image/png"),
+          size: Number(att.size || 0),
+        })).filter((att) => att.url.length > 0)
+      : [];
 
     ticket.replies.push({
       sender: req.user._id,
       senderName: req.user.name || "Super Admin",
       senderRole: "SUPER_ADMIN",
       message: message.trim(),
+      attachments: validAttachments,
       createdAt: new Date(),
     });
 
-    if (ticket.status === "OPEN") {
-      ticket.status = "IN_PROGRESS";
-    }
+    const previousStatus = ticket.status;
+    ticket.status = "WAITING_FOR_ORGANIZER";
+    ticket.unreadByOrganizer = true;
+    ticket.unreadByAdmin = false;
+
+    ticket.history.push({
+      action: "ADMIN_REPLIED",
+      actor: req.user._id,
+      actorName: req.user.name || "Super Admin",
+      previousValue: previousStatus,
+      newValue: "WAITING_FOR_ORGANIZER",
+    });
 
     await ticket.save();
 
@@ -120,6 +169,29 @@ router.post("/:id/reply", async (req, res) => {
       reason: `Replied to ticket ${ticket.ticketNumber}`,
       req,
     });
+
+    // Optionally dispatch notification email to organizer
+    if (emailService.isConfigured() && ticket.organizer?.email) {
+      emailService.sendMail({
+        to: ticket.organizer.email,
+        recipientName: ticket.organizer.name,
+        subject: `[${ticket.ticketNumber}] Support Update: ${ticket.subject}`,
+        html: `
+          <div style="font-family:sans-serif;padding:20px;color:#333;line-height:1.6;">
+            <h2 style="color:#6366f1;">Super Admin Replied to Your Request</h2>
+            <p>Hello <strong>${ticket.organizer.name}</strong>,</p>
+            <p>Our executive administration team has posted a reply regarding ticket <strong>${ticket.ticketNumber}</strong>:</p>
+            <div style="background:#f8fafc;border-left:4px solid #6366f1;padding:14px;border-radius:4px;margin:16px 0;">
+              ${message.trim().replace(/\n/g, "<br>")}
+            </div>
+            <p>You can review this ticket and continue the conversation directly in your Organizer Dashboard under <strong>Talk to Admin</strong>.</p>
+            <p style="color:#64748b;font-size:0.85rem;margin-top:24px;">— EVENTRA Platform Administration</p>
+          </div>
+        `,
+        text: `Super Admin replied to your ticket ${ticket.ticketNumber}:\n\n${message.trim()}\n\nLog in to your EVENTRA dashboard to review.`,
+        emailType: "support_reply_notification",
+      }).catch((e) => console.log("Support email dispatch note:", e.message));
+    }
 
     res.json({
       success: true,
@@ -142,23 +214,43 @@ router.put("/:id/status", async (req, res) => {
     const { id } = req.params;
     const { status, priority, internalNote } = req.body;
 
-    const ticket = await SupportTicket.findById(id);
+    const ticket = await SupportTicket.findById(id).populate("organizer", "name email");
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found." });
     }
 
-    if (status) {
+    const previousStatus = ticket.status;
+    const previousPriority = ticket.priority;
+
+    if (status && status !== ticket.status) {
       ticket.status = status;
       if (status === "RESOLVED") ticket.resolvedAt = new Date();
       if (status === "CLOSED") ticket.closedAt = new Date();
+      ticket.unreadByOrganizer = true;
+
+      ticket.history.push({
+        action: "STATUS_CHANGED",
+        actor: req.user._id,
+        actorName: req.user.name || "Super Admin",
+        previousValue: previousStatus,
+        newValue: status,
+      });
     }
 
-    if (priority) {
+    if (priority && priority !== ticket.priority) {
       ticket.priority = priority;
+      ticket.history.push({
+        action: "PRIORITY_CHANGED",
+        actor: req.user._id,
+        actorName: req.user.name || "Super Admin",
+        previousValue: previousPriority,
+        newValue: priority,
+      });
     }
 
     if (internalNote && internalNote.trim()) {
       ticket.internalNotes.push({
+        author: req.user._id,
         authorName: req.user.name || "Super Admin",
         note: internalNote.trim(),
         createdAt: new Date(),

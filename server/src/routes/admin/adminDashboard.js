@@ -2,6 +2,8 @@ import express from "express";
 import User from "../../models/User.js";
 import Event from "../../models/Event.js";
 import Registration from "../../models/Registration.js";
+import Certificate from "../../models/Certificate.js";
+import SupportTicket from "../../models/SupportTicket.js";
 import PaymentTransaction from "../../models/PaymentTransaction.js";
 import OrganizerSubscription from "../../models/OrganizerSubscription.js";
 import AdminAuditLog from "../../models/AdminAuditLog.js";
@@ -52,10 +54,21 @@ router.get("/stats", async (req, res) => {
       Event.countDocuments({ moderationStatus: "FLAGGED" }),
     ]);
 
-    // 3. Participant Registration Statistics
-    const [totalParticipants, checkedInParticipants] = await Promise.all([
+    // 3. Participant Registration & Certificate Statistics
+    const [
+      totalParticipants,
+      checkedInParticipants,
+      totalCertificates,
+      openComplaints,
+      unresolvedComplaints,
+    ] = await Promise.all([
       Registration.countDocuments({ status: "confirmed" }),
       Registration.countDocuments({ checkedIn: true }),
+      Certificate.countDocuments({ status: "issued" }),
+      SupportTicket.countDocuments({ status: "OPEN" }),
+      SupportTicket.countDocuments({
+        status: { $in: ["OPEN", "IN_PROGRESS", "WAITING_FOR_ORGANIZER", "WAITING_FOR_USER"] },
+      }),
     ]);
 
     // 4. Subscriptions Statistics
@@ -274,6 +287,13 @@ router.get("/stats", async (req, res) => {
           attendanceRate: totalParticipants > 0
             ? Math.round((checkedInParticipants / totalParticipants) * 100)
             : 0,
+        },
+        certificates: {
+          totalGenerated: totalCertificates,
+        },
+        support: {
+          open: openComplaints,
+          unresolved: unresolvedComplaints,
         },
         subscriptions: {
           active: activeSubscriptions,

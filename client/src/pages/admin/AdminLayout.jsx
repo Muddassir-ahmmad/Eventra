@@ -72,14 +72,15 @@ export default function AdminLayout({ children, title = "Super Admin Console" })
   }
 
   const navItems = [
-    { label: "Dashboard Overview", path: "/admin", icon: "📊" },
-    { label: "Organizers", path: "/admin/organizers", icon: "👥" },
-    { label: "Event Moderation", path: "/admin/events", icon: "🎟️" },
-    { label: "Plans & Subscriptions", path: "/admin/subscriptions", icon: "💳" },
-    { label: "Billing & Revenue", path: "/admin/billing", icon: "💰" },
-    { label: "Invoices", path: "/admin/invoices", icon: "🧾" },
-    { label: "Support Tickets", path: "/admin/support", icon: "🎧" },
-    { label: "Announcements", path: "/admin/notifications", icon: "📢" },
+    { label: "Overview", path: "/admin", icon: "📊" },
+    { label: "Organizer Management", path: "/admin/organizers", icon: "👥" },
+    { label: "All Events", path: "/admin/events", icon: "🎟️" },
+    { label: "Participants", path: "/admin/participants", icon: "🎓" },
+    { label: "Billing & Payments", path: "/admin/billing", icon: "💰", badge: "DEV" },
+    { label: "Subscription Plans", path: "/admin/subscriptions", icon: "💳", badge: "DEV" },
+    { label: "Analytics", path: "/admin/analytics", icon: "📈" },
+    { label: "Support & Complaints", path: "/admin/support", icon: "🎧" },
+    { label: "Notifications", path: "/admin/notifications", icon: "📢" },
     { label: "Audit Logs", path: "/admin/audit-logs", icon: "📜" },
     { label: "Platform Settings", path: "/admin/settings", icon: "⚙️" },
   ];
@@ -105,7 +106,22 @@ export default function AdminLayout({ children, title = "Super Admin Console" })
               onClick={() => setMobileMenuOpen(false)}
             >
               <span>{item.icon}</span>
-              <span>{item.label}</span>
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.badge && (
+                <span
+                  style={{
+                    fontSize: "0.62rem",
+                    fontWeight: 800,
+                    padding: "1px 5px",
+                    borderRadius: 4,
+                    background: "rgba(245, 158, 11, 0.2)",
+                    color: "#F59E0B",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  {item.badge}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

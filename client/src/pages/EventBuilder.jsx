@@ -1372,6 +1372,8 @@ function Tickets({ form, update }) {
     update("ticketTypes", list);
   };
 
+  const [showPaidModal, setShowPaidModal] = useState(false);
+
   const handleSelectFree = () => {
     update("ticketMode", "free");
     const currentCap = form.ticketTypes?.[0]?.capacity || 100;
@@ -1379,10 +1381,7 @@ function Tickets({ form, update }) {
   };
 
   const handleSelectPaid = () => {
-    update("ticketMode", "paid");
-    if (form.ticketTypes.length === 1 && form.ticketTypes[0].price === 0) {
-      update("ticketTypes", [{ ...form.ticketTypes[0], price: 299 }]);
-    }
+    setShowPaidModal(true);
   };
 
   return (
@@ -1397,12 +1396,110 @@ function Tickets({ form, update }) {
         </button>
         <button
           type="button"
-          className={form.ticketMode === "paid" ? "selected" : ""}
           onClick={handleSelectPaid}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
-          Paid / Tiered Tickets
+          <span>🔒 Paid / Tiered Tickets</span>
+          <span
+            style={{
+              fontSize: "0.68rem",
+              background: "#F59E0B",
+              color: "#0F172A",
+              fontWeight: 800,
+              padding: "2px 6px",
+              borderRadius: 4,
+              letterSpacing: "0.04em",
+            }}
+          >
+            COMING SOON
+          </span>
         </button>
       </div>
+
+      {showPaidModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.75)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: "#0F172A",
+              border: "1px solid rgba(245, 158, 11, 0.4)",
+              borderRadius: 16,
+              maxWidth: 540,
+              width: "100%",
+              padding: "32px 28px",
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5), 0 0 30px rgba(245, 158, 11, 0.15)",
+              color: "#F8FAFC",
+            }}
+          >
+            <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 12,
+                  background: "rgba(245, 158, 11, 0.15)",
+                  border: "1px solid rgba(245, 158, 11, 0.3)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.6rem",
+                  marginBottom: 12,
+                }}
+              >
+                🔒
+              </div>
+              <h3 style={{ fontSize: "1.4rem", fontWeight: 800, margin: 0, color: "#F8FAFC" }}>
+                Paid Events — Coming Soon!
+              </h3>
+              <p style={{ color: "#94A3B8", fontSize: "0.88rem", marginTop: 8, lineHeight: 1.5 }}>
+                We are working on bringing paid event registration to EVENTRA. Soon, organizers will be able to sell event tickets and manage online payments directly through the platform.
+              </p>
+            </div>
+
+            <div
+              style={{
+                background: "rgba(255, 255, 255, 0.03)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: 12,
+                padding: "16px 20px",
+                marginBottom: 24,
+              }}
+            >
+              <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#F59E0B", textTransform: "uppercase", marginBottom: 12 }}>
+                Planned Paid Event Features:
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: "0.86rem", color: "#CBD5E1", lineHeight: 1.8 }}>
+                <li>Multiple ticket categories (General, VIP, Early Bird)</li>
+                <li>Early-bird &amp; promotional pricing discounts</li>
+                <li>Online payment gateway processing</li>
+                <li>Instant digital pass &amp; payment confirmation</li>
+                <li>Transaction and payout management</li>
+                <li>Refund and cancellation workflow</li>
+              </ul>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowPaidModal(false)}
+              className="button button-primary"
+              style={{ width: "100%", padding: "12px", fontSize: "0.92rem", fontWeight: 700 }}
+            >
+              Continue with Free Event Admission →
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="toggle-row">
         <span>

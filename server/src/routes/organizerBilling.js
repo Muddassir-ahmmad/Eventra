@@ -148,18 +148,36 @@ router.get("/invoices/:id/pdf", async (req, res) => {
 
 /**
  * POST /api/organizer/support
- * Open a new support ticket.
+ * Open a new support ticket / complaint.
  */
 router.post("/support", async (req, res) => {
   try {
-    const { category = "Technical", subject, description, priority = "MEDIUM" } = req.body;
+    const {
+      category = "General Complaint",
+      subject,
+      description,
+      priority = "MEDIUM",
+      attachments = [],
+    } = req.body;
 
-    if (!subject || !description) {
-      return res.status(400).json({ message: "Subject and description are required." });
+    if (!subject || !subject.trim() || !description || !description.trim()) {
+      return res.status(400).json({ message: "Subject and detailed description are required." });
     }
 
-    const ticketCount = await SupportTicket.countDocuments();
-    const ticketNumber = `TCK-${new Date().getFullYear()}-${String(ticketCount + 1).padStart(4, "0")}`;
+    // Generate safe sequential ticket ID (e.g. EVT-SUP-2026-0001)
+    const year = new Date().getFullYear();
+    const count = await SupportTicket.countDocuments();
+    const ticketNumber = `EVT-SUP-${year}-${String(count + 1).padStart(4, "0")}`;
+
+    // Clean and validate attachments (max 5 attachments, validate structure)
+    const validAttachments = Array.isArray(attachments)
+      ? attachments.slice(0, 5).map((att) => ({
+          name: String(att.name || "attachment").slice(0, 100),
+          url: String(att.url || ""),
+          fileType: String(att.fileType || "image/png"),
+          size: Number(att.size || 0),
+        })).filter((att) => att.url.length > 0)
+      : [];
 
     const ticket = await SupportTicket.create({
       ticketNumber,
@@ -167,21 +185,33 @@ router.post("/support", async (req, res) => {
       category,
       subject: subject.trim(),
       description: description.trim(),
-      priority,
+      priority: ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(priority) ? priority : "MEDIUM",
       status: "OPEN",
+      attachments: validAttachments,
+      unreadByAdmin: true,
+      unreadByOrganizer: false,
       replies: [
         {
           sender: req.userId,
-          senderName: req.user.name,
+          senderName: req.user?.name || "Organizer",
           senderRole: "ORGANIZER",
           message: description.trim(),
+          attachments: validAttachments,
+        },
+      ],
+      history: [
+        {
+          action: "TICKET_CREATED",
+          actor: req.userId,
+          actorName: req.user?.name || "Organizer",
+          newValue: "OPEN",
         },
       ],
     });
 
     res.status(201).json({
       success: true,
-      message: `Support ticket ${ticketNumber} created successfully.`,
+      message: `Support ticket ${ticketNumber} registered successfully. Super Admin has been notified.`,
       ticket,
     });
   } catch (error) {
@@ -192,27 +222,69 @@ router.post("/support", async (req, res) => {
 
 /**
  * GET /api/organizer/support
- * List organizer's own support tickets.
+ * List organizer's own support tickets with unread counters.
  */
 router.get("/support", async (req, res) => {
   try {
     const tickets = await SupportTicket.find({ organizer: req.userId })
+      .select("-internalNotes") // Strictly hide private admin notes
       .sort({ updatedAt: -1 })
       .lean();
-    res.json({ success: true, tickets });
+
+    const openCount = tickets.filter((t) => t.status === "OPEN").length;
+    const inProgressCount = tickets.filter((t) => ["IN_PROGRESS", "WAITING_FOR_ORGANIZER", "WAITING_FOR_USER"].includes(t.status)).length;
+    const resolvedCount = tickets.filter((t) => ["RESOLVED", "CLOSED"].includes(t.status)).length;
+
+    res.json({
+      success: true,
+      tickets,
+      counts: {
+        total: tickets.length,
+        open: openCount,
+        inProgress: inProgressCount,
+        resolved: resolvedCount,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Could not fetch support tickets." });
   }
 });
 
 /**
+ * GET /api/organizer/support/:id
+ * Get single ticket conversation. Strictly excludes internal admin notes.
+ */
+router.get("/support/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ticket = await SupportTicket.findOne({ _id: id, organizer: req.userId })
+      .select("-internalNotes") // Strictly exclude internalNotes
+      .lean();
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found or access denied." });
+    }
+
+    // Mark as read by organizer
+    if (ticket.unreadByOrganizer) {
+      await SupportTicket.updateOne({ _id: id }, { unreadByOrganizer: false });
+      ticket.unreadByOrganizer = false;
+    }
+
+    res.json({ success: true, ticket });
+  } catch (error) {
+    res.status(500).json({ message: "Could not fetch ticket details." });
+  }
+});
+
+/**
  * POST /api/organizer/support/:id/reply
- * Reply to organizer's own ticket.
+ * Reply to organizer's own ticket with optional attachments.
  */
 router.post("/support/:id/reply", async (req, res) => {
   try {
     const { id } = req.params;
-    const { message } = req.body;
+    const { message, attachments = [] } = req.body;
 
     if (!message || !message.trim()) {
       return res.status(400).json({ message: "Message cannot be empty." });
@@ -223,21 +295,47 @@ router.post("/support/:id/reply", async (req, res) => {
       return res.status(404).json({ message: "Ticket not found or access denied." });
     }
 
+    const validAttachments = Array.isArray(attachments)
+      ? attachments.slice(0, 5).map((att) => ({
+          name: String(att.name || "attachment").slice(0, 100),
+          url: String(att.url || ""),
+          fileType: String(att.fileType || "image/png"),
+          size: Number(att.size || 0),
+        })).filter((att) => att.url.length > 0)
+      : [];
+
     ticket.replies.push({
       sender: req.userId,
-      senderName: req.user.name,
+      senderName: req.user?.name || "Organizer",
       senderRole: "ORGANIZER",
       message: message.trim(),
+      attachments: validAttachments,
       createdAt: new Date(),
     });
 
-    if (ticket.status === "WAITING_FOR_USER" || ticket.status === "RESOLVED") {
+    const previousStatus = ticket.status;
+    if (["WAITING_FOR_ORGANIZER", "WAITING_FOR_USER", "RESOLVED"].includes(ticket.status)) {
       ticket.status = "IN_PROGRESS";
+      ticket.history.push({
+        action: "STATUS_CHANGED",
+        actor: req.userId,
+        actorName: req.user?.name || "Organizer",
+        previousValue: previousStatus,
+        newValue: "IN_PROGRESS",
+      });
     }
+
+    ticket.unreadByAdmin = true;
+    ticket.unreadByOrganizer = false;
 
     await ticket.save();
 
-    res.json({ success: true, message: "Reply sent.", replies: ticket.replies, status: ticket.status });
+    res.json({
+      success: true,
+      message: "Reply sent to Super Admin.",
+      replies: ticket.replies,
+      status: ticket.status,
+    });
   } catch (error) {
     console.error("Organizer reply error:", error);
     res.status(500).json({ message: "Failed to send reply." });
