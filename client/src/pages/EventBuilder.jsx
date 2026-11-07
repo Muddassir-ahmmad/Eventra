@@ -600,10 +600,19 @@ function Design({ form, update }) {
     setAiMessage("");
 
     try {
+      const timeStr = form.startTime
+        ? `${form.startTime}${form.endTime ? ` - ${form.endTime}` : ""}`
+        : "";
+
       const { data } = await api.post("/events/generate-poster", {
         title: form.title || customTitle || "Event",
         category: form.category,
         description: form.description || customTagline,
+        date: form.date,
+        time: timeStr,
+        venue: form.venue || form.location || (form.mode === "online" ? "Online Virtual Event" : ""),
+        location: form.location,
+        mode: form.mode,
         visualStyle: aiStyle,
         colorPreference: `${customPrimaryColor} and ${customAccentColor}`,
       });
@@ -837,6 +846,54 @@ function Design({ form, update }) {
             <Field label="Category Context">
               <input value={form.category} disabled />
             </Field>
+          </div>
+
+          <div className="builder-two" style={{ marginTop: 12 }}>
+            <Field label="Event Date (Stamped on Poster)">
+              <input
+                type="date"
+                value={form.date}
+                onChange={(e) => update("date", e.target.value)}
+              />
+            </Field>
+            <Field label="Venue / Place (Stamped on Poster)">
+              <input
+                type="text"
+                value={form.venue}
+                onChange={(e) => update("venue", e.target.value)}
+                placeholder="Auditorium, Seminar Hall, or Online"
+              />
+            </Field>
+          </div>
+
+          <div
+            style={{
+              padding: "10px 14px",
+              borderRadius: 8,
+              background: "rgba(99, 102, 241, 0.08)",
+              border: "1px solid rgba(99, 102, 241, 0.25)",
+              marginBottom: 16,
+              fontSize: "0.82rem",
+              color: "#c7d2fe",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <span>📌</span>
+            <div>
+              <strong>Verified Poster Details:</strong> Date:{" "}
+              <span style={{ color: "#fff", fontWeight: 700 }}>
+                {form.date ? new Date(form.date).toLocaleDateString() : "Not set (TBA)"}
+              </span>
+              {" "}• Place:{" "}
+              <span style={{ color: "#fff", fontWeight: 700 }}>
+                {form.venue || form.location || (form.mode === "online" ? "Online Virtual Event" : "Not set (TBA)")}
+              </span>
+              <p style={{ margin: "2px 0 0", fontSize: "0.74rem", color: "#94a3b8" }}>
+                Gemini AI is strictly instructed to use this exact date and place on your poster.
+              </p>
+            </div>
           </div>
 
           <button

@@ -196,6 +196,11 @@ export async function generateGeminiPoster({
   title,
   category = "Technology",
   description = "",
+  date = "",
+  time = "",
+  venue = "",
+  location = "",
+  mode = "offline",
   visualStyle = "futuristic neon glassmorphism",
   colorPreference = "deep violet and electric cyan",
 }) {
@@ -204,11 +209,39 @@ export async function generateGeminiPoster({
     throw new Error("Gemini API key is not configured. Set AI_API_KEY or GEMINI_API_KEY in server environment.");
   }
 
+  // 0. Format Date, Time and Venue cleanly
+  let formattedDate = "";
+  if (date) {
+    try {
+      const d = new Date(date);
+      if (!isNaN(d.getTime())) {
+        formattedDate = d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+      } else {
+        formattedDate = String(date).trim();
+      }
+    } catch {
+      formattedDate = String(date).trim();
+    }
+  }
+
+  if (time && String(time).trim()) {
+    formattedDate = formattedDate ? `${formattedDate} · ${String(time).trim()}` : String(time).trim();
+  }
+
+  let formattedVenue = (venue || location || "").trim();
+  if (!formattedVenue && mode === "online") {
+    formattedVenue = "Online Virtual Event";
+  }
+
   // 1. Try Google Imagen 3 if explicitly requested and enabled
   const imageModel = process.env.AI_IMAGE_MODEL;
   if (imageModel && !imageModel.includes("flash")) {
     try {
-      const prompt = `Professional, high-impact event promotional poster for '${title}'. Theme category: ${category}. Description: ${description.slice(0, 180)}. Style: ${visualStyle}. Palette: ${colorPreference}. Modern graphic design, balanced negative space, high contrast, clean typography frame, commercial grade showcase.`;
+      const prompt = `Professional, high-impact event promotional poster for '${title}'. Theme category: ${category}. Exact Event Date: ${formattedDate || "Date TBA"}. Exact Venue/Place: ${formattedVenue || "Main Auditorium"}. Description: ${description ? description.slice(0, 180) : ""}. Style: ${visualStyle}. Palette: ${colorPreference}. Modern graphic design, balanced negative space, high contrast, clean typography frame, commercial grade showcase.`;
       const imagenEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${imageModel}:predict?key=${apiKey}`;
       const response = await fetch(imagenEndpoint, {
         method: "POST",
@@ -233,18 +266,34 @@ export async function generateGeminiPoster({
   }
 
   // 2. High-Performance Gemini SVG Poster Synthesis (Free, Fast, Vector Scalable)
-  const svgPrompt = `You are an award-winning graphic designer. Generate a stunning, high-resolution SVG event poster for this event:
-Title: "${title}"
-Category: "${category}"
-Description/Context: "${description.slice(0, 200)}"
-Visual Style: "${visualStyle}"
-Color Palette: "${colorPreference}"
+  const dateConstraint = formattedDate
+    ? `MANDATORY: You MUST accurately render the exact date text "${formattedDate}" on the poster (e.g. in a date badge or metadata bar). DO NOT invent, hallucinate, or use any other date, month, or year.`
+    : `If no date was provided, display "DATE TO BE ANNOUNCED". NEVER invent a random fictional date.`;
 
-Strict Requirements:
+  const venueConstraint = formattedVenue
+    ? `MANDATORY: You MUST accurately render the exact venue/place text "${formattedVenue}" on the poster (e.g. in a location badge or footer card). DO NOT invent, hallucinate, or use any other venue, city, or hall.`
+    : `If no venue was provided, display "VENUE TO BE ANNOUNCED" or "HYBRID / ONLINE". NEVER invent a random fictional location.`;
+
+  const svgPrompt = `You are an elite, world-class graphic designer specializing in high-resolution, vector-crisp promotional posters for EVENTRA.
+Generate a stunning, high-resolution SVG event poster for this event:
+- Event Title: "${title}"
+- Category: "${category}"
+- Exact Event Date & Time: "${formattedDate || "Date TBA"}"
+- Exact Event Venue / Place: "${formattedVenue || "Venue TBA"}"
+- Description / Context: "${description ? description.slice(0, 200) : ""}"
+- Visual Style: "${visualStyle}"
+- Color Palette: "${colorPreference}"
+
+CRITICAL INSTRUCTIONS FOR DATE & PLACE (MANDATORY):
+1. ${dateConstraint}
+2. ${venueConstraint}
+3. The event title "${title}", the exact date "${formattedDate || "Date TBA"}", and the exact venue "${formattedVenue || "Venue TBA"}" MUST be prominently rendered as legible, high-contrast SVG <text> elements so participants immediately know when and where the event takes place.
+
+Strict SVG Requirements:
 1. Return ONLY pure SVG code starting with <svg and ending with </svg>.
 2. Dimensions: viewBox="0 0 1200 675" width="100%" height="100%".
 3. Aesthetic: Modern dark backdrop (#070b19 or #0b0f19), smooth multi-stop radial & linear gradients, luminous geometric aurora shapes, subtle cyber or organic accents, clean typography badge for EVENTRA and category pill, and the title "${title}" prominently displayed with high contrast and gradient fill.
-4. Add decorative accent lines, date/venue indicator badge, and crisp visual hierarchy.
+4. Layout: Include a clear top category badge, prominent center/left title, descriptive subtitle, and a dedicated bottom metadata card or badge showing the exact Date ("${formattedDate || "Date TBA"}") and Venue ("${formattedVenue || "Venue TBA"}").
 5. No markdown fences, no backticks, no explanations. Just pure valid SVG.`;
 
   try {
@@ -254,7 +303,26 @@ Strict Requirements:
 
     const match = svgText.match(/<svg[\s\S]*?<\/svg>/i);
     if (match) {
-      const cleanSvg = match[0].trim();
+      let cleanSvg = match[0].trim();
+
+      // Ensure exact date & venue appear in the SVG
+      const hasDateInSvg = formattedDate && (cleanSvg.includes(formattedDate) || (date && cleanSvg.includes(date)));
+      const hasVenueInSvg = formattedVenue && cleanSvg.toLowerCase().includes(formattedVenue.toLowerCase());
+
+      if ((formattedDate && !hasDateInSvg) || (formattedVenue && !hasVenueInSvg)) {
+        const safeD = (formattedDate || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const safeV = (formattedVenue || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const overlay = `
+  <!-- Verified Eventra Date & Venue Badge Overlay -->
+  <g transform="translate(60, 560)">
+    <rect width="1080" height="60" rx="14" fill="#080c18" fill-opacity="0.92" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" />
+    ${safeD ? `<text x="30" y="37" fill="#a5b4fc" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="800">📅 ${safeD}</text>` : ""}
+    ${safeV ? `<text x="${safeD ? "540" : "30"}" y="37" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="800">📍 ${safeV}</text>` : ""}
+  </g>
+</svg>`;
+        cleanSvg = cleanSvg.replace(/<\/svg>\s*$/i, overlay);
+      }
+
       const base64Svg = Buffer.from(cleanSvg).toString("base64");
       return `data:image/svg+xml;base64,${base64Svg}`;
     }
@@ -266,6 +334,8 @@ Strict Requirements:
   const safeTitle = (title || "EVENTRA SHOWCASE").slice(0, 42).replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const safeCat = (category || "TECH SUMMIT").toUpperCase().slice(0, 24).replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const safeDesc = (description || "Experience keynotes, hands-on workshops, and transformative tech innovations.").slice(0, 95).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeDate = (formattedDate || "Date to be announced").slice(0, 36).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeVenue = (formattedVenue || "Venue to be announced").slice(0, 42).replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   const fallbackSvg = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675">
@@ -304,26 +374,32 @@ Strict Requirements:
   <rect x="40" y="35" width="1120" height="605" rx="24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" />
   
   <!-- Top Category Pill -->
-  <rect x="75" y="70" width="190" height="38" rx="19" fill="rgba(99,102,241,0.2)" stroke="rgba(165,180,252,0.4)" stroke-width="1.5" />
-  <text x="170" y="94" fill="#c7d2fe" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="800" text-anchor="middle" letter-spacing="2">EVENTRA · ${safeCat}</text>
+  <rect x="75" y="70" width="220" height="38" rx="19" fill="rgba(99,102,241,0.2)" stroke="rgba(165,180,252,0.4)" stroke-width="1.5" />
+  <text x="185" y="94" fill="#c7d2fe" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="800" text-anchor="middle" letter-spacing="2">EVENTRA · ${safeCat}</text>
   
   <!-- Right Accent Badge -->
   <rect x="990" y="70" width="135" height="36" rx="8" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" />
   <text x="1057" y="93" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="1">OFFICIAL EVENT</text>
 
   <!-- Title & Subtitle -->
-  <text x="75" y="280" fill="url(#titleGrad)" font-family="system-ui, -apple-system, sans-serif" font-size="54" font-weight="900" letter-spacing="-1.5" filter="url(#softGlow)">${safeTitle}</text>
-  <text x="75" y="345" fill="#cbd5e1" font-family="system-ui, -apple-system, sans-serif" font-size="21" font-weight="500" max-width="900">${safeDesc}…</text>
+  <text x="75" y="270" fill="url(#titleGrad)" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="900" letter-spacing="-1.5" filter="url(#softGlow)">${safeTitle}</text>
+  <text x="75" y="335" fill="#cbd5e1" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="500">${safeDesc}…</text>
   
   <!-- Divider -->
-  <line x1="75" y1="390" x2="340" y2="390" stroke="#6366f1" stroke-width="4" stroke-linecap="round" />
+  <line x1="75" y1="380" x2="340" y2="380" stroke="#6366f1" stroke-width="4" stroke-linecap="round" />
   
-  <!-- Bottom Feature Tags -->
-  <rect x="75" y="440" width="200" height="42" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" />
-  <text x="95" y="466" fill="#e2e8f0" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600">✦ Keynotes &amp; Sessions</text>
-  
-  <rect x="290" y="440" width="210" height="42" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" />
-  <text x="310" y="466" fill="#e2e8f0" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600">✦ Verified Digital QR Pass</text>
+  <!-- Bottom Event Metadata Cards: Date & Venue -->
+  <g transform="translate(75, 430)">
+    <!-- Date Card -->
+    <rect x="0" y="0" width="360" height="74" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
+    <text x="20" y="28" fill="#a5b4fc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" letter-spacing="1">DATE &amp; TIME</text>
+    <text x="20" y="55" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700">📅 ${safeDate}</text>
+
+    <!-- Venue Card -->
+    <rect x="380" y="0" width="420" height="74" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
+    <text x="400" y="28" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" letter-spacing="1">VENUE &amp; LOCATION</text>
+    <text x="400" y="55" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700">📍 ${safeVenue}</text>
+  </g>
   
   <!-- Footer Brand -->
   <text x="75" y="585" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" letter-spacing="1.5">POWERED BY GEMINI AI · EVENTRA</text>

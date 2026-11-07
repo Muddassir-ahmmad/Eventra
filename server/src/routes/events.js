@@ -140,7 +140,18 @@ router.post("/generate-poster", requireAuth, async (req, res) => {
     });
   }
 
-  const { title, category, description, visualStyle, colorPreference } = req.body;
+  const {
+    title,
+    category,
+    description,
+    date,
+    time,
+    venue,
+    location,
+    mode,
+    visualStyle,
+    colorPreference,
+  } = req.body;
   if (!title) {
     return res.status(400).json({ message: "Event title is required for poster generation." });
   }
@@ -150,6 +161,11 @@ router.post("/generate-poster", requireAuth, async (req, res) => {
       title,
       category,
       description,
+      date,
+      time,
+      venue: venue || location,
+      location,
+      mode,
       visualStyle,
       colorPreference,
     });
