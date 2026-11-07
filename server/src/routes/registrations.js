@@ -14,9 +14,12 @@ router.post("/public/:slug", async (req, res) => {
   try {
     const { name, email, phone, college, department, customAnswers, ticketType } = req.body;
 
-    if (!name || !email || !phone || !college) {
+    // 1. Mandatory pass holder identity validation
+    if (!name || typeof name !== "string" || !name.trim() ||
+        !email || typeof email !== "string" || !email.trim() ||
+        !phone || typeof phone !== "string" || !phone.trim()) {
       return res.status(400).json({
-        message: "Name, email, phone and college are required",
+        message: "Full Name, Email Address, and Phone Number are required to issue your ticket pass.",
       });
     }
 
@@ -28,6 +31,28 @@ router.post("/public/:slug", async (req, res) => {
       return res.status(404).json({
         message: "Event not found",
       });
+    }
+
+    // 2. Dynamic Field Validation based on organizer's custom registration form configuration
+    const configuredFields = Array.isArray(event.registrationFields) ? event.registrationFields : [];
+    for (const field of configuredFields) {
+      if (!field.required) continue;
+
+      let val = "";
+      if (field.key === "name") val = name;
+      else if (field.key === "email") val = email;
+      else if (field.key === "phone") val = phone;
+      else if (field.key === "college") val = college;
+      else if (field.key === "department") val = department;
+      else {
+        val = customAnswers?.[field.key];
+      }
+
+      if (val === undefined || val === null || String(val).trim() === "") {
+        return res.status(400).json({
+          message: `${field.label || "This field"} is required.`,
+        });
+      }
     }
 
     if (event.status === "completed" || isEventCompleted(event)) {
@@ -112,7 +137,7 @@ router.post("/public/:slug", async (req, res) => {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       phone: phone.trim(),
-      college: college.trim(),
+      college: (college || "").trim(),
       department: (department || "").trim(),
       ticketType: ticketType || "General Admission",
       customAnswers: customAnswers || {},

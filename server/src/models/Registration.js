@@ -26,8 +26,8 @@ const registrationSchema = new mongoose.Schema(
     },
     college: {
       type: String,
-      required: true,
       trim: true,
+      default: "",
     },
     department: {
       type: String,

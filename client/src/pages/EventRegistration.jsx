@@ -211,6 +211,23 @@ export default function EventRegistration() {
   }
 
   // REGISTRATION FORM
+  const regFields = event?.registrationFields && event.registrationFields.length > 0
+    ? event.registrationFields
+    : [
+        { key: "name", label: "Full Name", type: "text", required: true },
+        { key: "email", label: "Email Address", type: "email", required: true },
+        { key: "phone", label: "Phone Number", type: "tel", required: true },
+        { key: "college", label: "College / Institution", type: "text", required: true },
+        { key: "department", label: "Department / Branch", type: "text", required: false },
+      ];
+
+  const nameField = regFields.find((f) => f.key === "name") || { label: "Full Name", required: true };
+  const emailField = regFields.find((f) => f.key === "email") || { label: "Email Address", required: true };
+  const phoneField = regFields.find((f) => f.key === "phone") || { label: "Phone Number", required: true };
+  const collegeField = regFields.find((f) => f.key === "college");
+  const deptField = regFields.find((f) => f.key === "department");
+  const customFields = regFields.filter((f) => !["name", "email", "phone", "college", "department"].includes(f.key));
+
   return (
     <main className="public-page-root" style={{ padding: "40px 20px 80px" }}>
       <div style={{ maxWidth: 620, margin: "0 auto" }}>
@@ -286,13 +303,14 @@ export default function EventRegistration() {
               </div>
             )}
 
+            {/* Dynamic Identity: Full Name */}
             <div>
               <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: 6 }}>
-                Full Name *
+                {nameField.label || "Full Name"} {nameField.required && "*"}
               </label>
               <input
                 type="text"
-                required
+                required={nameField.required}
                 value={form.name}
                 onChange={(e) => update("name", e.target.value)}
                 placeholder="e.g. Rahul Sharma"
@@ -309,14 +327,15 @@ export default function EventRegistration() {
               />
             </div>
 
+            {/* Dynamic Identity: Email & Phone */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: 6 }}>
-                  Email Address *
+                  {emailField.label || "Email Address"} {emailField.required && "*"}
                 </label>
                 <input
                   type="email"
-                  required
+                  required={emailField.required}
                   value={form.email}
                   onChange={(e) => update("email", e.target.value)}
                   placeholder="rahul@example.com"
@@ -335,11 +354,11 @@ export default function EventRegistration() {
 
               <div>
                 <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: 6 }}>
-                  Phone Number *
+                  {phoneField.label || "Phone Number"} {phoneField.required && "*"}
                 </label>
                 <input
                   type="tel"
-                  required
+                  required={phoneField.required}
                   value={form.phone}
                   onChange={(e) => update("phone", e.target.value)}
                   placeholder="+91 9876543210"
@@ -357,55 +376,63 @@ export default function EventRegistration() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <div>
-                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: 6 }}>
-                  College / Institution *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={form.college}
-                  onChange={(e) => update("college", e.target.value)}
-                  placeholder="e.g. Sahyadri College"
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
-                    background: "rgba(0, 0, 0, 0.25)",
-                    color: "#ffffff",
-                    fontSize: "0.95rem",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
+            {/* Dynamic College & Department (only displayed if configured in registrationFields) */}
+            {(collegeField || deptField) && (
+              <div style={{ display: "grid", gridTemplateColumns: (collegeField && deptField) ? "1fr 1fr" : "1fr", gap: 14 }}>
+                {collegeField && (
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: 6 }}>
+                      {collegeField.label || "College / Institution"} {collegeField.required && "*"}
+                    </label>
+                    <input
+                      type={collegeField.type || "text"}
+                      required={collegeField.required}
+                      value={form.college}
+                      onChange={(e) => update("college", e.target.value)}
+                      placeholder={`e.g. ${collegeField.label || "Sahyadri College"}`}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: 10,
+                        border: "1px solid rgba(255, 255, 255, 0.12)",
+                        background: "rgba(0, 0, 0, 0.25)",
+                        color: "#ffffff",
+                        fontSize: "0.95rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                )}
 
-              <div>
-                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: 6 }}>
-                  Department / Branch
-                </label>
-                <input
-                  type="text"
-                  value={form.department}
-                  onChange={(e) => update("department", e.target.value)}
-                  placeholder="Computer Science"
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
-                    background: "rgba(0, 0, 0, 0.25)",
-                    color: "#ffffff",
-                    fontSize: "0.95rem",
-                    boxSizing: "border-box",
-                  }}
-                />
+                {deptField && (
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: 6 }}>
+                      {deptField.label || "Department / Branch"} {deptField.required && "*"}
+                    </label>
+                    <input
+                      type={deptField.type || "text"}
+                      required={deptField.required}
+                      value={form.department}
+                      onChange={(e) => update("department", e.target.value)}
+                      placeholder={`e.g. ${deptField.label || "Computer Science"}`}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: 10,
+                        border: "1px solid rgba(255, 255, 255, 0.12)",
+                        background: "rgba(0, 0, 0, 0.25)",
+                        color: "#ffffff",
+                        fontSize: "0.95rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
-            {/* Custom Organizer Fields */}
-            {event.registrationFields?.filter((f) => !["name", "email", "phone", "college", "department"].includes(f.key)).map((field) => (
+            {/* Custom Questions Configured by Organizer */}
+            {customFields.map((field) => (
               <div key={field.key}>
                 <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: 6 }}>
                   {field.label} {field.required && "*"}
