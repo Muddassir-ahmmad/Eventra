@@ -260,6 +260,8 @@ router.post("/", requireAuth, async (req, res) => {
       certificateLogoPath,
       requireFeedbackForCertificate,
       feedbackDeadline,
+      feedbackEnabled,
+      feedbackQuestions,
       status,
     } = req.body;
 
@@ -330,6 +332,15 @@ router.post("/", requireAuth, async (req, res) => {
       certificateLogoPath: certificateLogoPath || "",
       requireFeedbackForCertificate: requireFeedbackForCertificate === true,
       feedbackDeadline: feedbackDeadline || null,
+      feedbackEnabled: feedbackEnabled ?? true,
+      feedbackQuestions: Array.isArray(feedbackQuestions) && feedbackQuestions.length > 0
+        ? feedbackQuestions.map((q, idx) => ({
+            id: q.id || `q_${idx}_${Date.now()}`,
+            label: String(q.label || "").trim() || `Question ${idx + 1}`,
+            type: q.type === "text" ? "text" : "rating",
+            required: q.required ?? true,
+          }))
+        : undefined,
       status: status || "published",
     });
 
@@ -472,6 +483,8 @@ router.put("/:eventId", requireAuth, async (req, res) => {
       completedAt,
       feedbackDeadline,
       requireFeedbackForCertificate,
+      feedbackEnabled,
+      feedbackQuestions,
       status,
     } = req.body;
 
@@ -521,6 +534,17 @@ router.put("/:eventId", requireAuth, async (req, res) => {
     if (completedAt !== undefined) event.completedAt = completedAt;
     if (feedbackDeadline !== undefined) event.feedbackDeadline = feedbackDeadline ? new Date(feedbackDeadline) : null;
     if (requireFeedbackForCertificate !== undefined) event.requireFeedbackForCertificate = Boolean(requireFeedbackForCertificate);
+    if (feedbackEnabled !== undefined) event.feedbackEnabled = Boolean(feedbackEnabled);
+    if (feedbackQuestions !== undefined) {
+      event.feedbackQuestions = Array.isArray(feedbackQuestions)
+        ? feedbackQuestions.map((q, idx) => ({
+            id: q.id || `q_${idx}_${Date.now()}`,
+            label: String(q.label || "").trim() || `Question ${idx + 1}`,
+            type: q.type === "text" ? "text" : "rating",
+            required: q.required ?? true,
+          }))
+        : [];
+    }
 
     if (status !== undefined) {
       if (!["draft", "published", "closed", "completed"].includes(status)) {

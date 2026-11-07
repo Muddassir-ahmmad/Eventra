@@ -20,7 +20,12 @@ function formatDate(date) {
 export function generateDefaultReportContent(event, organizer, analytics) {
   const eventTitle = event.title || "The Event";
   const dateStr = formatDate(event.date);
-  const venueStr = [event.venue, event.location].filter(Boolean).join(", ") || "the designated venue";
+  // Sanitize location: Never include raw links or Google Maps URLs in official report text
+  const rawLoc = (event.location || "").trim();
+  const isUrl = /^https?:\/\//i.test(rawLoc) || rawLoc.includes("maps.google") || rawLoc.includes("goo.gl");
+  const cleanLoc = isUrl ? "" : rawLoc;
+  const venueName = (event.venue || "").trim();
+  const venueStr = [venueName, cleanLoc].filter(Boolean).join(", ") || venueName || "the designated venue";
   const orgName = organizer?.organization || organizer?.name || "the Organizing Committee";
 
   const speakersList = (event.speakers || [])

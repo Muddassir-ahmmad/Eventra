@@ -18,7 +18,11 @@ export default function PublicFeedback() {
   const [expired, setExpired] = useState(false);
   const [submittedInfo, setSubmittedInfo] = useState(null);
 
-  // Form State
+  // Dynamic Form State
+  const [ratings, setRatings] = useState({});
+  const [textAnswers, setTextAnswers] = useState({});
+
+  // Legacy fallback states
   const [ratingOverall, setRatingOverall] = useState(5);
   const [ratingOrganization, setRatingOrganization] = useState(5);
   const [ratingSpeakers, setRatingSpeakers] = useState(5);
@@ -70,6 +74,19 @@ export default function PublicFeedback() {
         } else {
           setEventData(data.event);
           setParticipant(data.participant);
+
+          // Pre-populate rating questions with 5
+          const qList = Array.isArray(data.event?.feedbackQuestions) && data.event.feedbackQuestions.length > 0
+            ? data.event.feedbackQuestions
+            : [];
+          const initialRatings = {};
+          const initialTexts = {};
+          qList.forEach((q) => {
+            if (q.type === "rating") initialRatings[q.id] = 5;
+            else initialTexts[q.id] = "";
+          });
+          setRatings(initialRatings);
+          setTextAnswers(initialTexts);
         }
       })
       .catch((err) => {
@@ -84,21 +101,49 @@ export default function PublicFeedback() {
     e.preventDefault();
     setError("");
 
-    if (!ratingOverall || !ratingOrganization || !ratingSpeakers || !ratingVenue) {
-      setError("Please provide star ratings for all categories.");
-      return;
+    const questions = Array.isArray(eventData?.feedbackQuestions) && eventData.feedbackQuestions.length > 0
+      ? eventData.feedbackQuestions
+      : [
+          { id: "q_overall", label: "Overall Event Experience", type: "rating", required: true },
+          { id: "q_org", label: "Event Organization & Execution", type: "rating", required: true },
+          { id: "q_speakers", label: "Speakers & Session Content", type: "rating", required: true },
+          { id: "q_venue", label: "Venue & Facilities", type: "rating", required: true },
+        ];
+
+    // Validate required questions
+    for (const q of questions) {
+      if (q.required) {
+        if (q.type === "rating") {
+          const val = ratings[q.id] || (q.id === "q_overall" ? ratingOverall : q.id === "q_org" ? ratingOrganization : q.id === "q_speakers" ? ratingSpeakers : q.id === "q_venue" ? ratingVenue : null);
+          if (!val || val < 1 || val > 5) {
+            setError(`"${q.label}" requires a star rating from 1 to 5.`);
+            return;
+          }
+        } else {
+          const val = textAnswers[q.id] || (q.id === "q_liked" ? liked : q.id === "q_improvements" ? improvements : q.id === "q_suggestions" ? suggestions : "");
+          if (!val.trim()) {
+            setError(`"${q.label}" is required.`);
+            return;
+          }
+        }
+      }
     }
 
     setSubmitting(true);
     try {
+      const ratingVals = Object.values(ratings);
+      const computedOverall = ratings.q_overall || (ratingVals.length > 0 ? Math.round(ratingVals.reduce((a, b) => a + b, 0) / ratingVals.length) : ratingOverall);
+
       const { data } = await api.post(`/feedback/${token}`, {
-        ratingOverall,
-        ratingOrganization,
-        ratingSpeakers,
-        ratingVenue,
-        liked,
-        improvements,
-        suggestions,
+        ratings,
+        textAnswers,
+        ratingOverall: computedOverall || 5,
+        ratingOrganization: ratings.q_org || ratingOrganization || computedOverall || 5,
+        ratingSpeakers: ratings.q_speakers || ratingSpeakers || computedOverall || 5,
+        ratingVenue: ratings.q_venue || ratingVenue || computedOverall || 5,
+        liked: textAnswers.q_liked || liked || "",
+        improvements: textAnswers.q_improvements || improvements || "",
+        suggestions: textAnswers.q_suggestions || suggestions || "",
       });
 
       setSuccessData(data);
@@ -254,75 +299,56 @@ export default function PublicFeedback() {
         <form className="feedback-card-body" onSubmit={handleSubmit}>
           {error && <div className="certificate-alert is-error" style={{ marginBottom: "1.5rem" }}>{error}</div>}
 
-          {/* Star Rating 1: Overall */}
-          <StarRatingField
-            label="Overall Event Experience"
-            description="How would you rate the overall program?"
-            value={ratingOverall}
-            onChange={setRatingOverall}
-          />
+          {/* Dynamic Questionnaire Render */}
+          {(() => {
+            const configured = Array.isArray(eventData?.feedbackQuestions) && eventData.feedbackQuestions.length > 0
+              ? eventData.feedbackQuestions
+              : [
+                  { id: "q_overall", label: "Overall Event Experience", type: "rating", required: true },
+                  { id: "q_org", label: "Event Organization & Execution", type: "rating", required: true },
+                  { id: "q_speakers", label: "Speakers & Session Content", type: "rating", required: true },
+                  { id: "q_venue", label: "Venue & Facilities", type: "rating", required: false },
+                  { id: "q_liked", label: "What did you like most about the event?", type: "text", required: false },
+                  { id: "q_improvements", label: "What could be improved?", type: "text", required: false },
+                  { id: "q_suggestions", label: "Additional suggestions or topics for future events", type: "text", required: false },
+                ];
 
-          {/* Star Rating 2: Organization */}
-          <StarRatingField
-            label="Event Organization & Execution"
-            description="Punctuality, guidance, entry management, support"
-            value={ratingOrganization}
-            onChange={setRatingOrganization}
-          />
+            const ratingQs = configured.filter((q) => q.type === "rating");
+            const textQs = configured.filter((q) => q.type === "text");
 
-          {/* Star Rating 3: Speakers & Sessions */}
-          <StarRatingField
-            label="Speakers & Session Content"
-            description="Relevance, expertise, depth, and interactivity"
-            value={ratingSpeakers}
-            onChange={setRatingSpeakers}
-          />
+            return (
+              <>
+                {ratingQs.map((q) => (
+                  <StarRatingField
+                    key={q.id}
+                    label={`${q.label}${q.required ? " *" : ""}`}
+                    description={q.required ? "Mandatory rating" : "Optional rating"}
+                    value={ratings[q.id] || 5}
+                    onChange={(val) => setRatings((prev) => ({ ...prev, [q.id]: val }))}
+                  />
+                ))}
 
-          {/* Star Rating 4: Venue & Facilities */}
-          <StarRatingField
-            label="Venue & Facilities"
-            description="Seating, audio/visuals, accessibility, amenities"
-            value={ratingVenue}
-            onChange={setRatingVenue}
-          />
+                {ratingQs.length > 0 && textQs.length > 0 && (
+                  <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "1.75rem 0" }} />
+                )}
 
-          <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "1.75rem 0" }} />
-
-          {/* Narrative: What was liked */}
-          <div className="feedback-textarea-group">
-            <label htmlFor="fb-liked">What did you like most about the event?</label>
-            <textarea
-              id="fb-liked"
-              placeholder="Highlights, favorite talks, impactful moments..."
-              value={liked}
-              onChange={(e) => setLiked(e.target.value)}
-              maxLength={2000}
-            />
-          </div>
-
-          {/* Narrative: Improvements */}
-          <div className="feedback-textarea-group">
-            <label htmlFor="fb-improvements">What could be improved?</label>
-            <textarea
-              id="fb-improvements"
-              placeholder="Pacing, technical setup, topic coverage..."
-              value={improvements}
-              onChange={(e) => setImprovements(e.target.value)}
-              maxLength={2000}
-            />
-          </div>
-
-          {/* Narrative: Suggestions */}
-          <div className="feedback-textarea-group">
-            <label htmlFor="fb-suggestions">Additional suggestions or topics for future events</label>
-            <textarea
-              id="fb-suggestions"
-              placeholder="Any other comments or future session ideas..."
-              value={suggestions}
-              onChange={(e) => setSuggestions(e.target.value)}
-              maxLength={2000}
-            />
-          </div>
+                {textQs.map((q) => (
+                  <div className="feedback-textarea-group" key={q.id}>
+                    <label htmlFor={`fb-${q.id}`}>
+                      {q.label} {q.required && <span style={{ color: "#ef4444" }}>*</span>}
+                    </label>
+                    <textarea
+                      id={`fb-${q.id}`}
+                      placeholder="Share your thoughts..."
+                      value={textAnswers[q.id] || ""}
+                      onChange={(e) => setTextAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                      maxLength={3000}
+                    />
+                  </div>
+                ))}
+              </>
+            );
+          })()}
 
           <button
             type="submit"

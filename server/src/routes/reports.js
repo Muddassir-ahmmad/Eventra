@@ -238,25 +238,33 @@ router.post("/event/:eventId/ai-assist", requireAuth, async (req, res) => {
     }
 
     const { section, text, instruction } = req.body;
-    if (!section || !text) {
-      return res.status(400).json({ message: "Section title and draft text are required." });
+    if (!section) {
+      return res.status(400).json({ message: "Section title is required." });
     }
+
+    const hasExistingDraft = Boolean(text && String(text).trim().length > 0);
+    const cleanDraft = hasExistingDraft ? String(text).trim().slice(0, 3000) : "";
 
     const systemPrompt =
       "You are an expert executive reporting assistant for EVENTRA. " +
-      "Your task is to refine and professionally write post-event report sections based on the actual provided draft text and event context. " +
+      "Your task is to professionally draft or refine post-event report sections based on the provided event context. " +
       "STRICT RULES:\n" +
       "1. NEVER invent attendance counts, percentages, or participant metrics.\n" +
       "2. NEVER invent fake speakers, activities, feedback, or sponsor names.\n" +
-      "3. Improve grammar, sentence flow, vocabulary, and executive structure.\n" +
-      "4. Return a JSON object with a single key 'improvedText' containing the polished text.";
+      "3. Write with executive professionalism, clear grammar, and structured paragraphs or bullet points.\n" +
+      "4. Return a JSON object with a single key 'improvedText' containing the polished or generated text.";
 
     const userPrompt = JSON.stringify({
       eventTitle: event.title,
       eventType: event.eventType || "General Event",
+      eventDate: event.date ? new Date(event.date).toLocaleDateString() : "Event Date",
+      venue: event.venue || "Venue",
+      description: event.description || event.shortDescription || "",
       section: String(section).slice(0, 100),
-      currentDraftText: String(text).slice(0, 3000),
-      customInstruction: instruction ? String(instruction).slice(0, 300) : "Improve tone, clarity, and professionalism",
+      currentDraftText: cleanDraft || "(No draft yet. Please draft this section from scratch based on event details.)",
+      customInstruction: instruction
+        ? String(instruction).slice(0, 300)
+        : (hasExistingDraft ? "Improve tone, clarity, and professionalism" : "Draft a comprehensive, executive-ready section for this report based on the event information"),
     });
 
     const resultObj = await generateGeminiContent({

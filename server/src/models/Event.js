@@ -94,6 +94,30 @@ const registrationFieldSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const feedbackQuestionSchema = new mongoose.Schema(
+  {
+    id: {
+      type: String,
+      required: true,
+    },
+    label: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    type: {
+      type: String,
+      enum: ["rating", "text"],
+      default: "rating",
+    },
+    required: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  { _id: false }
+);
+
 const ticketTypeSchema = new mongoose.Schema(
   {
     name: {
@@ -459,6 +483,23 @@ const eventSchema = new mongoose.Schema(
     requireFeedbackForCertificate: {
       type: Boolean,
       default: false,
+    },
+
+    feedbackEnabled: {
+      type: Boolean,
+      default: true,
+    },
+
+    feedbackQuestions: {
+      type: [feedbackQuestionSchema],
+      default: () => [
+        { id: "q_overall", label: "Overall Event Experience", type: "rating", required: true },
+        { id: "q_org", label: "Event Organization & Flow", type: "rating", required: true },
+        { id: "q_speakers", label: "Speakers & Session Content", type: "rating", required: true },
+        { id: "q_venue", label: "Venue & Facilities", type: "rating", required: false },
+        { id: "q_liked", label: "What did you enjoy most about the event?", type: "text", required: false },
+        { id: "q_improvements", label: "What could be improved for future editions?", type: "text", required: false },
+      ],
     },
 
     /*

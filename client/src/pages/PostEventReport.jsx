@@ -124,16 +124,20 @@ export default function PostEventReport() {
     }
   }
 
-  async function requestAiAssist(sectionKey, sectionTitle) {
+  async function requestAiAssist(sectionKey, sectionTitle, overrideInstruction) {
     setAiLoading(true);
     setAiSuggestion(null);
     setError("");
     try {
-      const currentDraft = report[sectionKey] || "";
+      const currentDraft = (report[sectionKey] || "").trim();
+      const instructionToUse = overrideInstruction || aiInstruction || (currentDraft
+        ? "Improve tone, clarity, and professionalism"
+        : "Draft a comprehensive, executive-ready section for this report based on event information");
+
       const { data } = await api.post(`/reports/event/${eventId}/ai-assist`, {
         section: sectionTitle,
         text: currentDraft,
-        instruction: aiInstruction || "Improve tone, clarity, and professionalism",
+        instruction: instructionToUse,
       });
 
       if (!data.configured) {
@@ -325,14 +329,14 @@ export default function PostEventReport() {
                       <div className="ai-assist-box">
                         <p>✨ AI Writing Assistant for {def.title}</p>
                         <div className="ai-preset-chips">
-                          {["Professional Polish", "Executive Tone", "Concise Summary", "Grammar & Flow"].map((preset) => (
+                          {["Draft from Scratch", "Professional Polish", "Executive Tone", "Concise Summary"].map((preset) => (
                             <button
                               key={preset}
                               type="button"
                               className="ai-chip"
                               onClick={() => {
                                 setAiInstruction(preset);
-                                requestAiAssist(def.key, def.title);
+                                requestAiAssist(def.key, def.title, preset);
                               }}
                             >
                               {preset}
@@ -341,7 +345,7 @@ export default function PostEventReport() {
                         </div>
                         <input
                           className="ai-custom-input"
-                          placeholder="Or type custom instruction (e.g., 'Emphasize student engagement and keynote speaker impact')..."
+                          placeholder="Or type custom instruction (e.g., 'Draft from event details', 'Emphasize student engagement')..."
                           value={aiInstruction}
                           onChange={(e) => setAiInstruction(e.target.value)}
                         />
@@ -351,7 +355,9 @@ export default function PostEventReport() {
                           disabled={aiLoading}
                           onClick={() => requestAiAssist(def.key, def.title)}
                         >
-                          {aiLoading ? "Generating AI Refinements..." : "Generate AI Improvement"}
+                          {aiLoading
+                            ? "Generating with Gemini AI..."
+                            : (report[def.key]?.trim() ? "✨ Polish / Improve with AI" : "✨ Generate Draft with AI")}
                         </button>
 
                         {!aiConfigured && (

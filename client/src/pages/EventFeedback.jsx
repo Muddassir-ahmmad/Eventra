@@ -53,31 +53,50 @@ export default function EventFeedback() {
       return;
     }
 
+    const configuredQs = data?.event?.feedbackQuestions || [];
+    const hasCustomQs = configuredQs.length > 0;
+
     const headers = [
       "Participant Name",
       "Participant Email",
       "Overall Rating",
-      "Organization Rating",
-      "Speakers Rating",
-      "Venue Rating",
-      "What Was Liked",
-      "Areas for Improvement",
-      "Suggestions",
+      ...(hasCustomQs
+        ? configuredQs.map((q) => `"${q.label.replace(/"/g, '""')}"`)
+        : [
+            "Organization Rating",
+            "Speakers Rating",
+            "Venue Rating",
+            "What Was Liked",
+            "Areas for Improvement",
+            "Suggestions",
+          ]),
       "Submitted At",
     ];
 
-    const rows = data.feedbacks.map((fb) => [
-      `"${(fb.participantName || "").replace(/"/g, '""')}"`,
-      `"${(fb.participantEmail || "").replace(/"/g, '""')}"`,
-      fb.ratingOverall,
-      fb.ratingOrganization,
-      fb.ratingSpeakers,
-      fb.ratingVenue,
-      `"${(fb.liked || "").replace(/"/g, '""')}"`,
-      `"${(fb.improvements || "").replace(/"/g, '""')}"`,
-      `"${(fb.suggestions || "").replace(/"/g, '""')}"`,
-      `"${new Date(fb.submittedAt).toISOString()}"`,
-    ]);
+    const rows = data.feedbacks.map((fb) => {
+      const customCols = hasCustomQs
+        ? configuredQs.map((q) => {
+            const ans = (fb.answers || []).find((a) => a.questionId === q.id);
+            const val = ans ? ans.value : (fb.customAnswers?.[q.id] ?? "");
+            return `"${String(val || "").replace(/"/g, '""')}"`;
+          })
+        : [
+            fb.ratingOrganization,
+            fb.ratingSpeakers,
+            fb.ratingVenue,
+            `"${(fb.liked || "").replace(/"/g, '""')}"`,
+            `"${(fb.improvements || "").replace(/"/g, '""')}"`,
+            `"${(fb.suggestions || "").replace(/"/g, '""')}"`,
+          ];
+
+      return [
+        `"${(fb.participantName || "").replace(/"/g, '""')}"`,
+        `"${(fb.participantEmail || "").replace(/"/g, '""')}"`,
+        fb.ratingOverall,
+        ...customCols,
+        `"${new Date(fb.submittedAt).toISOString()}"`,
+      ];
+    });
 
     const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -328,31 +347,54 @@ export default function EventFeedback() {
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: "1.5rem", fontSize: "0.825rem", color: "var(--fb-muted)", marginBottom: "0.5rem" }}>
-                <span>Org: <strong>{fb.ratingOrganization}/5</strong></span>
-                <span>Speakers: <strong>{fb.ratingSpeakers}/5</strong></span>
-                <span>Venue: <strong>{fb.ratingVenue}/5</strong></span>
-              </div>
+              {fb.answers && fb.answers.length > 0 ? (
+                <>
+                  {/* Custom Star Ratings */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "1.2rem", fontSize: "0.825rem", color: "var(--fb-muted)", marginBottom: "0.75rem" }}>
+                    {fb.answers.filter((a) => a.questionType === "rating").map((a) => (
+                      <span key={a.questionId || a.questionLabel}>
+                        {a.questionLabel}: <strong style={{ color: "#d97706" }}>{a.value}/5 ★</strong>
+                      </span>
+                    ))}
+                  </div>
 
-              {fb.liked && (
-                <div className="feedback-text-quote">
-                  <strong>What they liked:</strong>
-                  {fb.liked}
-                </div>
-              )}
+                  {/* Custom Written Responses */}
+                  {fb.answers.filter((a) => a.questionType === "text" && a.value).map((a) => (
+                    <div className="feedback-text-quote" key={a.questionId || a.questionLabel}>
+                      <strong>{a.questionLabel}:</strong>
+                      {a.value}
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", gap: "1.5rem", fontSize: "0.825rem", color: "var(--fb-muted)", marginBottom: "0.5rem" }}>
+                    <span>Org: <strong>{fb.ratingOrganization}/5</strong></span>
+                    <span>Speakers: <strong>{fb.ratingSpeakers}/5</strong></span>
+                    <span>Venue: <strong>{fb.ratingVenue}/5</strong></span>
+                  </div>
 
-              {fb.improvements && (
-                <div className="feedback-text-quote" style={{ borderLeftColor: "#d97706" }}>
-                  <strong>What could be improved:</strong>
-                  {fb.improvements}
-                </div>
-              )}
+                  {fb.liked && (
+                    <div className="feedback-text-quote">
+                      <strong>What they liked:</strong>
+                      {fb.liked}
+                    </div>
+                  )}
 
-              {fb.suggestions && (
-                <div className="feedback-text-quote" style={{ borderLeftColor: "#64748b" }}>
-                  <strong>Additional suggestions:</strong>
-                  {fb.suggestions}
-                </div>
+                  {fb.improvements && (
+                    <div className="feedback-text-quote" style={{ borderLeftColor: "#d97706" }}>
+                      <strong>What could be improved:</strong>
+                      {fb.improvements}
+                    </div>
+                  )}
+
+                  {fb.suggestions && (
+                    <div className="feedback-text-quote" style={{ borderLeftColor: "#64748b" }}>
+                      <strong>Additional suggestions:</strong>
+                      {fb.suggestions}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ))

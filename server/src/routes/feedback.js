@@ -76,6 +76,16 @@ router.get("/:token", async (req, res) => {
         venue: event.venue,
         requireFeedbackForCertificate: event.requireFeedbackForCertificate === true,
         certificateEnabled: event.certificateEnabled === true,
+        feedbackQuestions: Array.isArray(event.feedbackQuestions) && event.feedbackQuestions.length > 0
+          ? event.feedbackQuestions
+          : [
+              { id: "q_overall", label: "Overall Event Experience", type: "rating", required: true },
+              { id: "q_org", label: "Event Organization & Flow", type: "rating", required: true },
+              { id: "q_speakers", label: "Speakers & Session Content", type: "rating", required: true },
+              { id: "q_venue", label: "Venue & Facilities", type: "rating", required: false },
+              { id: "q_liked", label: "What did you enjoy most about the event?", type: "text", required: false },
+              { id: "q_improvements", label: "What could be improved for future editions?", type: "text", required: false },
+            ],
       },
       participant: {
         name: registration.name,
@@ -130,21 +140,112 @@ router.post("/:token", async (req, res) => {
       liked,
       improvements,
       suggestions,
+      ratings = {},
+      textAnswers = {},
+      answers: rawAnswers,
     } = req.body;
 
-    const numOverall = parseInt(ratingOverall, 10);
-    const numOrg = parseInt(ratingOrganization, 10);
-    const numSpeakers = parseInt(ratingSpeakers, 10);
-    const numVenue = parseInt(ratingVenue, 10);
-
-    if (
-      isNaN(numOverall) || numOverall < 1 || numOverall > 5 ||
-      isNaN(numOrg) || numOrg < 1 || numOrg > 5 ||
-      isNaN(numSpeakers) || numSpeakers < 1 || numSpeakers > 5 ||
-      isNaN(numVenue) || numVenue < 1 || numVenue > 5
-    ) {
-      return res.status(400).json({ message: "Please provide valid ratings between 1 and 5 for all categories." });
+    // Check if legacy direct ratings were provided with invalid values (must be 1-5 if provided)
+    const directRatings = [ratingOverall, ratingOrganization, ratingSpeakers, ratingVenue];
+    for (const r of directRatings) {
+      if (r !== undefined && r !== null) {
+        const parsed = parseInt(r, 10);
+        if (isNaN(parsed) || parsed < 1 || parsed > 5) {
+          return res.status(400).json({ message: "Please provide valid ratings between 1 and 5 for all categories." });
+        }
+      }
     }
+
+    // Dynamic questions evaluation
+    const questions = Array.isArray(event.feedbackQuestions) && event.feedbackQuestions.length > 0
+      ? event.feedbackQuestions
+      : [
+          { id: "q_overall", label: "Overall Event Experience", type: "rating", required: true },
+          { id: "q_org", label: "Event Organization & Flow", type: "rating", required: true },
+          { id: "q_speakers", label: "Speakers & Session Content", type: "rating", required: true },
+          { id: "q_venue", label: "Venue & Facilities", type: "rating", required: false },
+          { id: "q_liked", label: "What did you enjoy most about the event?", type: "text", required: false },
+          { id: "q_improvements", label: "What could be improved for future editions?", type: "text", required: false },
+        ];
+
+    const answersList = [];
+    const customAnswersMap = {};
+    const collectedRatings = [];
+
+    // Fallback dictionary for standard question IDs
+    const fallbackVals = {
+      q_overall: ratingOverall,
+      q_org: ratingOrganization,
+      q_speakers: ratingSpeakers,
+      q_venue: ratingVenue,
+      q_liked: liked,
+      q_improvements: improvements,
+      q_suggestions: suggestions,
+    };
+
+    for (const q of questions) {
+      let val = ratings[q.id] ?? textAnswers[q.id] ?? fallbackVals[q.id];
+
+      if (q.type === "rating") {
+        let numVal = parseInt(val, 10);
+        if (isNaN(numVal) && fallbackVals[q.id] !== undefined) {
+          numVal = parseInt(fallbackVals[q.id], 10);
+        }
+
+        if (q.required && (isNaN(numVal) || numVal < 1 || numVal > 5)) {
+          return res.status(400).json({
+            message: `"${q.label}" requires a star rating from 1 to 5.`,
+          });
+        }
+
+        if (!isNaN(numVal) && (numVal < 1 || numVal > 5)) {
+          return res.status(400).json({
+            message: `Star ratings must be between 1 and 5.`,
+          });
+        }
+
+        if (!isNaN(numVal)) {
+          collectedRatings.push(numVal);
+          answersList.push({
+            questionId: q.id,
+            questionLabel: q.label,
+            questionType: "rating",
+            value: numVal,
+          });
+          customAnswersMap[q.id] = numVal;
+        }
+      } else {
+        // Text Question
+        const strVal = String(val || "").trim();
+        if (q.required && !strVal) {
+          return res.status(400).json({
+            message: `"${q.label}" is a required field.`,
+          });
+        }
+
+        answersList.push({
+          questionId: q.id,
+          questionLabel: q.label,
+          questionType: "text",
+          value: strVal.slice(0, 3000),
+        });
+        customAnswersMap[q.id] = strVal;
+      }
+    }
+
+    // Determine final overall and category scores
+    const calculatedAvgRating = collectedRatings.length > 0
+      ? Math.round(collectedRatings.reduce((a, b) => a + b, 0) / collectedRatings.length)
+      : 5;
+
+    const numOverall = ratingOverall ? parseInt(ratingOverall, 10) : (ratings.q_overall ? parseInt(ratings.q_overall, 10) : calculatedAvgRating);
+    const numOrg = ratingOrganization ? parseInt(ratingOrganization, 10) : (ratings.q_org ? parseInt(ratings.q_org, 10) : numOverall);
+    const numSpeakers = ratingSpeakers ? parseInt(ratingSpeakers, 10) : (ratings.q_speakers ? parseInt(ratings.q_speakers, 10) : numOverall);
+    const numVenue = ratingVenue ? parseInt(ratingVenue, 10) : (ratings.q_venue ? parseInt(ratings.q_venue, 10) : numOverall);
+
+    const resolvedLiked = String(liked || textAnswers.q_liked || "").trim().slice(0, 2000);
+    const resolvedImprovements = String(improvements || textAnswers.q_improvements || "").trim().slice(0, 2000);
+    const resolvedSuggestions = String(suggestions || textAnswers.q_suggestions || "").trim().slice(0, 2000);
 
     const feedbackDoc = await Feedback.create({
       eventId: event._id,
@@ -152,13 +253,15 @@ router.post("/:token", async (req, res) => {
       participantName: registration.name,
       participantEmail: registration.email,
       feedbackTokenHash: tokenHash,
-      ratingOverall: numOverall,
-      ratingOrganization: numOrg,
-      ratingSpeakers: numSpeakers,
-      ratingVenue: numVenue,
-      liked: String(liked || "").trim().slice(0, 2000),
-      improvements: String(improvements || "").trim().slice(0, 2000),
-      suggestions: String(suggestions || "").trim().slice(0, 2000),
+      ratingOverall: Math.min(5, Math.max(1, numOverall || 5)),
+      ratingOrganization: Math.min(5, Math.max(1, numOrg || 5)),
+      ratingSpeakers: Math.min(5, Math.max(1, numSpeakers || 5)),
+      ratingVenue: Math.min(5, Math.max(1, numVenue || 5)),
+      liked: resolvedLiked,
+      improvements: resolvedImprovements,
+      suggestions: resolvedSuggestions,
+      answers: answersList,
+      customAnswers: customAnswersMap,
       submittedAt: new Date(),
     });
 
@@ -242,6 +345,7 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
         completedAt: event.completedAt,
         feedbackDeadline: event.feedbackDeadline,
         requireFeedbackForCertificate: event.requireFeedbackForCertificate === true,
+        feedbackQuestions: event.feedbackQuestions || [],
       },
       analytics: {
         totalInvited,

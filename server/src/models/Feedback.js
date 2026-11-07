@@ -32,25 +32,25 @@ const feedbackSchema = new mongoose.Schema(
       type: Number,
       min: 1,
       max: 5,
-      required: true,
+      default: 5,
     },
     ratingOrganization: {
       type: Number,
       min: 1,
       max: 5,
-      required: true,
+      default: 5,
     },
     ratingSpeakers: {
       type: Number,
       min: 1,
       max: 5,
-      required: true,
+      default: 5,
     },
     ratingVenue: {
       type: Number,
       min: 1,
       max: 5,
-      required: true,
+      default: 5,
     },
     liked: {
       type: String,
@@ -66,6 +66,19 @@ const feedbackSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+    },
+    answers: [
+      {
+        questionId: { type: String, default: "" },
+        questionLabel: { type: String, default: "" },
+        questionType: { type: String, enum: ["rating", "text"], default: "rating" },
+        value: { type: mongoose.Schema.Types.Mixed },
+      },
+    ],
+    customAnswers: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     submittedAt: {
       type: Date,

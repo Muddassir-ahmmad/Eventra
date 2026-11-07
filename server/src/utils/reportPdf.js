@@ -139,11 +139,16 @@ export function generateReportPdf(event, organizer, report, analytics) {
       // Card Container for Metadata
       doc.roundedRect(50, 226, contentWidth, 230, 8).fillAndStroke("#f8fafc", "#e2e8f0");
 
+      // Sanitize location: Never print a raw link / map URL in the PDF report
+      const rawLoc = (event.location || "").trim();
+      const isLocationUrl = /^https?:\/\//i.test(rawLoc) || rawLoc.includes("maps.google") || rawLoc.includes("goo.gl");
+      const cleanLocation = (!isLocationUrl && rawLoc) ? rawLoc : (event.venue || "On-site");
+
       const metaItems = [
         { label: "EVENT DATE", val: dateStr },
         { label: "TIMING", val: `${event.startTime || "Not specified"} to ${event.endTime || "Not specified"}` },
         { label: "VENUE", val: event.venue || "Venue Unspecified" },
-        { label: "LOCATION", val: event.location || "On-site" },
+        { label: "LOCATION", val: cleanLocation },
         { label: "ORGANIZATION", val: orgName },
         { label: "ORGANIZER CONTACT", val: `${organizer?.name || "Organizer"} (${organizer?.email || "N/A"})` },
         { label: "REPORT STATUS", val: (report.reportStatus || "draft").toUpperCase() },
