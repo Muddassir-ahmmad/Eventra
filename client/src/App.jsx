@@ -228,22 +228,6 @@ function OrganizerHeader() {
             <nav className="main-nav">
               <Link to="/dashboard">Dashboard</Link>
               <Link to="/dashboard">My Events</Link>
-              <Link
-                to="/dashboard/support"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  color: "#6366f1",
-                  fontWeight: 600,
-                  background: "rgba(99, 102, 241, 0.08)",
-                  padding: "5px 12px",
-                  borderRadius: 20,
-                  border: "1px solid rgba(99, 102, 241, 0.25)",
-                }}
-              >
-                <span>🎧</span> Talk to Admin
-              </Link>
             </nav>
 
             {/* Organizer profile */}

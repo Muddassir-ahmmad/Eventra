@@ -1018,16 +1018,25 @@ router.post("/event/:eventId/ai-suggestion", requireAuth, async (req, res) => {
       });
     }
 
+    const excludeTemplates = Array.isArray(req.body.excludeTemplates)
+      ? req.body.excludeTemplates
+          .map((tmpl) => String(tmpl || "").trim())
+          .filter((tmpl) => CERTIFICATE_TEMPLATES.includes(tmpl))
+      : [];
+
     const suggestion = await generateGeminiCertificateDesign({
       eventTitle: event.title,
       eventType: String(req.body.eventType || event.eventType || "").slice(0, 80),
       description: String(event.description || "").slice(0, 1500),
       customPrompt: String(req.body.customPrompt || "").slice(0, 300),
+      currentTemplate: String(req.body.currentTemplate || event.certificateTemplate || "").slice(0, 40),
+      excludeTemplates,
     });
 
     res.json({
       configured: true,
       suggestion,
+      suggestions: suggestion.suggestions || [suggestion],
     });
   } catch (error) {
     console.error("Gemini certificate suggestion error:", error.message);

@@ -409,49 +409,212 @@ Strict SVG Requirements:
   return `data:image/svg+xml;base64,${base64Fallback}`;
 }
 
+const CERTIFICATE_TEMPLATE_CATALOG = [
+  {
+    id: "classic",
+    styleTag: "Heritage Gold & Serif",
+    summary: "Traditional cream/gold heritage certificate, double-line filigree, Roman serif elegance.",
+    defaultTitle: "Certificate of Excellence",
+    defaultSignatories: ["Program Chair", "Managing Director"],
+  },
+  {
+    id: "modern",
+    styleTag: "Minimal Swiss Editorial",
+    summary: "Clean minimal sage/emerald border, sidebar accent, Swiss sans-serif typography.",
+    defaultTitle: "Certificate of Achievement",
+    defaultSignatories: ["Event Lead", "Head of Operations"],
+  },
+  {
+    id: "academic",
+    styleTag: "University Crest & Symposium",
+    summary: "Burgundy/crimson crested borders, formal university diploma / symposium style.",
+    defaultTitle: "Certificate of Academic Merit",
+    defaultSignatories: ["Dean of Studies", "Symposium Convener"],
+  },
+  {
+    id: "royalGold",
+    styleTag: "Obsidian & Royal Gold",
+    summary: "Opulent midnight obsidian & rich gold borders, high-stakes championship or luxury VIP award.",
+    defaultTitle: "Certificate of Distinction",
+    defaultSignatories: ["Chief Patron", "Grand Jury Chair"],
+  },
+  {
+    id: "techAurora",
+    styleTag: "Cyber Aurora & Hackathon",
+    summary: "Dark cosmic canvas, cyber cyan & electric indigo aurora borders, tech conference/hackathon badge.",
+    defaultTitle: "Certificate of Innovation",
+    defaultSignatories: ["Lead Architect", "Hackathon Director"],
+  },
+  {
+    id: "emeraldExecutive",
+    styleTag: "Executive Forest & Champagne",
+    summary: "Forest emerald & champagne gold frame, corporate leadership and executive diploma.",
+    defaultTitle: "Executive Recognition Certificate",
+    defaultSignatories: ["Executive Director", "Board Chairperson"],
+  },
+  {
+    id: "crimsonLuxe",
+    styleTag: "Imperial Ruby & Filigree",
+    summary: "Imperial ruby/burgundy borders, gold corner filigree, prestigious honors and distinction.",
+    defaultTitle: "Honors & Distinction Award",
+    defaultSignatories: ["Chancellor", "Honorary Secretary"],
+  },
+  {
+    id: "vintageParchment",
+    styleTag: "Engraved Parchment Guilloche",
+    summary: "Aged warm amber parchment, intricate ornamental engraved guilloche borders.",
+    defaultTitle: "Certificate of Commendation",
+    defaultSignatories: ["Chief Curator", "Event Convener"],
+  },
+];
+
+const CERTIFICATE_CATALOG_BY_ID = new Map(
+  CERTIFICATE_TEMPLATE_CATALOG.map((entry) => [entry.id, entry])
+);
+
+function normalizeCertificateSuggestionItem(rawItem, meta, eventTitle) {
+  const signatories = Array.isArray(rawItem?.suggestedSignatories)
+    ? rawItem.suggestedSignatories
+        .map((s) => String(s || "").trim().slice(0, 80))
+        .filter(Boolean)
+        .slice(0, 3)
+    : [];
+
+  return {
+    template: meta.id,
+    styleTag: String(rawItem?.styleTag || meta.styleTag).trim().slice(0, 60) || meta.styleTag,
+    title: String(rawItem?.title || meta.defaultTitle).trim().slice(0, 100) || meta.defaultTitle,
+    description:
+      String(
+        rawItem?.description ||
+          "This certificate is proudly presented to {name} in recognition of active participation and valued accomplishment in {event} on {date}."
+      )
+        .trim()
+        .slice(0, 500),
+    reason:
+      String(
+        rawItem?.reason ||
+          `${meta.styleTag} for ${eventTitle || "this event"}: ${meta.summary}`
+      )
+        .trim()
+        .slice(0, 500),
+    suggestedSignatories: signatories.length > 0 ? signatories : [...meta.defaultSignatories],
+  };
+}
+
+function normalizeCertificateSuggestions(parsed, { eventTitle, currentTemplate, excludeTemplates }) {
+  const excludedSet = new Set(
+    (Array.isArray(excludeTemplates) ? excludeTemplates : []).filter((id) =>
+      CERTIFICATE_CATALOG_BY_ID.has(id)
+    )
+  );
+
+  const rawList = Array.isArray(parsed?.suggestions)
+    ? parsed.suggestions
+    : Array.isArray(parsed)
+      ? parsed
+      : parsed && typeof parsed === "object"
+        ? [parsed]
+        : [];
+
+  const aiByTemplate = new Map();
+  for (const item of rawList) {
+    const id = String(item?.template || "").trim();
+    if (CERTIFICATE_CATALOG_BY_ID.has(id) && !aiByTemplate.has(id)) {
+      aiByTemplate.set(id, item);
+    }
+  }
+
+  const suggestions = [];
+  const pickedIds = new Set();
+  const addTemplate = (id) => {
+    if (suggestions.length >= 4 || pickedIds.has(id)) return;
+    const meta = CERTIFICATE_CATALOG_BY_ID.get(id);
+    if (!meta) return;
+    pickedIds.add(id);
+    suggestions.push(normalizeCertificateSuggestionItem(aiByTemplate.get(id), meta, eventTitle));
+  };
+
+  for (const id of aiByTemplate.keys()) {
+    if (!excludedSet.has(id)) addTemplate(id);
+  }
+  for (const entry of CERTIFICATE_TEMPLATE_CATALOG) {
+    if (!excludedSet.has(entry.id) && entry.id !== currentTemplate) addTemplate(entry.id);
+  }
+  if (currentTemplate && !excludedSet.has(currentTemplate)) {
+    addTemplate(currentTemplate);
+  }
+  for (const id of aiByTemplate.keys()) {
+    addTemplate(id);
+  }
+  for (const entry of CERTIFICATE_TEMPLATE_CATALOG) {
+    addTemplate(entry.id);
+  }
+
+  return suggestions;
+}
+
 /**
- * Generate standard, professional certificate styling, template recommendation,
- * authoritative titles, and descriptions using Gemini AI.
+ * Generate diverse, professional certificate styling options, template
+ * recommendations, authoritative titles, and descriptions using Gemini AI.
  *
  * @param {Object} options
  * @param {string} options.eventTitle
  * @param {string} [options.eventType]
  * @param {string} [options.description]
  * @param {string} [options.customPrompt]
- * @returns {Promise<{template: string, title: string, description: string, reason: string, suggestedSignatories: string[]}>}
+ * @param {string} [options.currentTemplate]
+ * @param {string[]} [options.excludeTemplates]
+ * @returns {Promise<{template: string, styleTag: string, title: string, description: string, reason: string, suggestedSignatories: string[], suggestions: Array<{template: string, styleTag: string, title: string, description: string, reason: string, suggestedSignatories: string[]}>}>}
  */
 export async function generateGeminiCertificateDesign({
   eventTitle = "Event",
   eventType = "",
   description = "",
   customPrompt = "",
+  currentTemplate = "",
+  excludeTemplates = [],
 }) {
+  const cleanExcluded = (Array.isArray(excludeTemplates) ? excludeTemplates : []).filter((id) =>
+    CERTIFICATE_CATALOG_BY_ID.has(id)
+  );
+  const templateListPrompt = CERTIFICATE_TEMPLATE_CATALOG.map(
+    (entry) => `- "${entry.id}" (${entry.styleTag}): ${entry.summary}`
+  ).join("\n");
+
   const systemPrompt = `You are a world-class certificate designer and awards curator for EVENTRA.
-Analyze the event context and select the best matching certificate design and copy.
-You must choose the single best template from these 8 supported options:
-- "classic": Traditional cream/gold heritage certificate, double-line filigree, Roman serif elegance.
-- "modern": Clean minimal sage/emerald border, sidebar accent, Swiss sans-serif typography.
-- "academic": Burgundy/crimson crested borders, formal university diploma / symposium style.
-- "royalGold": Opulent midnight obsidian & rich gold borders, high-stakes championship or luxury VIP award.
-- "techAurora": Dark cosmic canvas, cyber cyan & electric indigo aurora borders, tech conference/hackathon badge.
-- "emeraldExecutive": Forest emerald & champagne gold frame, corporate leadership and executive diploma.
-- "crimsonLuxe": Imperial ruby/burgundy borders, gold corner filigree, prestigious honors and distinction.
-- "vintageParchment": Aged warm amber parchment, intricate ornamental engraved guilloche borders.
+Analyze the event context and curate 4 visually distinct certificate concepts using 4 DIFFERENT templates from these 8 supported options:
+${templateListPrompt}
+
+Rules:
+- Return exactly 4 items inside "suggestions", ranked from best overall match (index 0) to fresh creative alternatives.
+- Each item MUST use a distinct "template" id from the 8 options above (no duplicates).
+- Give each option tailored copy (headline title, wording, and signatories) suited to its aesthetic and the event.
+- If "avoidTemplates" lists templates and 4 or more other templates remain available, prefer avoiding templates in "avoidTemplates" so the organizer sees fresh styles.
 
 Return valid JSON with:
 {
-  "template": "classic" | "modern" | "academic" | "royalGold" | "techAurora" | "emeraldExecutive" | "crimsonLuxe" | "vintageParchment",
-  "title": "e.g. Certificate of Excellence, Certificate of Outstanding Achievement, Certificate of Participation",
-  "description": "Eloquent 1-2 sentence description using {name}, {event}, and {date} as placeholders",
-  "reason": "Clear explanation of why this aesthetic and wording matches the event theme",
-  "suggestedSignatories": ["Title/Role 1", "Title/Role 2"]
+  "suggestions": [
+    {
+      "template": "classic" | "modern" | "academic" | "royalGold" | "techAurora" | "emeraldExecutive" | "crimsonLuxe" | "vintageParchment",
+      "styleTag": "Short 2-4 word aesthetic vibe label",
+      "title": "e.g. Certificate of Excellence, Certificate of Outstanding Achievement, Certificate of Participation",
+      "description": "Eloquent 1-2 sentence description using {name}, {event}, and {date} as placeholders",
+      "reason": "Clear explanation of why this aesthetic and wording fits this event",
+      "suggestedSignatories": ["Title/Role 1", "Title/Role 2"]
+    }
+  ]
 }`;
 
   const userPrompt = JSON.stringify({
     eventTitle,
     eventType: eventType || "Event",
     description: (description || "").slice(0, 800),
-    customInstructions: customPrompt ? customPrompt.slice(0, 300) : "Generate the most fitting standard certificate design for this event.",
+    currentTemplate: CERTIFICATE_CATALOG_BY_ID.has(currentTemplate) ? currentTemplate : undefined,
+    avoidTemplates: cleanExcluded,
+    customInstructions: customPrompt
+      ? customPrompt.slice(0, 300)
+      : "Curate 4 distinct certificate templates, headlines, and wording variations suited for this event.",
   });
 
   const raw = await generateGeminiContent({
@@ -460,25 +623,26 @@ Return valid JSON with:
     jsonMode: true,
   });
 
-  let parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-  const validTemplates = [
-    "classic",
-    "modern",
-    "academic",
-    "royalGold",
-    "techAurora",
-    "emeraldExecutive",
-    "crimsonLuxe",
-    "vintageParchment",
-  ];
+  let parsed = {};
+  if (typeof raw === "string") {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = {};
+    }
+  } else if (raw && typeof raw === "object") {
+    parsed = raw;
+  }
+
+  const suggestions = normalizeCertificateSuggestions(parsed, {
+    eventTitle,
+    currentTemplate,
+    excludeTemplates: cleanExcluded,
+  });
+  const primary = suggestions[0];
 
   return {
-    template: validTemplates.includes(parsed?.template) ? parsed.template : "royalGold",
-    title: String(parsed?.title || "Certificate of Excellence").slice(0, 100),
-    description: String(parsed?.description || "This certificate is proudly presented to {name} in recognition of participation and accomplishment in {event}.").slice(0, 500),
-    reason: String(parsed?.reason || "Tailored theme and typography generated by Gemini AI.").slice(0, 500),
-    suggestedSignatories: Array.isArray(parsed?.suggestedSignatories)
-      ? parsed.suggestedSignatories.slice(0, 3).map((s) => String(s).slice(0, 80))
-      : ["Convener & Director", "Lead Program Coordinator"],
+    ...primary,
+    suggestions,
   };
 }

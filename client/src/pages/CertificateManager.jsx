@@ -53,7 +53,8 @@ export default function CertificateManager() {
   const [settings, setSettings] = useState(null);
   const [selected, setSelected] = useState([]);
   const [previewId, setPreviewId] = useState("");
-  const [suggestion, setSuggestion] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [shownTemplates, setShownTemplates] = useState([]);
   const [customAiPrompt, setCustomAiPrompt] = useState("");
   const [imageStorage, setImageStorage] = useState("local");
   const [emailConfigured, setEmailConfigured] = useState(false);
@@ -198,39 +199,80 @@ export default function CertificateManager() {
     }
   }
 
-  async function askForSuggestion() {
+  async function askForSuggestion(exploreMore = false) {
     setWorking(true);
     setError("");
     setNotice("");
-    setSuggestion(null);
+    const excludeList = exploreMore ? shownTemplates : [];
+    if (!exploreMore) {
+      setSuggestions([]);
+    }
     try {
       const { data } = await api.post(`/certificates/event/${eventId}/ai-suggestion`, {
         eventType: settings.eventType,
         customPrompt: customAiPrompt,
+        currentTemplate: settings.certificateTemplate,
+        excludeTemplates: excludeList,
       });
       if (!data.configured) {
         setAiConfigured(false);
         setNotice(data.message || "Configure GEMINI_API_KEY on the server to enable suggestions.");
         return;
       }
-      setSuggestion(data.suggestion);
+      const nextList = Array.isArray(data.suggestions) && data.suggestions.length > 0
+        ? data.suggestions
+        : data.suggestion
+        ? [data.suggestion]
+        : [];
+      setSuggestions(nextList);
+      setShownTemplates((prev) => {
+        const merged = exploreMore ? [...prev] : [];
+        for (const item of nextList) {
+          if (item?.template && !merged.includes(item.template)) {
+            merged.push(item.template);
+          }
+        }
+        return merged.length >= TEMPLATES.length ? nextList.map((i) => i.template) : merged;
+      });
     } catch (suggestionError) {
-      setError(suggestionError.response?.data?.message || "Could not get a certificate suggestion.");
+      setError(suggestionError.response?.data?.message || "Could not get certificate suggestions.");
     } finally {
       setWorking(false);
     }
   }
 
-  function applySuggestion() {
-    if (!suggestion) return;
-    setSettings((current) => ({
-      ...current,
-      certificateTemplate: suggestion.template,
-      certificateTitle: suggestion.title,
-      certificateDescription: suggestion.description,
-    }));
-    setSuggestion(null);
-    setNotice("AI certificate design applied! Click 'Save settings' above to persist.");
+  function applySuggestion(chosenSuggestion, includeSignatories = false) {
+    if (!chosenSuggestion) return;
+    setSettings((current) => {
+      let nextSignatures = current.signatures || [];
+      if (includeSignatories && Array.isArray(chosenSuggestion.suggestedSignatories) && chosenSuggestion.suggestedSignatories.length > 0) {
+        const existing = [...nextSignatures];
+        chosenSuggestion.suggestedSignatories.forEach((roleTitle, idx) => {
+          if (idx >= 4) return;
+          if (existing[idx]) {
+            existing[idx] = {
+              ...existing[idx],
+              role: existing[idx].role || roleTitle,
+              designation: existing[idx].designation || roleTitle,
+            };
+          } else {
+            existing.push({ name: "", role: roleTitle, designation: roleTitle, imagePath: "", imageUrl: "" });
+          }
+        });
+        nextSignatures = existing;
+      }
+      return {
+        ...current,
+        certificateTemplate: chosenSuggestion.template,
+        certificateTitle: chosenSuggestion.title,
+        certificateDescription: chosenSuggestion.description,
+        signatures: nextSignatures,
+      };
+    });
+    const matchedTemplate = TEMPLATES.find((t) => t.id === chosenSuggestion.template);
+    setNotice(
+      `Applied "${matchedTemplate?.name || chosenSuggestion.template}" design${includeSignatories ? " + signatory roles" : ""} to preview! Click 'Save settings' to keep it.`
+    );
   }
 
   function toggleParticipant(id) {
@@ -540,16 +582,16 @@ export default function CertificateManager() {
                     padding: "7px 11px",
                     fontSize: "0.75rem",
                   }}
-                  onKeyDown={(e) => e.key === "Enter" && askForSuggestion()}
+                  onKeyDown={(e) => e.key === "Enter" && askForSuggestion(false)}
                 />
                 <button
                   type="button"
                   className="cert-button cert-button-primary"
-                  onClick={askForSuggestion}
+                  onClick={() => askForSuggestion(false)}
                   disabled={working || !aiConfigured}
                   style={{ flexShrink: 0 }}
                 >
-                  {working ? "Designing…" : "Design with AI ✦"}
+                  {working ? "Designing…" : "Suggest 4 Themes ✦"}
                 </button>
               </div>
 
@@ -588,39 +630,111 @@ export default function CertificateManager() {
                 </p>
               )}
 
-              {suggestion && (
-                <div className="certificate-suggestion" style={{ marginTop: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <span className={`suggestion-chip template-${suggestion.template}`}>
-                        {suggestion.template}
-                      </span>
-                      <span style={{ fontSize: "0.7rem", color: "#34d399", fontWeight: 700 }}>
-                        ✓ Gemini Recommended
-                      </span>
+              {suggestions.length > 0 && (
+                <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#c7d2fe" }}>
+                      {suggestions.length} AI Template Concepts Ready — Click any option to preview live
+                    </span>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <button
+                        type="button"
+                        className="cert-button"
+                        onClick={() => askForSuggestion(true)}
+                        disabled={working || !aiConfigured}
+                        style={{ minHeight: 28, padding: "4px 10px", fontSize: "0.7rem" }}
+                      >
+                        {working ? "Loading…" : "↻ More Themes"}
+                      </button>
+                      <button type="button" className="text-action" onClick={() => setSuggestions([])} style={{ marginRight: 0 }}>
+                        Clear
+                      </button>
                     </div>
-                    <strong style={{ fontSize: "0.9rem", color: "#ffffff" }}>{suggestion.title}</strong>
-                    <p style={{ marginTop: 4, fontSize: "0.76rem", color: "#cbd5e1", lineHeight: 1.45 }}>
-                      {suggestion.description}
-                    </p>
-                    {suggestion.suggestedSignatories?.length > 0 && (
-                      <div style={{ marginTop: 6, fontSize: "0.7rem", color: "#94a3b8" }}>
-                        <b style={{ color: "#c7d2fe" }}>Recommended Signatories:</b>{" "}
-                        {suggestion.suggestedSignatories.join(", ")}
+                  </div>
+
+                  {suggestions.map((item, idx) => {
+                    const tmplMeta = TEMPLATES.find((t) => t.id === item.template);
+                    const isApplied = settings.certificateTemplate === item.template && settings.certificateTitle === item.title;
+                    return (
+                      <div
+                        key={`${item.template}-${idx}`}
+                        className="certificate-suggestion"
+                        style={{
+                          marginTop: 0,
+                          borderColor: isApplied ? "#34d399" : "rgba(99, 102, 241, 0.35)",
+                          background: isApplied ? "rgba(16, 185, 129, 0.1)" : "rgba(99, 102, 241, 0.1)",
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                            <span
+                              className={`certificate-template-swatch template-${item.template}`}
+                              style={{ width: 58, height: 36, flexShrink: 0 }}
+                            >
+                              <i /><b /><em />
+                            </span>
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                <span className={`suggestion-chip template-${item.template}`}>
+                                  {tmplMeta?.name || item.template}
+                                </span>
+                                {item.styleTag && (
+                                  <span style={{ fontSize: "0.68rem", color: "#cbd5e1", fontWeight: 600 }}>
+                                    {item.styleTag}
+                                  </span>
+                                )}
+                                {idx === 0 && (
+                                  <span style={{ fontSize: "0.68rem", color: "#34d399", fontWeight: 700 }}>
+                                    ★ Top Match
+                                  </span>
+                                )}
+                                {isApplied && (
+                                  <span style={{ fontSize: "0.68rem", color: "#6ee7b7", fontWeight: 700 }}>
+                                    ✓ Active on Preview
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <strong style={{ fontSize: "0.88rem", color: "#ffffff", marginTop: 2 }}>{item.title}</strong>
+                          <p style={{ marginTop: 4, fontSize: "0.75rem", color: "#cbd5e1", lineHeight: 1.45 }}>
+                            {item.description}
+                          </p>
+                          {item.suggestedSignatories?.length > 0 && (
+                            <div style={{ marginTop: 5, fontSize: "0.69rem", color: "#94a3b8" }}>
+                              <b style={{ color: "#c7d2fe" }}>Signatories:</b>{" "}
+                              {item.suggestedSignatories.join(", ")}
+                            </div>
+                          )}
+                          <p style={{ marginTop: 4, fontSize: "0.69rem", color: "#a5b4fc" }}>
+                            <b>Why this fits:</b> {item.reason}
+                          </p>
+                        </div>
+
+                        <div className="suggestion-actions" style={{ marginLeft: 8 }}>
+                          <button
+                            type="button"
+                            className="cert-button cert-button-primary"
+                            onClick={() => applySuggestion(item, false)}
+                            style={{ minHeight: 32, padding: "6px 11px", fontSize: "0.73rem" }}
+                          >
+                            {isApplied ? "Re-Apply Theme" : "Apply Theme"}
+                          </button>
+                          {item.suggestedSignatories?.length > 0 && (
+                            <button
+                              type="button"
+                              className="text-action"
+                              onClick={() => applySuggestion(item, true)}
+                              style={{ marginRight: 0, fontSize: "0.69rem" }}
+                            >
+                              + Apply Signatories
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    <p style={{ marginTop: 6, fontSize: "0.7rem", color: "#818cf8" }}>
-                      <b>Why this fits:</b> {suggestion.reason}
-                    </p>
-                  </div>
-                  <div className="suggestion-actions" style={{ marginLeft: 10 }}>
-                    <button type="button" className="cert-button cert-button-primary" onClick={applySuggestion}>
-                      Apply AI Design
-                    </button>
-                    <button type="button" className="text-action" onClick={() => setSuggestion(null)}>
-                      Dismiss
-                    </button>
-                  </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
