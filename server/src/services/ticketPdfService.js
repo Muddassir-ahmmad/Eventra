@@ -1,5 +1,6 @@
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
+import { formatParticipantName } from "../utils/participantName.js";
 
 function formatTicketDate(date) {
   if (!date) return "Event Date";
@@ -21,10 +22,11 @@ function formatTicketDate(date) {
 export async function generateTicketPdf(event, registration) {
   return new Promise(async (resolve, reject) => {
     try {
+      const attendeeName = formatParticipantName(registration.name, "Attendee");
       const qrPayload = JSON.stringify({
         regId: registration.registrationId,
         eventId: String(event._id),
-        name: registration.name,
+        name: attendeeName,
       });
 
       const qrBuffer = await QRCode.toBuffer(qrPayload, {
@@ -41,7 +43,7 @@ export async function generateTicketPdf(event, registration) {
         info: {
           Title: `Digital Ticket - ${event.title}`,
           Author: "EVENTRA Ticketing",
-          Subject: `Admission Pass for ${registration.name}`,
+          Subject: `Admission Pass for ${attendeeName}`,
         },
       });
 
@@ -89,7 +91,7 @@ export async function generateTicketPdf(event, registration) {
       doc.roundedRect(42, 154, 380, 84, 6).fillAndStroke("#f8fafc", "#e2e8f0");
 
       doc.font("Helvetica-Bold").fontSize(7.5).fillColor("#64748b").text("ATTENDEE NAME", 54, 164);
-      doc.font("Helvetica-Bold").fontSize(12).fillColor("#0f172a").text(registration.name || "Attendee", 54, 175, { width: 230, ellipsis: true });
+      doc.font("Helvetica-Bold").fontSize(12).fillColor("#0f172a").text(attendeeName, 54, 175, { width: 230, ellipsis: true });
 
       const deptDetails = [registration.department, registration.college].filter(Boolean).join(" · ");
       if (deptDetails) {

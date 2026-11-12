@@ -7,7 +7,7 @@
   min-height: 100vh;
   background-color: #090d16;
   color: #cbd5e1;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--event-body-font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
   overflow-x: hidden;
   position: relative;
 }
@@ -140,6 +140,7 @@
 }
 
 .hero-title {
+  font-family: var(--event-heading-font, inherit);
   font-size: clamp(2.5rem, 5vw, 3.8rem);
   font-weight: 900;
   line-height: 1.08;
@@ -369,6 +370,7 @@
 }
 
 .section-head h2 {
+  font-family: var(--event-heading-font, inherit);
   font-size: 2.3rem;
   font-weight: 800;
   color: #ffffff;
@@ -391,6 +393,7 @@
 }
 
 .about-body-text {
+  font-family: var(--event-body-font, inherit);
   font-size: 1.05rem;
   line-height: 1.75;
   color: #cbd5e1;
@@ -478,6 +481,7 @@
 }
 
 .agenda-content h3 {
+  font-family: var(--event-heading-font, inherit);
   font-size: 1.18rem;
   font-weight: 700;
   color: #ffffff;
@@ -550,6 +554,7 @@
 }
 
 .speaker-pro-card h3 {
+  font-family: var(--event-heading-font, inherit);
   font-size: 1.15rem;
   font-weight: 700;
   color: #ffffff;
@@ -587,6 +592,7 @@
 }
 
 .venue-details h3 {
+  font-family: var(--event-heading-font, inherit);
   font-size: 1.5rem;
   font-weight: 800;
   color: #ffffff;

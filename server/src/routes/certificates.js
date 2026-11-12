@@ -6,18 +6,25 @@ import express from "express";
 import multer from "multer";
 import Certificate from "../models/Certificate.js";
 import Event from "../models/Event.js";
+import MediaAsset from "../models/MediaAsset.js";
 import Registration from "../models/Registration.js";
 import User from "../models/User.js";
 import { requireAuth } from "../middleware/auth.js";
 import emailService from "../services/emailService.js";
 import {
+  CERTIFICATE_ORG_ALIGNS,
+  CERTIFICATE_ORG_SIZES,
   CERTIFICATE_TEMPLATES,
   DEFAULT_CERTIFICATE_DESCRIPTION,
   DEFAULT_CERTIFICATE_TITLE,
+  getCertificateDesignTimestamp,
   isAttendedRegistration,
+  isCertificatePdfStale,
   normalizeCertificateSettings,
+  normalizeCertificateTextStyles,
   resolveCertificateDescription,
 } from "../utils/certificateDesign.js";
+import { formatParticipantName } from "../utils/participantName.js";
 import {
   generateGeminiContent,
   generateGeminiCertificateDesign,
@@ -62,7 +69,10 @@ function formatDate(value) {
 }
 
 function imageUrlForRequest(req, imagePath) {
-  return `${req.protocol}://${req.get("host")}${imagePath}`;
+  const proto = String(req.headers["x-forwarded-proto"] || req.protocol || "http")
+    .split(",")[0]
+    .trim();
+  return `${proto}://${req.get("host")}${imagePath}`;
 }
 
 function cloudinaryConfiguration() {
@@ -84,9 +94,17 @@ async function saveImage(req, eventId, file) {
   if (process.env.NODE_ENV === "production") {
     const config = cloudinaryConfiguration();
     if (!config) {
-      const error = new Error("Configure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to upload images in production.");
-      error.status = 503;
-      throw error;
+      const asset = await MediaAsset.create({
+        scope: "certificate",
+        eventId,
+        mimeType: file.mimetype || "image/png",
+        data: file.buffer,
+      });
+      const imagePath = `db:${asset._id}`;
+      return {
+        imageUrl: imageUrlForRequest(req, `/api/certificates/assets/${asset._id}`),
+        imagePath,
+      };
     }
 
     const folder = `eventra/certificates/${eventId}`;
@@ -128,6 +146,13 @@ async function saveImage(req, eventId, file) {
 
 async function deleteImage(imagePath, eventId) {
   if (!imagePath) return;
+  if (imagePath.startsWith("db:")) {
+    const assetId = imagePath.slice(3);
+    if (isValidEventId(assetId)) {
+      await MediaAsset.deleteOne({ _id: assetId, scope: "certificate", eventId });
+    }
+    return;
+  }
   const normalizedEventId = String(eventId);
   if (process.env.NODE_ENV === "production") {
     const config = cloudinaryConfiguration();
@@ -166,6 +191,14 @@ function localImagePath(imagePath) {
 }
 
 async function loadImage(imagePath, imageUrl) {
+  if (imagePath?.startsWith("db:")) {
+    const assetId = imagePath.slice(3);
+    if (isValidEventId(assetId)) {
+      const asset = await MediaAsset.findById(assetId).select("data").lean();
+      return asset?.data ? Buffer.from(asset.data.buffer || asset.data) : null;
+    }
+    return null;
+  }
   const localPath = localImagePath(imagePath);
   if (localPath) {
     try {
@@ -184,12 +217,76 @@ async function loadImage(imagePath, imageUrl) {
 
 function fitFontSize(doc, text, font, maxWidth, maximum, minimum = 10) {
   let size = maximum;
-  doc.font(font);
-  while (size > minimum && doc.widthOfString(text, { size }) > maxWidth) size -= 1;
+  const safeMaxWidth = Math.max(40, maxWidth - 4);
+  while (size > minimum) {
+    doc.font(font).fontSize(size);
+    if (doc.widthOfString(text) <= safeMaxWidth) break;
+    size -= 1;
+  }
   return size;
 }
 
-function renderCertificate(event, registration, organization, images) {
+const PDF_FONT_MAP = {
+  serif: { regular: "Times-Roman", bold: "Times-Bold" },
+  sans: { regular: "Helvetica", bold: "Helvetica-Bold" },
+  italicSerif: { regular: "Times-Italic", bold: "Times-BoldItalic" },
+  italicSans: { regular: "Helvetica-Oblique", bold: "Helvetica-BoldOblique" },
+  mono: { regular: "Courier", bold: "Courier-Bold" },
+};
+
+function resolvePdfFont(fontKey, themeDefaultFont, bold = false) {
+  const mapped = PDF_FONT_MAP[fontKey];
+  if (!mapped) return themeDefaultFont;
+  return bold ? mapped.bold : mapped.regular;
+}
+
+function drawCustomPositionedText(doc, {
+  text,
+  font,
+  fontSize,
+  color,
+  align = "center",
+  xPct,
+  yPct,
+  pageWidth,
+  pageHeight,
+  maxBoxWidth,
+  lineGap = 2,
+  multiline = false,
+  characterSpacing = 0,
+}) {
+  doc.font(font).fontSize(fontSize).fillColor(color);
+  const measuredSingle = doc.widthOfString(text, { characterSpacing });
+  const boxW = multiline
+    ? Math.min(maxBoxWidth, Math.max(220, measuredSingle + 24))
+    : Math.min(maxBoxWidth, Math.max(80, measuredSingle + 16));
+  const boxH = multiline
+    ? doc.heightOfString(text, { width: boxW, align, lineGap, characterSpacing })
+    : doc.currentLineHeight(true);
+
+  const safeLeft = 48;
+  const safeRight = 48;
+  const safeTop = 40;
+  const safeBottom = 42;
+
+  const centerX = (Math.min(94, Math.max(6, Number(xPct))) / 100) * pageWidth;
+  const centerY = (Math.min(94, Math.max(6, Number(yPct))) / 100) * pageHeight;
+
+  const drawX = Math.max(safeLeft, Math.min(pageWidth - safeRight - boxW, centerX - boxW / 2));
+  const drawY = Math.max(safeTop, Math.min(pageHeight - safeBottom - boxH, centerY - boxH / 2));
+
+  doc.text(text, drawX, drawY, {
+    width: boxW,
+    align,
+    lineGap,
+    characterSpacing,
+    ...(multiline ? {} : { lineBreak: false, ellipsis: true }),
+  });
+
+  return { drawX, drawY, boxW, boxH };
+}
+
+export function renderCertificate(event, registration, organization, images = { logo: null, signatures: [] }) {
   return new Promise((resolve, reject) => {
     import("pdfkit").then(({ default: PDFDocument }) => {
       const doc = new PDFDocument({
@@ -293,7 +390,7 @@ function renderCertificate(event, registration, organization, images) {
       const contentWidth = width - left - 82;
       const align = style.layout === "left" ? "left" : "center";
       const title = event.certificateTitle || DEFAULT_CERTIFICATE_TITLE;
-      const eventTitle = event.title || "Event";
+      const eventTitle = (event.certificateEventTitle || "").trim() || event.title || "Event";
       const date = formatDate(event.date);
       const description = resolveCertificateDescription(
         event.certificateDescription,
@@ -301,7 +398,13 @@ function renderCertificate(event, registration, organization, images) {
         eventTitle,
         date
       );
-      const visibleOrganization = event.certificateShowOrganization ? organization : "";
+      const visibleOrganization =
+        String(event.certificateOrganization || "").trim() ||
+        (event.certificateShowOrganization ? organization : "");
+      const textStyles = normalizeCertificateTextStyles(event.certificateTextStyles, {
+        size: event.certificateOrganizationSize || "md",
+        align: event.certificateOrganizationAlign || "center",
+      });
 
       doc.rect(0, 0, width, height).fill(style.paper);
       if (style.layout === "classic") {
@@ -316,9 +419,11 @@ function renderCertificate(event, registration, organization, images) {
       } else if (style.layout === "academic") {
         doc.lineWidth(5).strokeColor(style.accent).rect(25, 25, width - 50, height - 50).stroke();
         doc.lineWidth(1).strokeColor(style.edge).rect(37, 37, width - 74, height - 74).stroke();
-        doc.circle(width / 2, 73, 21).lineWidth(1.5).strokeColor(style.accent).stroke();
-        doc.moveTo(width / 2 - 9, 73).lineTo(width / 2 + 9, 73).lineWidth(1).strokeColor(style.accent).stroke();
-        doc.moveTo(width / 2, 64).lineTo(width / 2, 82).stroke();
+        if (!images.logo && !visibleOrganization) {
+          doc.circle(width / 2, 73, 21).lineWidth(1.5).strokeColor(style.accent).stroke();
+          doc.moveTo(width / 2 - 9, 73).lineTo(width / 2 + 9, 73).lineWidth(1).strokeColor(style.accent).stroke();
+          doc.moveTo(width / 2, 64).lineTo(width / 2, 82).stroke();
+        }
       } else if (style.layout === "royalGold") {
         doc.lineWidth(3).strokeColor(style.accent).rect(24, 24, width - 48, height - 48).stroke();
         doc.lineWidth(1).strokeColor(style.edge).rect(34, 34, width - 68, height - 68).stroke();
@@ -340,104 +445,328 @@ function renderCertificate(event, registration, organization, images) {
       } else if (style.layout === "crimsonLuxe") {
         doc.lineWidth(4.5).strokeColor(style.accent).rect(24, 24, width - 48, height - 48).stroke();
         doc.lineWidth(1).strokeColor(style.edge).rect(36, 36, width - 72, height - 72).stroke();
-        doc.circle(width / 2, 70, 16).lineWidth(1.5).strokeColor(style.accent).stroke();
+        if (!images.logo && !visibleOrganization) {
+          doc.circle(width / 2, 70, 16).lineWidth(1.5).strokeColor(style.accent).stroke();
+        }
       } else {
         doc.lineWidth(3).strokeColor(style.accent).rect(22, 22, width - 44, height - 44).stroke();
         doc.lineWidth(1).strokeColor(style.edge).rect(30, 30, width - 60, height - 60).stroke();
         doc.lineWidth(0.5).strokeColor(style.accent).rect(36, 36, width - 72, height - 72).stroke();
       }
 
-      if (images.logo) {
+      const orgSizeMap = { sm: 10, md: 14, lg: 18, xl: 22 };
+      const orgSizeKey = CERTIFICATE_ORG_SIZES.includes(event.certificateOrganizationSize)
+        ? event.certificateOrganizationSize
+        : "md";
+      const orgAlign = CERTIFICATE_ORG_ALIGNS.includes(event.certificateOrganizationAlign)
+        ? event.certificateOrganizationAlign
+        : "center";
+      const orgStyle = textStyles.organization;
+      const orgFont = resolvePdfFont(orgStyle.font, "Helvetica-Bold", true);
+      const resolvedOrgAlign = orgStyle.align || orgAlign;
+      const topHeadline = visibleOrganization
+        ? (event.certificateOrganizationUppercase ? visibleOrganization.toUpperCase() : visibleOrganization)
+        : (style.headerText || "CERTIFICATE OF EXCELLENCE").toUpperCase();
+      const customOrgSize = orgStyle.fontSize;
+      const maxHeaderSize = customOrgSize || (visibleOrganization ? orgSizeMap[orgSizeKey] : 10);
+      const minHeaderSize = visibleOrganization || customOrgSize ? Math.max(8, maxHeaderSize - 5) : 9;
+      const headerSpacing = visibleOrganization ? 0.6 : 1.5;
+      const hasCustomLogoPos = event.certificateLogoX != null && event.certificateLogoY != null;
+      const hasCustomOrgPos = orgStyle.x != null && orgStyle.y != null;
+      const hasCustomHeader = Boolean(visibleOrganization || (images.logo && !hasCustomLogoPos));
+      const headerY = hasCustomHeader ? 58 : style.layout === "academic" ? 108 : 82;
+
+      let headerBottomY = headerY;
+      if (hasCustomOrgPos) {
+        const headerFontSize = fitFontSize(doc, topHeadline, orgFont, contentWidth, maxHeaderSize, minHeaderSize);
+        drawCustomPositionedText(doc, {
+          text: topHeadline,
+          font: orgFont,
+          fontSize: headerFontSize,
+          color: style.accent,
+          align: resolvedOrgAlign,
+          xPct: orgStyle.x,
+          yPct: orgStyle.y,
+          pageWidth: width,
+          pageHeight: height,
+          maxBoxWidth: contentWidth,
+          characterSpacing: headerSpacing,
+        });
+        if (images.logo && !hasCustomLogoPos) {
+          try {
+            doc.image(images.logo, left, headerY, { fit: [38, 32], align: "center", valign: "center" });
+          } catch (error) {
+            console.error("Certificate logo could not be rendered:", error.message);
+          }
+        }
+        headerBottomY = headerY + 28;
+      } else if (images.logo && !hasCustomLogoPos) {
+        const logoBox = 38;
+        const logoHeight = 32;
+        const gap = 10;
+        const availTextWidth = Math.max(120, contentWidth - logoBox - gap);
+        const headerFontSize = fitFontSize(doc, topHeadline, orgFont, availTextWidth, maxHeaderSize, minHeaderSize);
+        doc.font(orgFont).fontSize(headerFontSize).fillColor(style.accent);
+        const measuredWidth = doc.widthOfString(topHeadline, { characterSpacing: headerSpacing });
+        const singleLine = measuredWidth <= availTextWidth;
+        const textBlockWidth = singleLine ? measuredWidth : availTextWidth;
+        const textHeight = doc.heightOfString(topHeadline, { width: textBlockWidth, characterSpacing: headerSpacing });
+        const rowHeight = Math.max(logoHeight, textHeight);
+        const totalBlockWidth = logoBox + gap + textBlockWidth;
+        const blockX = resolvedOrgAlign === "left"
+          ? left
+          : resolvedOrgAlign === "right"
+            ? left + contentWidth - totalBlockWidth
+            : left + (contentWidth - totalBlockWidth) / 2;
+
         try {
-          doc.image(images.logo, style.layout === "left" ? 54 : width / 2 - 24, 46, { fit: [48, 36], align: "center", valign: "center" });
+          doc.image(images.logo, blockX, headerY + (rowHeight - logoHeight) / 2, {
+            fit: [logoBox, logoHeight],
+            align: "center",
+            valign: "center",
+          });
         } catch (error) {
           console.error("Certificate logo could not be rendered:", error.message);
         }
+
+        doc.text(topHeadline, blockX + logoBox + gap, headerY + Math.max(0, (rowHeight - textHeight) / 2), {
+          width: textBlockWidth,
+          align: singleLine ? "left" : resolvedOrgAlign,
+          characterSpacing: headerSpacing,
+        });
+        headerBottomY = headerY + rowHeight;
+      } else {
+        const headerFontSize = fitFontSize(doc, topHeadline, orgFont, contentWidth, maxHeaderSize, minHeaderSize);
+        doc.font(orgFont).fontSize(headerFontSize).fillColor(style.accent);
+        const textHeight = doc.heightOfString(topHeadline, { width: contentWidth, align: resolvedOrgAlign, characterSpacing: headerSpacing });
+        doc.text(topHeadline, left, headerY, {
+          width: contentWidth,
+          align: resolvedOrgAlign,
+          characterSpacing: headerSpacing,
+        });
+        headerBottomY = headerY + textHeight;
       }
 
-      const headerY = images.logo ? 93 : style.layout === "academic" ? 108 : 82;
-      const topHeadline = (visibleOrganization || style.headerText || "CERTIFICATE OF EXCELLENCE").toUpperCase();
-      doc.font("Helvetica-Bold").fontSize(10).fillColor(style.accent)
-        .text(topHeadline, left, headerY, { width: contentWidth, align, characterSpacing: 1.5 });
-      const titleY = style.layout === "academic" ? 139 : 139;
-      doc.font(style.titleFont).fontSize(fitFontSize(doc, title, style.titleFont, contentWidth, 29, 17))
-        .fillColor(style.ink)
-        .text(title, left, titleY, { width: contentWidth, align, lineBreak: false, ellipsis: true });
-      doc.font(style.font).fontSize(13).fillColor(style.ink)
-        .text("This certificate is proudly presented to", left, 194, { width: contentWidth, align });
+      if (images.logo && hasCustomLogoPos) {
+        const logoPct = Number.isFinite(Number(event.certificateLogoSize))
+          ? Math.min(30, Math.max(4, Number(event.certificateLogoSize)))
+          : 8;
+        const logoBoxSize = (logoPct / 100) * width;
+        const logoCx = (Math.min(98, Math.max(2, Number(event.certificateLogoX))) / 100) * width;
+        const logoCy = (Math.min(98, Math.max(2, Number(event.certificateLogoY))) / 100) * height;
+        try {
+          doc.image(images.logo, logoCx - logoBoxSize / 2, logoCy - logoBoxSize / 2, {
+            fit: [logoBoxSize, logoBoxSize],
+            align: "center",
+            valign: "center",
+          });
+        } catch (error) {
+          console.error("Certificate custom logo could not be rendered:", error.message);
+        }
+      }
 
-      const participantName = registration.name || "Participant";
-      doc.font(style.titleFont)
-        .fontSize(fitFontSize(doc, participantName, style.titleFont, contentWidth, 35, 18))
-        .fillColor(style.accent)
-        .text(participantName, left, 222, { width: contentWidth, align, lineBreak: false, ellipsis: true });
+      const titleStyle = textStyles.title;
+      const titleFont = resolvePdfFont(titleStyle.font, style.titleFont, true);
+      const titleAlign = titleStyle.align || align;
+      const titleMaxSize = titleStyle.fontSize || 29;
+      const titleSize = fitFontSize(doc, title, titleFont, contentWidth, titleMaxSize, Math.min(14, titleMaxSize));
+      const titleY = Math.max(139, Math.ceil(headerBottomY + 18));
 
-      doc.moveTo(left + contentWidth * 0.18, 270)
-        .lineTo(left + contentWidth * 0.82, 270)
-        .lineWidth(style.layout === "academic" ? 1.8 : 0.8)
-        .strokeColor(style.edge)
-        .stroke();
-      let descriptionFont = 13;
-      while (
-        descriptionFont > 9 &&
-        doc.heightOfString(description, { width: contentWidth * 0.86, font: style.font, size: descriptionFont, lineGap: 2 }) > 58
-      ) descriptionFont -= 1;
-      doc.font(style.font).fontSize(descriptionFont).fillColor(style.ink)
-        .text(description, left + contentWidth * 0.07, 284, {
-          width: contentWidth * 0.86,
-          height: 58,
-          align,
-          lineGap: 2,
-          ellipsis: true,
+      if (titleStyle.x != null && titleStyle.y != null) {
+        drawCustomPositionedText(doc, {
+          text: title,
+          font: titleFont,
+          fontSize: titleSize,
+          color: style.ink,
+          align: titleAlign,
+          xPct: titleStyle.x,
+          yPct: titleStyle.y,
+          pageWidth: width,
+          pageHeight: height,
+          maxBoxWidth: contentWidth,
         });
+      } else {
+        doc.font(titleFont).fontSize(titleSize).fillColor(style.ink)
+          .text(title, left, titleY, { width: contentWidth, align: titleAlign, lineBreak: false, ellipsis: true });
+      }
 
-      doc.font(style.titleFont)
-        .fontSize(fitFontSize(doc, eventTitle, style.titleFont, contentWidth, 16, 11))
-        .fillColor(style.ink)
-        .text(eventTitle, left, 359, { width: contentWidth, align, lineBreak: false, ellipsis: true });
-      doc.font("Helvetica").fontSize(9).fillColor(style.ink)
-        .text(date, left, 382, { width: contentWidth, align });
+      doc.font(style.font).fontSize(13).fillColor(style.ink)
+        .text("This certificate is proudly presented to", left, Math.max(194, titleY + 52), { width: contentWidth, align });
+
+      const recipientStyle = textStyles.recipient;
+      const recipientFont = resolvePdfFont(recipientStyle.font, style.titleFont, true);
+      const recipientAlign = recipientStyle.align || align;
+      const recipientMaxSize = recipientStyle.fontSize || 35;
+      const participantName = formatParticipantName(registration.name, "Participant");
+      const recipientSize = fitFontSize(
+        doc,
+        participantName,
+        recipientFont,
+        contentWidth,
+        recipientMaxSize,
+        Math.min(16, recipientMaxSize)
+      );
+
+      if (recipientStyle.x != null && recipientStyle.y != null) {
+        drawCustomPositionedText(doc, {
+          text: participantName,
+          font: recipientFont,
+          fontSize: recipientSize,
+          color: style.accent,
+          align: recipientAlign,
+          xPct: recipientStyle.x,
+          yPct: recipientStyle.y,
+          pageWidth: width,
+          pageHeight: height,
+          maxBoxWidth: contentWidth,
+        });
+      } else {
+        doc.font(recipientFont).fontSize(recipientSize).fillColor(style.accent)
+          .text(participantName, left, 222, { width: contentWidth, align: recipientAlign, lineBreak: false, ellipsis: true });
+        doc.moveTo(left + contentWidth * 0.18, 270)
+          .lineTo(left + contentWidth * 0.82, 270)
+          .lineWidth(style.layout === "academic" ? 1.8 : 0.8)
+          .strokeColor(style.edge)
+          .stroke();
+      }
+
+      const descStyle = textStyles.description;
+      const descFont = resolvePdfFont(descStyle.font, style.font, false);
+      const descAlign = descStyle.align || align;
+      let descriptionFont = descStyle.fontSize || 13;
+      const descBoxWidth = contentWidth * 0.84;
+      while (descriptionFont > 8) {
+        doc.font(descFont).fontSize(descriptionFont);
+        if (doc.heightOfString(description, { width: descBoxWidth, lineGap: 2 }) <= 82) break;
+        descriptionFont -= 1;
+      }
+
+      if (descStyle.x != null && descStyle.y != null) {
+        drawCustomPositionedText(doc, {
+          text: description,
+          font: descFont,
+          fontSize: descriptionFont,
+          color: style.ink,
+          align: descAlign,
+          xPct: descStyle.x,
+          yPct: descStyle.y,
+          pageWidth: width,
+          pageHeight: height,
+          maxBoxWidth: descBoxWidth,
+          multiline: true,
+        });
+      } else {
+        doc.font(descFont).fontSize(descriptionFont).fillColor(style.ink)
+          .text(description, left + contentWidth * 0.08, 284, {
+            width: descBoxWidth,
+            height: 82,
+            align: descAlign,
+            lineGap: 2,
+            ellipsis: true,
+          });
+      }
+
+      const eventStyle = textStyles.eventName;
+      const eventFont = resolvePdfFont(eventStyle.font, style.titleFont, true);
+      const eventAlign = eventStyle.align || align;
+      const eventMaxSize = eventStyle.fontSize || 16;
+      const eventSize = fitFontSize(doc, eventTitle, eventFont, contentWidth, eventMaxSize, Math.min(9, eventMaxSize));
+
+      if (eventStyle.x != null && eventStyle.y != null) {
+        const placedEvent = drawCustomPositionedText(doc, {
+          text: eventTitle,
+          font: eventFont,
+          fontSize: eventSize,
+          color: style.ink,
+          align: eventAlign,
+          xPct: eventStyle.x,
+          yPct: eventStyle.y,
+          pageWidth: width,
+          pageHeight: height,
+          maxBoxWidth: contentWidth,
+        });
+        doc.font("Helvetica").fontSize(9).fillColor(style.ink)
+          .text(date, placedEvent.drawX, placedEvent.drawY + placedEvent.boxH + 4, {
+            width: placedEvent.boxW,
+            align: eventAlign,
+            lineBreak: false,
+          });
+      } else {
+        doc.font(eventFont).fontSize(eventSize).fillColor(style.ink)
+          .text(eventTitle, left, 359, { width: contentWidth, align: eventAlign, lineBreak: false, ellipsis: true });
+        doc.font("Helvetica").fontSize(9).fillColor(style.ink)
+          .text(date, left, 382, { width: contentWidth, align: eventAlign });
+      }
 
       const signatures = (event.signatures || []).filter((signature) => signature.name || signature.imageUrl).slice(0, 4);
-      const signatureTop = 432;
-      const signatureWidth = Math.min(150, (contentWidth - 24) / Math.max(signatures.length, 1));
-      const signatureGap = signatures.length > 1
-        ? (contentWidth - signatureWidth * signatures.length) / (signatures.length - 1)
-        : 0;
-      for (let index = 0; index < signatures.length; index += 1) {
-        const signature = signatures[index];
-        const x = left + index * (signatureWidth + signatureGap);
-        const image = images.signatures[index];
+      const drawSignatureBlock = (signature, image, centerX, lineY, blockWidth, scale = 1) => {
+        const safeScale = Number.isFinite(scale) ? Math.min(2.2, Math.max(0.5, scale)) : 1;
+        const imgBoxWidth = blockWidth * 0.65;
+        const imgBoxHeight = Math.round(28 * safeScale);
         if (image) {
           try {
-            doc.image(image, x + signatureWidth * 0.2, signatureTop - 25, {
-              fit: [signatureWidth * 0.6, 27],
+            doc.image(image, centerX - imgBoxWidth / 2, lineY - imgBoxHeight - 5, {
+              fit: [imgBoxWidth, imgBoxHeight],
               align: "center",
-              valign: "center",
+              valign: "bottom",
             });
           } catch (error) {
             console.error("Certificate signature could not be rendered:", error.message);
           }
         }
-        doc.moveTo(x + 8, signatureTop + 8)
-          .lineTo(x + signatureWidth - 8, signatureTop + 8)
+        const halfBlock = blockWidth / 2;
+        doc.moveTo(centerX - halfBlock + 8, lineY)
+          .lineTo(centerX + halfBlock - 8, lineY)
           .lineWidth(0.8)
           .strokeColor(style.edge)
           .stroke();
-        doc.font("Helvetica-Bold").fontSize(9).fillColor(style.ink)
-          .text(signature.name || "Authorized signatory", x, signatureTop + 14, {
-            width: signatureWidth,
+        const nameSize = Math.round(9 * Math.min(1.25, Math.max(0.85, safeScale)));
+        const roleSize = Math.round(8 * Math.min(1.25, Math.max(0.85, safeScale)));
+        doc.font("Helvetica-Bold").fontSize(nameSize).fillColor(style.ink)
+          .text(signature.name || "Authorized signatory", centerX - halfBlock, lineY + 6, {
+            width: blockWidth,
             align: "center",
             lineBreak: false,
             ellipsis: true,
           });
-        doc.font("Helvetica").fontSize(8).fillColor(style.ink)
-          .text(signature.designation || signature.role || "", x, signatureTop + 27, {
-            width: signatureWidth,
+        doc.font("Helvetica").fontSize(roleSize).fillColor(style.ink)
+          .text(signature.designation || signature.role || "", centerX - halfBlock, lineY + 6 + nameSize + 4, {
+            width: blockWidth,
             align: "center",
             lineBreak: false,
             ellipsis: true,
           });
+      };
+
+      const flowSignatures = [];
+      const pinnedSignatures = [];
+      signatures.forEach((signature, index) => {
+        const entry = { signature, image: images.signatures[index] };
+        if (signature.x != null && signature.y != null) {
+          pinnedSignatures.push(entry);
+        } else {
+          flowSignatures.push(entry);
+        }
+      });
+
+      const signatureTop = 432;
+      const signatureWidth = Math.min(150, (contentWidth - 24) / Math.max(flowSignatures.length, 1));
+      const signatureGap = flowSignatures.length > 1
+        ? (contentWidth - signatureWidth * flowSignatures.length) / (flowSignatures.length - 1)
+        : 0;
+      for (let index = 0; index < flowSignatures.length; index += 1) {
+        const { signature, image } = flowSignatures[index];
+        const centerX = left + index * (signatureWidth + signatureGap) + signatureWidth / 2;
+        const scale = signature.scale != null ? Number(signature.scale) : 1;
+        drawSignatureBlock(signature, image, centerX, signatureTop + 8, signatureWidth, scale);
+      }
+
+      for (const { signature, image } of pinnedSignatures) {
+        const scale = signature.scale != null ? Number(signature.scale) : 1;
+        const centerX = (Math.min(94, Math.max(6, Number(signature.x))) / 100) * width;
+        const centerY = (Math.min(94, Math.max(6, Number(signature.y))) / 100) * height;
+        const blockW = 140 * Math.min(2.2, Math.max(0.5, scale));
+        drawSignatureBlock(signature, image, centerX, centerY + 6 * scale, blockW, scale);
       }
 
       // Standardized footer at the end of every certificate
@@ -462,9 +791,9 @@ async function generatePdf(event, registration, organization) {
 }
 
 async function organizerOrganization(event) {
-  if (event.certificateShowOrganization === false) return "";
   const customOrg = String(event.certificateOrganization || "").trim();
   if (customOrg) return customOrg;
+  if (event.certificateShowOrganization === false) return "";
   const organizer = await User.findById(event.organizerId).select("organization").lean();
   const org = String(organizer?.organization || "").trim();
   if (org) return org;
@@ -486,7 +815,7 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
       Registration.find({ eventId: event._id }).sort({ name: 1 }).lean(),
       Certificate.find({ eventId: event._id }).select("-pdfData").lean(),
       User.findById(event.organizerId).select("name organization").lean(),
-      Promise.resolve(Boolean(process.env.SMTP_HOST && process.env.EMAIL_FROM)),
+      Promise.resolve(emailService.isConfigured()),
     ]);
     const issuedByRegistration = new Map(
       certificates.map((certificate) => [String(certificate.registrationId), certificatePayload(certificate)])
@@ -504,7 +833,7 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
       }
       return {
         _id: String(registration._id),
-        name: registration.name,
+        name: formatParticipantName(registration.name, "Participant"),
         email: registration.email,
         status: registration.status,
         checkedIn,
@@ -534,7 +863,7 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
       },
       participants,
       imageStorage: process.env.NODE_ENV === "production"
-        ? (cloudinaryConfiguration() ? "cloudinary" : "unconfigured")
+        ? (cloudinaryConfiguration() ? "cloudinary" : "database")
         : "local",
       emailConfigured,
       aiConfigured: isGeminiConfigured(),
@@ -553,8 +882,9 @@ router.put("/event/:eventId", requireAuth, async (req, res) => {
       ...event.toObject(),
       ...req.body,
     });
-    Object.assign(event, settings);
+    Object.assign(event, settings, { certificateUpdatedAt: new Date() });
     await event.save();
+    await Certificate.updateMany({ eventId: event._id }, { $unset: { pdfData: 1 } });
     res.json({ message: "Certificate settings saved.", event });
   } catch (error) {
     console.error("Save certificate settings error:", error);
@@ -573,6 +903,22 @@ async function verifyEventOwner(req, res, next) {
     res.status(500).json({ message: "Could not verify event ownership." });
   }
 }
+
+router.get("/assets/:assetId", async (req, res) => {
+  try {
+    if (!isValidEventId(req.params.assetId)) return res.status(404).end();
+    const asset = await MediaAsset.findOne({ _id: req.params.assetId, scope: "certificate" }).lean();
+    if (!asset?.data) return res.status(404).end();
+    res.set({
+      "Content-Type": asset.mimeType || "image/png",
+      "Cache-Control": "public, max-age=86400",
+    });
+    res.send(Buffer.from(asset.data.buffer || asset.data));
+  } catch (error) {
+    console.error("Load certificate asset error:", error);
+    res.status(500).end();
+  }
+});
 
 router.post("/event/:eventId/assets/:kind", requireAuth, verifyEventOwner, (req, res, next) => {
   upload.single("image")(req, res, (error) => {
@@ -638,12 +984,13 @@ router.post("/event/:eventId/generate", requireAuth, async (req, res) => {
     const images = await certificateImages(event);
 
     for (const registration of registrations) {
+      const displayName = formatParticipantName(registration.name, "Participant");
       const existing = await Certificate.findOne({
         eventId: event._id,
         registrationId: registration._id,
       });
       if (existing && req.body.regenerate !== true) {
-        alreadyIssued.push({ registrationId: registration._id, name: registration.name });
+        alreadyIssued.push({ registrationId: registration._id, name: displayName });
         continue;
       }
 
@@ -653,7 +1000,7 @@ router.post("/event/:eventId/generate", requireAuth, async (req, res) => {
         { eventId: event._id, registrationId: registration._id },
         {
           $set: {
-            issuedTo: registration.name,
+            issuedTo: displayName,
             email: registration.email,
             generatedAt: new Date(),
             generation,
@@ -664,7 +1011,7 @@ router.post("/event/:eventId/generate", requireAuth, async (req, res) => {
         },
         { upsert: true, new: true, runValidators: true }
       );
-      issued.push({ registrationId: registration._id, name: registration.name, generation: certificate.generation });
+      issued.push({ registrationId: registration._id, name: displayName, generation: certificate.generation });
     }
 
     res.json({ issued, alreadyIssued, ineligible });
@@ -678,9 +1025,24 @@ router.post("/event/:eventId/generate", requireAuth, async (req, res) => {
 });
 
 async function getCertificatePdf(event, registration, certificate) {
-  if (certificate.pdfData?.length) return certificate.pdfData;
+  if (!isCertificatePdfStale(event, certificate, registration)) return certificate.pdfData;
   const organization = await organizerOrganization(event);
-  return generatePdf(event, registration, organization);
+  const freshPdf = await generatePdf(event, registration, organization);
+  const issuedName = formatParticipantName(registration.name, "Participant");
+  if (certificate?._id) {
+    await Certificate.updateOne(
+      { _id: certificate._id },
+      {
+        $set: {
+          pdfData: freshPdf,
+          issuedTo: issuedName,
+          email: registration.email,
+          generatedAt: new Date(),
+        },
+      }
+    );
+  }
+  return freshPdf;
 }
 
 router.get("/event/:eventId/:registrationId/download", requireAuth, async (req, res) => {
@@ -707,6 +1069,7 @@ router.get("/event/:eventId/:registrationId/download", requireAuth, async (req, 
     res.set({
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="eventra-certificate-${registration._id}.pdf"`,
+      "Cache-Control": "no-store, no-cache, must-revalidate, private",
     });
     res.send(pdf);
   } catch (error) {
@@ -830,26 +1193,29 @@ router.get("/public/:registrationId/download", async (req, res) => {
       registrationId: registration._id,
     }).select("+pdfData");
 
-    const organization = await organizerOrganization(event);
     let pdf;
-    if (certificate?.pdfData?.length) {
+    if (certificate && !isCertificatePdfStale(event, certificate, registration)) {
       pdf = certificate.pdfData;
     } else {
+      const organization = await organizerOrganization(event);
       const images = await certificateImages(event);
       pdf = await renderCertificate(event, registration, organization, images);
-      // Auto-save generated certificate record
+      // Auto-save generated/refreshed certificate record without resetting generation counter
       certificate = await Certificate.findOneAndUpdate(
         { eventId: event._id, registrationId: registration._id },
         {
           $set: {
-            issuedTo: registration.name,
+            issuedTo: formatParticipantName(registration.name, "Participant"),
             email: registration.email,
             generatedAt: new Date(),
-            generation: 1,
             pdfData: pdf,
             storagePath: "",
           },
-          $setOnInsert: { eventId: event._id, registrationId: registration._id },
+          $setOnInsert: {
+            eventId: event._id,
+            registrationId: registration._id,
+            generation: 1,
+          },
         },
         { upsert: true, new: true }
       );
@@ -858,6 +1224,7 @@ router.get("/public/:registrationId/download", async (req, res) => {
     res.set({
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="eventra-certificate-${registration.registrationId || registration._id}.pdf"`,
+      "Cache-Control": "no-store, no-cache, must-revalidate, private",
     });
     res.send(pdf);
   } catch (err) {
@@ -952,9 +1319,20 @@ router.post("/event/:eventId/email-bulk", requireAuth, async (req, res) => {
         continue;
       }
 
-      // Prevent duplicate emails within 5 minutes unless force is set
-      if (cert.lastEmailedAt && req.body.force !== true && (Date.now() - new Date(cert.lastEmailedAt).getTime() < 300000)) {
-        skipped.push({ registrationId: reg._id, name: reg.name, reason: "Recently emailed" });
+      // Prevent duplicate emails within 5 minutes unless force is set or certificate design changed since last email
+      const designTimestamp = getCertificateDesignTimestamp(event);
+      const designChangedSinceEmail = Boolean(
+        cert.lastEmailedAt &&
+        designTimestamp &&
+        new Date(cert.lastEmailedAt).getTime() < new Date(designTimestamp).getTime()
+      );
+      if (
+        !designChangedSinceEmail &&
+        cert.lastEmailedAt &&
+        req.body.force !== true &&
+        Date.now() - new Date(cert.lastEmailedAt).getTime() < 300000
+      ) {
+        skipped.push({ registrationId: reg._id, name: formatParticipantName(reg.name, "Participant"), reason: "Recently emailed" });
         continue;
       }
 
@@ -962,12 +1340,12 @@ router.post("/event/:eventId/email-bulk", requireAuth, async (req, res) => {
         const pdf = await getCertificatePdf(event, reg, cert);
         const result = await emailService.sendCertificateEmail(event, reg, pdf);
         if (result.success) {
-          sent.push({ registrationId: reg._id, name: reg.name, email: reg.email });
+          sent.push({ registrationId: reg._id, name: formatParticipantName(reg.name, "Participant"), email: reg.email });
         } else {
-          failed.push({ registrationId: reg._id, name: reg.name, email: reg.email, error: result.error });
+          failed.push({ registrationId: reg._id, name: formatParticipantName(reg.name, "Participant"), email: reg.email, error: result.error });
         }
       } catch (err) {
-        failed.push({ registrationId: reg._id, name: reg.name, email: reg.email, error: err.message });
+        failed.push({ registrationId: reg._id, name: formatParticipantName(reg.name, "Participant"), email: reg.email, error: err.message });
       }
     }
 

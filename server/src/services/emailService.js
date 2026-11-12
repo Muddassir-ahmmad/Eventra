@@ -5,6 +5,7 @@ import Registration from "../models/Registration.js";
 import Certificate from "../models/Certificate.js";
 import User from "../models/User.js";
 import { generateTicketPdf } from "./ticketPdfService.js";
+import { formatParticipantName } from "../utils/participantName.js";
 import {
   renderRegistrationConfirmationEmail,
   renderTicketEmail,
@@ -331,7 +332,7 @@ class EmailService {
 
       const result = await this.sendMail({
         to: registration.email,
-        recipientName: registration.name,
+        recipientName: formatParticipantName(registration.name),
         subject,
         html,
         text,
@@ -384,7 +385,7 @@ class EmailService {
 
       const result = await this.sendMail({
         to: registration.email,
-        recipientName: registration.name,
+        recipientName: formatParticipantName(registration.name),
         subject,
         html,
         text,
@@ -426,7 +427,7 @@ class EmailService {
 
       const result = await this.sendMail({
         to: registration.email,
-        recipientName: registration.name,
+        recipientName: formatParticipantName(registration.name),
         subject,
         html,
         text,

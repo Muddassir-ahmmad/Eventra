@@ -75,6 +75,28 @@ const postEventReportSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    includedSections: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({}),
+    },
+    sectionTitles: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({}),
+    },
+    customSections: {
+      type: [
+        new mongoose.Schema(
+          {
+            id: { type: String, required: true, trim: true },
+            title: { type: String, trim: true, default: "Additional Section" },
+            content: { type: String, trim: true, default: "" },
+            included: { type: Boolean, default: true },
+          },
+          { _id: false }
+        ),
+      ],
+      default: [],
+    },
     reportStatus: {
       type: String,
       enum: ["not_started", "collecting_feedback", "draft", "completed", "finalized"],

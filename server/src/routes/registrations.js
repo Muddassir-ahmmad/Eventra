@@ -5,9 +5,19 @@ import { requireAuth } from "../middleware/auth.js";
 import { makeRegistrationId } from "../utils/registrationId.js";
 import emailService from "../services/emailService.js";
 import { generateTicketPdf } from "../services/ticketPdfService.js";
-import { isEventCompleted } from "../utils/eventTiming.js";
+import { isAttendanceEntryLocked, isEventCompleted } from "../utils/eventTiming.js";
+import { formatParticipantName } from "../utils/participantName.js";
 
 const router = express.Router();
+
+function rejectIfAttendanceLocked(event, res) {
+  if (!isAttendanceEntryLocked(event)) return false;
+  res.status(403).json({
+    locked: true,
+    message: "Attendance entry & QR scanning are locked because this event has already ended.",
+  });
+  return true;
+}
 
 // Public registration for an event
 router.post("/public/:slug", async (req, res) => {
@@ -134,7 +144,7 @@ router.post("/public/:slug", async (req, res) => {
 
     const registration = await Registration.create({
       eventId: event._id,
-      name: name.trim(),
+      name: formatParticipantName(name),
       email: email.toLowerCase().trim(),
       phone: phone.trim(),
       college: (college || "").trim(),
@@ -170,7 +180,7 @@ router.post("/public/:slug", async (req, res) => {
       registration: {
         id: registration._id,
         registrationId: registration.registrationId,
-        name: registration.name,
+        name: formatParticipantName(registration.name),
         email: registration.email,
         phone: registration.phone,
         college: registration.college,
@@ -220,15 +230,21 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
       ? Math.round((attended.length / confirmed.length) * 1000) / 10
       : 0;
 
+    const attendanceLocked = isAttendanceEntryLocked(event);
+
     res.json({
       event: {
         id: event._id,
         title: event.title,
         capacity: event.capacity,
         date: event.date,
+        startTime: event.startTime,
+        endTime: event.endTime,
         venue: event.venue,
         status: event.status,
+        completedAt: event.completedAt,
       },
+      attendanceLocked,
       stats: {
         totalRegistrations: total,
         confirmedRegistrations: confirmed.length,
@@ -239,7 +255,11 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
       },
       count: confirmed.length,
       attendedCount: attended.length,
-      registrations,
+      registrations: registrations.map((item) => {
+        const doc = item.toObject();
+        doc.name = formatParticipantName(doc.name);
+        return doc;
+      }),
     });
   } catch (error) {
     console.error(error);
@@ -259,6 +279,7 @@ router.post("/event/:eventId/checkin", requireAuth, async (req, res) => {
     if (!event) {
       return res.status(404).json({ message: "Event not found or unauthorized." });
     }
+    if (rejectIfAttendanceLocked(event, res)) return;
 
     const { identifier } = req.body;
     if (!identifier) {
@@ -324,7 +345,7 @@ router.post("/event/:eventId/checkin", requireAuth, async (req, res) => {
     res.json({
       success: true,
       alreadyCheckedIn: false,
-      message: `Verified! Welcome, ${registration.name}.`,
+      message: `Verified! Welcome, ${formatParticipantName(registration.name, "Participant")}.`,
       registration,
     });
   } catch (error) {
@@ -341,6 +362,7 @@ router.post("/event/:eventId/registrations/:registrationId/toggle-attendance", r
       organizerId: req.userId,
     });
     if (!event) return res.status(404).json({ message: "Event not found" });
+    if (rejectIfAttendanceLocked(event, res)) return;
 
     const registration = await Registration.findOne({
       _id: req.params.registrationId,
@@ -385,7 +407,7 @@ router.delete("/event/:eventId/registrations/:registrationId", requireAuth, asyn
 
     res.json({
       success: true,
-      message: `Registration for ${registration.name} (${registration.registrationId}) has been deleted.`,
+      message: `Registration for ${formatParticipantName(registration.name, "Participant")} (${registration.registrationId}) has been deleted.`,
     });
   } catch (err) {
     console.error("Delete registration error:", err);
@@ -417,7 +439,7 @@ router.get("/ticket/:registrationId", async (req, res) => {
       registration: {
         id: registration._id,
         registrationId: registration.registrationId,
-        name: registration.name,
+        name: formatParticipantName(registration.name),
         email: registration.email,
         phone: registration.phone,
         college: registration.college,
@@ -519,7 +541,9 @@ router.get("/participant/lookup", async (req, res) => {
       .lean();
 
     res.json({
-      registrations: registrations.filter((r) => r.eventId != null),
+      registrations: registrations
+        .filter((r) => r.eventId != null)
+        .map((r) => ({ ...r, name: formatParticipantName(r.name) })),
     });
   } catch (err) {
     console.error("Participant registrations lookup error:", err);

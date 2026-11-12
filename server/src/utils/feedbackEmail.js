@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import Registration from "../models/Registration.js";
 import EmailLog from "../models/EmailLog.js";
 import Event from "../models/Event.js";
+import { formatParticipantName } from "./participantName.js";
 
 /**
  * Creates email transport using configured SMTP credentials.
@@ -142,7 +143,7 @@ export async function sendFeedbackEmailsForEvent(eventId) {
     const feedbackUrl = `${clientUrl}/events/${event._id}/feedback?token=${token}`;
     const html = buildFeedbackEmailHtml({
       eventTitle: event.title,
-      participantName: reg.name,
+      participantName: formatParticipantName(reg.name, "Participant"),
       feedbackUrl,
       requireCertificateFeedback: event.requireFeedbackForCertificate === true,
     });

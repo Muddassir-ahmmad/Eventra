@@ -292,12 +292,17 @@ export default function PublicFeedback() {
         </header>
 
         <div className="feedback-participant-strip">
-          <span>Participant: <strong>{participant?.name}</strong></span>
-          <span>{participant?.email}</span>
+          <div className="feedback-participant-name">
+            <span className="feedback-participant-label">Participant</span>
+            <strong>{participant?.name || "Attendee"}</strong>
+          </div>
+          {participant?.email && (
+            <span className="feedback-participant-email">{participant.email}</span>
+          )}
         </div>
 
         <form className="feedback-card-body" onSubmit={handleSubmit}>
-          {error && <div className="certificate-alert is-error" style={{ marginBottom: "1.5rem" }}>{error}</div>}
+          {error && <div className="feedback-error-alert">{error}</div>}
 
           {/* Dynamic Questionnaire Render */}
           {(() => {
@@ -318,34 +323,57 @@ export default function PublicFeedback() {
 
             return (
               <>
-                {ratingQs.map((q) => (
-                  <StarRatingField
-                    key={q.id}
-                    label={`${q.label}${q.required ? " *" : ""}`}
-                    description={q.required ? "Mandatory rating" : "Optional rating"}
-                    value={ratings[q.id] || 5}
-                    onChange={(val) => setRatings((prev) => ({ ...prev, [q.id]: val }))}
-                  />
-                ))}
-
-                {ratingQs.length > 0 && textQs.length > 0 && (
-                  <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "1.75rem 0" }} />
+                {ratingQs.length > 0 && (
+                  <div className="feedback-section-block">
+                    <div className="feedback-section-heading">
+                      <span>Event Ratings</span>
+                      <small>Select 1 to 5 stars for each criterion</small>
+                    </div>
+                    {ratingQs.map((q) => (
+                      <StarRatingField
+                        key={q.id}
+                        label={q.label}
+                        required={Boolean(q.required)}
+                        description={q.required ? "Mandatory rating" : "Optional rating"}
+                        value={ratings[q.id] || 5}
+                        onChange={(val) => setRatings((prev) => ({ ...prev, [q.id]: val }))}
+                      />
+                    ))}
+                  </div>
                 )}
 
-                {textQs.map((q) => (
-                  <div className="feedback-textarea-group" key={q.id}>
-                    <label htmlFor={`fb-${q.id}`}>
-                      {q.label} {q.required && <span style={{ color: "#ef4444" }}>*</span>}
-                    </label>
-                    <textarea
-                      id={`fb-${q.id}`}
-                      placeholder="Share your thoughts..."
-                      value={textAnswers[q.id] || ""}
-                      onChange={(e) => setTextAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                      maxLength={3000}
-                    />
+                {ratingQs.length > 0 && textQs.length > 0 && (
+                  <div className="feedback-section-divider" />
+                )}
+
+                {textQs.length > 0 && (
+                  <div className="feedback-section-block">
+                    <div className="feedback-section-heading">
+                      <span>Written Reflections</span>
+                      <small>Your detailed feedback helps us improve</small>
+                    </div>
+                    {textQs.map((q) => (
+                      <div className="feedback-textarea-group" key={q.id}>
+                        <label htmlFor={`fb-${q.id}`}>
+                          <span>{q.label}</span>
+                          {q.required ? (
+                            <small className="feedback-req-tag is-mandatory">Required</small>
+                          ) : (
+                            <small className="feedback-req-tag">Optional</small>
+                          )}
+                        </label>
+                        <textarea
+                          id={`fb-${q.id}`}
+                          className="feedback-textarea"
+                          placeholder="Share your thoughts..."
+                          value={textAnswers[q.id] || ""}
+                          onChange={(e) => setTextAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                          maxLength={3000}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </>
             );
           })()}
@@ -363,7 +391,7 @@ export default function PublicFeedback() {
   );
 }
 
-function StarRatingField({ label, description, value, onChange }) {
+function StarRatingField({ label, required, description, value, onChange }) {
   const [hoverVal, setHoverVal] = useState(0);
 
   const labels = {
@@ -379,25 +407,34 @@ function StarRatingField({ label, description, value, onChange }) {
   return (
     <div className="rating-field-group">
       <div className="rating-field-label">
-        <span>{label}</span>
-        {description && <small>{description}</small>}
+        <span>
+          {label}
+          {required && <em className="feedback-required-asterisk"> *</em>}
+        </span>
+        {description && (
+          <small className={`feedback-req-tag${required ? " is-mandatory" : ""}`}>
+            {description}
+          </small>
+        )}
       </div>
       <div className="stars-selector">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            type="button"
-            className={`star-btn ${star <= activeVal ? "is-active" : ""}`}
-            onClick={() => onChange(star)}
-            onMouseEnter={() => setHoverVal(star)}
-            onMouseLeave={() => setHoverVal(0)}
-            aria-label={`${star} star`}
-          >
-            ★
-          </button>
-        ))}
+        <div className="stars-row" role="radiogroup" aria-label={label}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              className={`star-btn ${star <= activeVal ? "is-active" : ""}`}
+              onClick={() => onChange(star)}
+              onMouseEnter={() => setHoverVal(star)}
+              onMouseLeave={() => setHoverVal(0)}
+              aria-label={`${star} star${star > 1 ? "s" : ""}`}
+            >
+              ★
+            </button>
+          ))}
+        </div>
         <span className="rating-score-pill">
-          {activeVal} / 5 ({labels[activeVal]})
+          {activeVal} / 5 · {labels[activeVal]}
         </span>
       </div>
     </div>

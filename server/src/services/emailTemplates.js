@@ -1,3 +1,5 @@
+import { formatParticipantName } from "../utils/participantName.js";
+
 function formatDate(value) {
   if (!value) return "Event Date";
   return new Intl.DateTimeFormat("en", {
@@ -32,6 +34,7 @@ const baseStyles = `
  * Registration Confirmation Email Template
  */
 export function renderRegistrationConfirmationEmail({ event, registration, clientUrl = "http://localhost:5173" }) {
+  const participantName = formatParticipantName(registration.name, "Participant");
   const dateStr = formatDate(event.date);
   const timeStr = event.startTime
     ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ""}`
@@ -57,7 +60,7 @@ export function renderRegistrationConfirmationEmail({ event, registration, clien
       <p>${event.title}</p>
     </div>
     <div class="email-body">
-      <p class="greeting">Hello ${registration.name},</p>
+      <p class="greeting">Hello ${participantName},</p>
       <p>Your registration for <strong>${event.title}</strong> has been successfully processed and confirmed.</p>
       
       <div style="text-align: center; margin: 20px 0;">
@@ -84,7 +87,7 @@ export function renderRegistrationConfirmationEmail({ event, registration, clien
         </div>
         <div class="info-row">
           <span class="info-label">Attendee:</span>
-          <span class="info-value">${registration.name}</span>
+          <span class="info-value">${participantName}</span>
         </div>
         ${registration.department ? `
         <div class="info-row">
@@ -111,7 +114,7 @@ export function renderRegistrationConfirmationEmail({ event, registration, clien
 
   const text = `
 Registration Confirmed: ${event.title}
-Hello ${registration.name},
+Hello ${participantName},
 
 Your registration for ${event.title} has been confirmed.
 
@@ -133,6 +136,7 @@ EVENTRA Team
  * Digital Ticket Email Template
  */
 export function renderTicketEmail({ event, registration, qrDataUrl, clientUrl = "http://localhost:5173" }) {
+  const participantName = formatParticipantName(registration.name, "Attendee");
   const dateStr = formatDate(event.date);
   const timeStr = event.startTime
     ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ""}`
@@ -157,7 +161,7 @@ export function renderTicketEmail({ event, registration, qrDataUrl, clientUrl = 
       <p>${event.title}</p>
     </div>
     <div class="email-body">
-      <p class="greeting">Hello ${registration.name},</p>
+      <p class="greeting">Hello ${participantName},</p>
       <p>Here is your digital ticket and entry pass for <strong>${event.title}</strong>. A PDF copy of your ticket is also attached to this email.</p>
 
       <div style="text-align: center; margin: 24px 0;">
@@ -183,7 +187,7 @@ export function renderTicketEmail({ event, registration, qrDataUrl, clientUrl = 
         </div>
         <div class="info-row">
           <span class="info-label">Attendee:</span>
-          <span class="info-value">${registration.name}</span>
+          <span class="info-value">${participantName}</span>
         </div>
         <div class="info-row">
           <span class="info-label">Status:</span>
@@ -205,7 +209,7 @@ export function renderTicketEmail({ event, registration, qrDataUrl, clientUrl = 
 
   const text = `
 Digital Ticket: ${event.title}
-Attendee: ${registration.name}
+Attendee: ${participantName}
 Registration ID: ${registration.registrationId}
 Date: ${dateStr}
 Time: ${timeStr}
@@ -221,6 +225,7 @@ Your official ticket PDF is attached to this email. Please present it at the ent
  * Certificate Delivery Email Template
  */
 export function renderCertificateEmail({ event, registration }) {
+  const participantName = formatParticipantName(registration.name, "Participant");
   const certificateTitle = event.certificateTitle || "Certificate of Participation";
   const dateStr = formatDate(event.date);
 
@@ -241,7 +246,7 @@ export function renderCertificateEmail({ event, registration }) {
       <p>${event.title}</p>
     </div>
     <div class="email-body">
-      <p class="greeting">Congratulations, ${registration.name}!</p>
+      <p class="greeting">Congratulations, ${participantName}!</p>
       <p>Thank you for participating in <strong>${event.title}</strong> conducted on ${dateStr}.</p>
       
       <p>
@@ -251,7 +256,7 @@ export function renderCertificateEmail({ event, registration }) {
       <div class="info-card">
         <div class="info-row">
           <span class="info-label">Recipient:</span>
-          <span class="info-value">${registration.name}</span>
+          <span class="info-value">${participantName}</span>
         </div>
         <div class="info-row">
           <span class="info-label">Event:</span>
@@ -280,7 +285,7 @@ export function renderCertificateEmail({ event, registration }) {
   `.trim();
 
   const text = `
-Congratulations ${registration.name}!
+Congratulations ${participantName}!
 
 Your official ${certificateTitle} for ${event.title} has been issued and is attached to this email.
 
@@ -297,6 +302,7 @@ EVENTRA Team
  * Organizer New Registration Alert Template
  */
 export function renderOrganizerNewRegistrationAlert({ event, registration, currentCount, capacity }) {
+  const participantName = formatParticipantName(registration.name, "Participant");
   const percent = Math.min(100, Math.round((currentCount / capacity) * 100));
 
   const html = `
@@ -322,7 +328,7 @@ export function renderOrganizerNewRegistrationAlert({ event, registration, curre
       <div class="info-card">
         <div class="info-row">
           <span class="info-label">Participant:</span>
-          <span class="info-value">${registration.name}</span>
+          <span class="info-value">${participantName}</span>
         </div>
         <div class="info-row">
           <span class="info-label">Email:</span>
@@ -362,13 +368,13 @@ export function renderOrganizerNewRegistrationAlert({ event, registration, curre
 
   const text = `
 New Registration Alert: ${event.title}
-Participant: ${registration.name} (${registration.email})
+Participant: ${participantName} (${registration.email})
 College: ${registration.college}
 Department: ${registration.department || "N/A"}
 Current Count: ${currentCount} / ${capacity} (${percent}%)
   `.trim();
 
-  return { subject: `New Registration: ${registration.name} registered for ${event.title}`, html, text };
+  return { subject: `New Registration: ${participantName} registered for ${event.title}`, html, text };
 }
 
 /**

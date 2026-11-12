@@ -8,6 +8,7 @@ import {
   generateGeminiPoster,
   generateGeminiEventCopy,
   generateGeminiCertificateDesign,
+  generateGeminiReportSection,
 } from "../src/services/geminiService.js";
 
 test("geminiService exports valid candidate model priority list", () => {
@@ -160,6 +161,83 @@ test("generateGeminiCertificateDesign returns 4 distinct valid templates and res
       new Set(nextTemplates),
       new Set(["academic", "emeraldExecutive", "crimsonLuxe", "vintageParchment"])
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (oldKey === undefined) delete process.env.AI_API_KEY;
+    else process.env.AI_API_KEY = oldKey;
+    if (oldGeminiKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = oldGeminiKey;
+  }
+});
+
+test("generateGeminiReportSection requires API key and parses fenced JSON or handles transient rate limits", async () => {
+  const oldKey = process.env.AI_API_KEY;
+  const oldGeminiKey = process.env.GEMINI_API_KEY;
+  const originalFetch = globalThis.fetch;
+
+  delete process.env.AI_API_KEY;
+  delete process.env.GEMINI_API_KEY;
+
+  await assert.rejects(
+    async () => {
+      await generateGeminiReportSection({
+        sectionKey: "executiveSummary",
+        sectionTitle: "Executive Summary",
+        event: { title: "Campus AI Forum" },
+      });
+    },
+    { message: /Gemini API key is not configured/ }
+  );
+
+  process.env.GEMINI_API_KEY = "test-fake-report-key";
+  try {
+    // 1. Fenced JSON response with thinking part first
+    globalThis.fetch = async () => ({
+      ok: true,
+      json: async () => ({
+        candidates: [
+          {
+            content: {
+              parts: [
+                { thought: true, text: "Let me plan the summary..." },
+                { text: "```json\n{\"improvedText\":\"Campus AI Forum hosted 120 attendees with 92% turnout.\"}\n```" },
+              ],
+            },
+          },
+        ],
+      }),
+    });
+
+    const okResult = await generateGeminiReportSection({
+      sectionKey: "executiveSummary",
+      sectionTitle: "Executive Summary",
+      event: { title: "Campus AI Forum", venue: "Auditorium" },
+      analytics: { confirmedCount: 130, attendedCount: 120, attendanceRate: 92.3 },
+      instruction: "Executive Tone",
+    });
+
+    assert.equal(okResult.source, "gemini");
+    assert.match(okResult.suggestion, /Campus AI Forum hosted 120 attendees/);
+
+    // 2. Transient 429 across candidate models falls back to structured baseline draft cleanly
+    globalThis.fetch = async () => ({
+      ok: false,
+      status: 429,
+      json: async () => ({ error: { message: "Quota exceeded" } }),
+    });
+
+    const fallbackResult = await generateGeminiReportSection({
+      sectionKey: "executiveSummary",
+      sectionTitle: "Executive Summary",
+      event: { title: "Campus AI Forum", venue: "Auditorium" },
+      analytics: { confirmedCount: 130, attendedCount: 120, attendanceRate: 92.3 },
+      fallbackDraft: "Campus AI Forum concluded at Auditorium with 120 verified attendees out of 130 confirmed registrations.",
+      instruction: "Draft from Scratch",
+    });
+
+    assert.equal(fallbackResult.source, "fallback");
+    assert.ok(fallbackResult.suggestion.includes("Campus AI Forum"));
+    assert.ok(fallbackResult.suggestion.includes("120"));
   } finally {
     globalThis.fetch = originalFetch;
     if (oldKey === undefined) delete process.env.AI_API_KEY;

@@ -321,4 +321,34 @@ test("Phase 3 integration: Digital Tickets, Attendance Dashboard & Fast Check-In
 
     assert.equal(res.status, 404);
   });
+
+  // 10. Locks gate scanner check-in and manual toggle after event concludes
+  await t.test("Attendance entry locks checkin and manual toggle after event ends", async () => {
+    await Event.findByIdAndUpdate(event._id, {
+      status: "completed",
+      completedAt: new Date(),
+    });
+
+    const dashRes = await fetch(`${baseUrl}/event/${event._id}`, { headers });
+    assert.equal(dashRes.status, 200);
+    const dashData = await dashRes.json();
+    assert.equal(dashData.attendanceLocked, true);
+
+    const checkinRes = await fetch(`${baseUrl}/event/${event._id}/checkin`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ identifier: reg1.registrationId }),
+    });
+    assert.equal(checkinRes.status, 403);
+    const checkinBody = await checkinRes.json();
+    assert.equal(checkinBody.locked, true);
+
+    const toggleRes = await fetch(
+      `${baseUrl}/event/${event._id}/registrations/${reg1._id}/toggle-attendance`,
+      { method: "POST", headers }
+    );
+    assert.equal(toggleRes.status, 403);
+    const toggleBody = await toggleRes.json();
+    assert.equal(toggleBody.locked, true);
+  });
 });

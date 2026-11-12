@@ -30,6 +30,7 @@ import adminParticipantsRoutes from "./routes/admin/adminParticipants.js";
 import adminAnalyticsRoutes from "./routes/admin/adminAnalytics.js";
 
 const app = express();
+app.set("trust proxy", 1);
 const uploadDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../uploads");
 
 const allowedOrigins = [

@@ -6,6 +6,7 @@ import Feedback from "../models/Feedback.js";
 import EmailLog from "../models/EmailLog.js";
 import { requireAuth } from "../middleware/auth.js";
 import { sendFeedbackEmailsForEvent } from "../utils/feedbackEmail.js";
+import { formatParticipantName } from "../utils/participantName.js";
 
 const router = express.Router();
 
@@ -51,7 +52,7 @@ router.get("/:token", async (req, res) => {
       return res.json({
         alreadySubmitted: true,
         eventTitle: event.title,
-        participantName: registration.name,
+        participantName: formatParticipantName(registration.name, "Participant"),
         submittedAt: registration.feedbackSubmittedAt,
         certificateEligible: Boolean(event.certificateEnabled && registration.checkedIn),
         eventId: event._id,
@@ -88,7 +89,7 @@ router.get("/:token", async (req, res) => {
             ],
       },
       participant: {
-        name: registration.name,
+        name: formatParticipantName(registration.name, "Participant"),
         email: registration.email,
         checkedIn: registration.checkedIn === true,
       },
@@ -250,7 +251,7 @@ router.post("/:token", async (req, res) => {
     const feedbackDoc = await Feedback.create({
       eventId: event._id,
       registrationId: registration._id,
-      participantName: registration.name,
+      participantName: formatParticipantName(registration.name, "Participant"),
       participantEmail: registration.email,
       feedbackTokenHash: tokenHash,
       ratingOverall: Math.min(5, Math.max(1, numOverall || 5)),
@@ -362,7 +363,10 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
         },
         ratingBreakdown,
       },
-      feedbacks,
+      feedbacks: feedbacks.map((fb) => ({
+        ...fb,
+        participantName: formatParticipantName(fb.participantName, "Participant"),
+      })),
     });
   } catch (err) {
     console.error("Organizer feedback error:", err);

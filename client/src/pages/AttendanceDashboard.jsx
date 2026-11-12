@@ -67,6 +67,19 @@ export default function AttendanceDashboard() {
     return () => stopCamera();
   }, [eventId]);
 
+  const isAttendanceLocked = Boolean(
+    data?.attendanceLocked ||
+    data?.event?.status === "completed" ||
+    data?.event?.status === "closed"
+  );
+
+  // Immediately turn off camera if event becomes locked
+  useEffect(() => {
+    if (isAttendanceLocked && cameraActive) {
+      stopCamera();
+    }
+  }, [isAttendanceLocked, cameraActive]);
+
   // Synchronize stream attachment when video mounts
   useEffect(() => {
     if (cameraActive && streamRef.current && videoRef.current) {
@@ -118,6 +131,10 @@ export default function AttendanceDashboard() {
 
   // Start Camera Stream
   async function startCamera(mode = facingMode) {
+    if (isAttendanceLocked) {
+      setCameraError("Attendance scanning is locked because this event has already ended.");
+      return;
+    }
     setCameraError("");
     setCameraReady(false);
     stopCamera();
@@ -317,6 +334,14 @@ export default function AttendanceDashboard() {
 
   // Scan QR code from uploaded image or ticket screenshot
   async function handleImageUpload(e) {
+    if (isAttendanceLocked) {
+      e.target.value = "";
+      setScanFeedback({
+        type: "error",
+        message: "🔒 Attendance entry is locked because this event has already ended.",
+      });
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -366,6 +391,13 @@ export default function AttendanceDashboard() {
 
   // Handle Check-In Submission
   async function handleCheckIn(rawIdentifier) {
+    if (isAttendanceLocked) {
+      setScanFeedback({
+        type: "error",
+        message: "🔒 Attendance entry is locked because this event has already ended.",
+      });
+      return;
+    }
     const identifier = extractRegistrationIdentifier(rawIdentifier);
     if (!identifier || !identifier.trim()) return;
 
@@ -397,6 +429,10 @@ export default function AttendanceDashboard() {
       loadAttendanceData();
     } catch (err) {
       playScanBeep(false);
+      if (err.response?.status === 403 && err.response?.data?.locked) {
+        stopCamera();
+        loadAttendanceData();
+      }
       setScanFeedback({
         type: "error",
         message: `❌ ${err.response?.data?.message || "Check-in failed. Registration not found for this event."}`,
@@ -408,10 +444,21 @@ export default function AttendanceDashboard() {
 
   // Handle Quick Toggle
   async function handleToggleAttendance(registrationId) {
+    if (isAttendanceLocked) {
+      setScanFeedback({
+        type: "error",
+        message: "🔒 Attendance entry is locked because this event has already ended.",
+      });
+      return;
+    }
     try {
       await api.post(`/registrations/event/${eventId}/registrations/${registrationId}/toggle-attendance`);
       loadAttendanceData();
     } catch (err) {
+      if (err.response?.status === 403 && err.response?.data?.locked) {
+        stopCamera();
+        loadAttendanceData();
+      }
       alert(err.response?.data?.message || "Could not toggle attendance status.");
     }
   }
@@ -528,8 +575,15 @@ export default function AttendanceDashboard() {
 
         <div className="attendance-header">
           <div className="attendance-title-box">
-            <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#10b981", letterSpacing: "0.12em" }}>
-              LIVE ATTENDANCE DESK
+            <span
+              style={{
+                fontSize: "0.75rem",
+                fontWeight: 800,
+                color: isAttendanceLocked ? "#f59e0b" : "#10b981",
+                letterSpacing: "0.12em",
+              }}
+            >
+              {isAttendanceLocked ? "🔒 ATTENDANCE DESK LOCKED · EVENT ENDED" : "LIVE ATTENDANCE DESK"}
             </span>
             <h1>{event.title}</h1>
             <p style={{ color: "#94a3b8", margin: "4px 0 0", fontSize: "0.9rem" }}>
@@ -586,198 +640,256 @@ export default function AttendanceDashboard() {
 
         {/* 2. SCANNER & FAST CHECK-IN DESK */}
         <div className="scanner-checkin-card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-            <div>
-              <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#a855f7", letterSpacing: "0.08em" }}>
-                GATE SCANNER &amp; FAST ENTRY
-              </span>
-              <h2 style={{ fontSize: "1.4rem", margin: "4px 0 0", color: "#ffffff" }}>
-                Scan QR Pass or Enter Registration Code
-              </h2>
-            </div>
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: "none" }}
-                accept="image/*"
-                onChange={handleImageUpload}
-              />
-
-              <button
-                type="button"
-                className="btn-hero-secondary"
-                style={{ padding: "8px 16px", fontSize: "0.85rem" }}
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingScan}
-              >
-                {uploadingScan ? "Reading Image…" : "📁 Scan QR Image / Screenshot"}
-              </button>
-
-              {cameraActive && (
-                <button
-                  type="button"
-                  className="btn-hero-secondary"
-                  style={{ padding: "8px 16px", fontSize: "0.85rem" }}
-                  onClick={toggleCameraFlip}
-                  title="Switch front and back camera"
-                >
-                  🔄 Flip Camera ({facingMode === "environment" ? "Back" : "Front"})
-                </button>
-              )}
-
-              <button
-                type="button"
-                className="btn-hero-primary"
-                style={{ padding: "8px 18px", fontSize: "0.85rem" }}
-                onClick={cameraActive ? stopCamera : () => startCamera()}
-              >
-                {cameraActive ? "⏹ Stop Camera" : "📷 Start Camera QR Scanner"}
-              </button>
-            </div>
-          </div>
-
-          {/* Camera Scanner Viewport */}
-          {cameraActive && (
-            <div style={{ marginTop: 22, textAlign: "center" }}>
-              <div className={`camera-scan-viewport ${scannedFlash ? "scanned" : ""}`}>
-                <video
-                  ref={(el) => {
-                    videoRef.current = el;
-                    if (el && streamRef.current && el.srcObject !== streamRef.current) {
-                      el.srcObject = streamRef.current;
-                      el.setAttribute("playsinline", "true");
-                      el.muted = true;
-                      el.play().catch(() => {});
-                    }
-                  }}
-                  playsInline
-                  muted
-                  autoPlay
-                  onLoadedMetadata={() => {
-                    if (videoRef.current) {
-                      videoRef.current.play().catch(() => {});
-                      setCameraReady(true);
-                    }
-                  }}
-                  onPlaying={() => setCameraReady(true)}
-                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                />
-
-                {/* Loading state indicator before webcam frames arrive */}
-                {!cameraReady && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      background: "rgba(8, 12, 22, 0.92)",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 12,
-                      zIndex: 3,
-                    }}
-                  >
-                    <div className="spinner" />
-                    <p style={{ margin: 0, fontSize: "0.85rem", color: "#94a3b8" }}>
-                      Connecting camera feed…
-                    </p>
-                  </div>
-                )}
-
-                {/* Real-time moving green laser scan line */}
-                {cameraReady && <div className="scan-laser-line" />}
-
-                {/* Target Framing Box */}
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: "68%",
-                    height: "68%",
-                    border: "2px dashed rgba(255, 255, 255, 0.8)",
-                    borderRadius: 14,
-                    boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.45)",
-                    pointerEvents: "none",
-                    zIndex: 4,
-                  }}
-                />
-
-                {scannedFlash && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      background: "rgba(16, 185, 129, 0.35)",
-                      display: "grid",
-                      placeItems: "center",
-                      color: "#ffffff",
-                      fontWeight: 900,
-                      fontSize: "1.4rem",
-                      letterSpacing: "0.08em",
-                      pointerEvents: "none",
-                      zIndex: 10,
-                    }}
-                  >
-                    ✓ SCANNED!
-                  </div>
-                )}
-              </div>
-
-              <div style={{ marginTop: 12, display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
+          {isAttendanceLocked ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 16,
+                padding: "8px 4px",
+              }}
+            >
+              <div style={{ maxWidth: 680 }}>
                 <span
                   style={{
-                    display: "inline-block",
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: cameraReady ? "#10b981" : "#f59e0b",
-                    boxShadow: cameraReady ? "0 0 10px #10b981" : "none",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: "0.75rem",
+                    fontWeight: 800,
+                    color: "#fbbf24",
+                    background: "rgba(245, 158, 11, 0.14)",
+                    border: "1px solid rgba(245, 158, 11, 0.35)",
+                    borderRadius: 999,
+                    padding: "4px 12px",
+                    letterSpacing: "0.06em",
                   }}
-                />
-                <small style={{ color: "#a5b4fc", fontWeight: 700, fontSize: "0.84rem" }}>
-                  {cameraReady
-                    ? "Live Camera Scanner Active — Center attendee's QR ticket pass in the frame"
-                    : "Connecting camera feed…"}
-                </small>
+                >
+                  🔒 ENTRY LOCKED — EVENT CONCLUDED
+                </span>
+                <h2 style={{ fontSize: "1.35rem", margin: "10px 0 6px", color: "#ffffff" }}>
+                  QR Scanning &amp; New Check-Ins Are Closed
+                </h2>
+                <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.9rem", lineHeight: 1.55 }}>
+                  This event has ended, so camera scanning, QR image uploads, manual code entry, and attendance status overrides are locked to preserve final attendance and certificate eligibility records.
+                </p>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Link
+                  className="btn-hero-secondary"
+                  style={{ padding: "10px 16px", fontSize: "0.85rem" }}
+                  to={`/dashboard/events/${eventId}/certificates`}
+                >
+                  🏆 Issue Certificates
+                </Link>
+                <Link
+                  className="btn-hero-primary"
+                  style={{ padding: "10px 18px", fontSize: "0.85rem" }}
+                  to={`/dashboard/events/${eventId}/report`}
+                >
+                  📊 Post-Event Report
+                </Link>
               </div>
             </div>
-          )}
+          ) : (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+                <div>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#a855f7", letterSpacing: "0.08em" }}>
+                    GATE SCANNER &amp; FAST ENTRY
+                  </span>
+                  <h2 style={{ fontSize: "1.4rem", margin: "4px 0 0", color: "#ffffff" }}>
+                    Scan QR Pass or Enter Registration Code
+                  </h2>
+                </div>
 
-          {cameraError && (
-            <p style={{ color: "#f87171", fontSize: "0.85rem", marginTop: 12 }}>
-              {cameraError}
-            </p>
-          )}
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: "none" }}
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
 
-          {/* Manual Input / Barcode Scanner Input */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleCheckIn(scanInput);
-            }}
-            className="scan-input-row"
-          >
-            <input
-              type="text"
-              value={scanInput}
-              onChange={(e) => setScanInput(e.target.value)}
-              placeholder="Paste / scan Registration ID (e.g. EVT-2026-XXXX) or attendee email"
-              autoFocus
-            />
-            <button
-              type="submit"
-              className="btn-hero-primary"
-              disabled={processingScan || !scanInput.trim()}
-              style={{ padding: "12px 24px" }}
-            >
-              {processingScan ? "Verifying..." : "Verify & Check-In →"}
-            </button>
-          </form>
+                  <button
+                    type="button"
+                    className="btn-hero-secondary"
+                    style={{ padding: "8px 16px", fontSize: "0.85rem" }}
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingScan}
+                  >
+                    {uploadingScan ? "Reading Image…" : "📁 Scan QR Image / Screenshot"}
+                  </button>
+
+                  {cameraActive && (
+                    <button
+                      type="button"
+                      className="btn-hero-secondary"
+                      style={{ padding: "8px 16px", fontSize: "0.85rem" }}
+                      onClick={toggleCameraFlip}
+                      title="Switch front and back camera"
+                    >
+                      🔄 Flip Camera ({facingMode === "environment" ? "Back" : "Front"})
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn-hero-primary"
+                    style={{ padding: "8px 18px", fontSize: "0.85rem" }}
+                    onClick={cameraActive ? stopCamera : () => startCamera()}
+                  >
+                    {cameraActive ? "⏹ Stop Camera" : "📷 Start Camera QR Scanner"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Camera Scanner Viewport */}
+              {cameraActive && (
+                <div style={{ marginTop: 22, textAlign: "center" }}>
+                  <div className={`camera-scan-viewport ${scannedFlash ? "scanned" : ""}`}>
+                    <video
+                      ref={(el) => {
+                        videoRef.current = el;
+                        if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                          el.srcObject = streamRef.current;
+                          el.setAttribute("playsinline", "true");
+                          el.muted = true;
+                          el.play().catch(() => {});
+                        }
+                      }}
+                      playsInline
+                      muted
+                      autoPlay
+                      onLoadedMetadata={() => {
+                        if (videoRef.current) {
+                          videoRef.current.play().catch(() => {});
+                          setCameraReady(true);
+                        }
+                      }}
+                      onPlaying={() => setCameraReady(true)}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+
+                    {/* Loading state indicator before webcam frames arrive */}
+                    {!cameraReady && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          background: "rgba(8, 12, 22, 0.92)",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 12,
+                          zIndex: 3,
+                        }}
+                      >
+                        <div className="spinner" />
+                        <p style={{ margin: 0, fontSize: "0.85rem", color: "#94a3b8" }}>
+                          Connecting camera feed…
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Real-time moving green laser scan line */}
+                    {cameraReady && <div className="scan-laser-line" />}
+
+                    {/* Target Framing Box */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        width: "68%",
+                        height: "68%",
+                        border: "2px dashed rgba(255, 255, 255, 0.8)",
+                        borderRadius: 14,
+                        boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.45)",
+                        pointerEvents: "none",
+                        zIndex: 4,
+                      }}
+                    />
+
+                    {scannedFlash && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          background: "rgba(16, 185, 129, 0.35)",
+                          display: "grid",
+                          placeItems: "center",
+                          color: "#ffffff",
+                          fontWeight: 900,
+                          fontSize: "1.4rem",
+                          letterSpacing: "0.08em",
+                          pointerEvents: "none",
+                          zIndex: 10,
+                        }}
+                      >
+                        ✓ SCANNED!
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: 12, display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: cameraReady ? "#10b981" : "#f59e0b",
+                        boxShadow: cameraReady ? "0 0 10px #10b981" : "none",
+                      }}
+                    />
+                    <small style={{ color: "#a5b4fc", fontWeight: 700, fontSize: "0.84rem" }}>
+                      {cameraReady
+                        ? "Live Camera Scanner Active — Center attendee's QR ticket pass in the frame"
+                        : "Connecting camera feed…"}
+                    </small>
+                  </div>
+                </div>
+              )}
+
+              {cameraError && (
+                <p style={{ color: "#f87171", fontSize: "0.85rem", marginTop: 12 }}>
+                  {cameraError}
+                </p>
+              )}
+
+              {/* Manual Input / Barcode Scanner Input */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleCheckIn(scanInput);
+                }}
+                className="scan-input-row"
+              >
+                <input
+                  type="text"
+                  value={scanInput}
+                  onChange={(e) => setScanInput(e.target.value)}
+                  placeholder="Paste / scan Registration ID (e.g. EVT-2026-XXXX) or attendee email"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="btn-hero-primary"
+                  disabled={processingScan || !scanInput.trim()}
+                  style={{ padding: "12px 24px" }}
+                >
+                  {processingScan ? "Verifying..." : "Verify & Check-In →"}
+                </button>
+              </form>
+            </>
+          )}
 
           {/* Scan Feedback Banner */}
           {scanFeedback && (
@@ -884,14 +996,28 @@ export default function AttendanceDashboard() {
                       </td>
                       <td style={{ textAlign: "right" }}>
                         <div style={{ display: "inline-flex", gap: 8, alignItems: "center", justifyContent: "flex-end" }}>
-                          <button
-                            type="button"
-                            className={reg.checkedIn ? "button button-ghost small" : "button button-primary small"}
-                            style={{ padding: "6px 14px", fontSize: "0.78rem" }}
-                            onClick={() => handleToggleAttendance(reg._id)}
-                          >
-                            {reg.checkedIn ? "Undo Entry" : "Mark Present ✓"}
-                          </button>
+                          {isAttendanceLocked ? (
+                            <span
+                              className="status-badge"
+                              title="Attendance modifications are locked because this event has ended."
+                              style={{
+                                background: "rgba(148, 163, 184, 0.14)",
+                                color: "#94a3b8",
+                                border: "1px solid rgba(148, 163, 184, 0.25)",
+                              }}
+                            >
+                              🔒 Entry Locked
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className={reg.checkedIn ? "button button-ghost small" : "button button-primary small"}
+                              style={{ padding: "6px 14px", fontSize: "0.78rem" }}
+                              onClick={() => handleToggleAttendance(reg._id)}
+                            >
+                              {reg.checkedIn ? "Undo Entry" : "Mark Present ✓"}
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="button button-ghost small"

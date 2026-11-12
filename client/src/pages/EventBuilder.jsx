@@ -5,6 +5,7 @@ import {
   POSTER_CATEGORIES,
   generatePosterDataUrl,
 } from "../utils/posterTemplates";
+import { EVENT_FONT_OPTIONS, getEventFontConfig } from "../utils/eventFonts";
 
 const STEPS = [
   ["basics", "Basics"],
@@ -15,6 +16,7 @@ const STEPS = [
   ["registration", "Registration Form"],
   ["tickets", "Tickets & Capacity"],
   ["certificates", "Certificates"],
+  ["feedback", "Feedback Form"],
   ["preview", "Preview & Publish"],
 ];
 
@@ -55,6 +57,7 @@ const defaultForm = {
     tagline: "",
   },
   theme: "aurora",
+  eventFont: "modern",
   speakers: [],
   agenda: [],
   faqs: [],
@@ -76,6 +79,9 @@ const defaultForm = {
   certificateDescription: "This certificate is proudly presented to {name} for participating in {event}.",
   certificateShowOrganization: false,
   certificateOrganization: "",
+  certificateOrganizationSize: "md",
+  certificateOrganizationAlign: "center",
+  certificateOrganizationUppercase: false,
   certificateLogoUrl: "",
   certificateLogoPath: "",
   signatures: [],
@@ -98,7 +104,15 @@ export default function EventBuilder() {
   const navigate = useNavigate();
   const editing = Boolean(eventId);
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => {
+    try {
+      const requested = new URLSearchParams(window.location.search).get("step");
+      const foundIndex = STEPS.findIndex(([key]) => key === requested);
+      return foundIndex >= 0 ? foundIndex : 0;
+    } catch {
+      return 0;
+    }
+  });
   const [form, setForm] = useState(defaultForm);
   const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
@@ -320,8 +334,16 @@ export default function EventBuilder() {
           {step === 4 && <Faqs form={form} update={update} />}
           {step === 5 && <Registration form={form} update={update} />}
           {step === 6 && <Tickets form={form} update={update} />}
-          {step === 7 && <Certificates form={form} update={update} eventId={eventId} />}
-          {step === 8 && <Preview form={form} />}
+          {step === 7 && (
+            <Certificates
+              form={form}
+              update={update}
+              eventId={eventId}
+              onOpenFeedbackStep={() => setStep(8)}
+            />
+          )}
+          {step === 8 && <FeedbackFormSection form={form} update={update} />}
+          {step === 9 && <Preview form={form} />}
 
           <div className="builder-footer">
             <button
@@ -471,6 +493,60 @@ function Basics({ form, update }) {
           placeholder="Tell participants what the event is about, why they should attend, and what to expect..."
         />
       </Field>
+
+      <div className="builder-font-section">
+        <div className="builder-font-header">
+          <div>
+            <strong>Participant Page Typography</strong>
+            <p className="hint-text" style={{ margin: "4px 0 0" }}>
+              Choose the font style participants see on the public event page and registration screen.
+            </p>
+          </div>
+          <span className="builder-font-badge">
+            {getEventFontConfig(form.eventFont).label}
+          </span>
+        </div>
+
+        <div className="event-font-grid" role="radiogroup" aria-label="Participant page font style">
+          {EVENT_FONT_OPTIONS.map((font) => {
+            const active = (form.eventFont || "modern") === font.id;
+            return (
+              <button
+                key={font.id}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                className={`event-font-card${active ? " is-selected" : ""}`}
+                onClick={() => update("eventFont", font.id)}
+              >
+                <div className="event-font-card-top">
+                  <span className="event-font-sample" style={{ fontFamily: font.headingFont }}>
+                    Aa
+                  </span>
+                  <span className="event-font-category">{font.category}</span>
+                </div>
+                <strong style={{ fontFamily: font.headingFont }}>{font.label}</strong>
+                <small style={{ fontFamily: font.bodyFont }}>{font.sampleText}</small>
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          className="event-font-live-preview"
+          style={{ fontFamily: getEventFontConfig(form.eventFont).bodyFont }}
+        >
+          <span className="event-font-preview-label">Live Participant Page Sample</span>
+          <h4 style={{ fontFamily: getEventFontConfig(form.eventFont).headingFont }}>
+            {form.title || "Your Event Headline Will Look Like This"}
+          </h4>
+          <p>
+            {form.shortDescription ||
+              (form.description ? form.description.slice(0, 140) : "") ||
+              "This typography pairing shapes your hero headline, schedule titles, speaker bios, and event details."}
+          </p>
+        </div>
+      </div>
 
       <div className="builder-two">
         <Field label="Event Date" required>
@@ -1842,7 +1918,7 @@ function FeedbackQuestionBuilder({ form, update }) {
   );
 }
 
-function Certificates({ form, update, eventId }) {
+function Certificates({ form, update, eventId, onOpenFeedbackStep }) {
   return (
     <div className="builder-card">
       <div className="toggle-row">
@@ -1873,6 +1949,22 @@ function Certificates({ form, update, eventId }) {
               }}
             />
           </div>
+
+          {form.requireFeedbackForCertificate && typeof onOpenFeedbackStep === "function" && (
+            <div style={{ margin: "6px 0 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 14px", borderRadius: 10, background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+              <small style={{ color: "#cbd5e1" }}>
+                Feedback survey questions are managed in their own dedicated section.
+              </small>
+              <button
+                type="button"
+                className="button button-ghost small"
+                onClick={onOpenFeedbackStep}
+                style={{ whiteSpace: "nowrap" }}
+              >
+                Edit Feedback Questions →
+              </button>
+            </div>
+          )}
 
           <Field label="Certificate Headline">
             <input
@@ -1907,13 +1999,65 @@ function Certificates({ form, update, eventId }) {
           </div>
 
           {form.certificateShowOrganization && (
-            <Field label="Organization Name">
-              <input
-                value={form.certificateOrganization}
-                onChange={(e) => update("certificateOrganization", e.target.value)}
-                placeholder="e.g. Sahyadri College of Engineering / Acme Innovations"
-              />
-            </Field>
+            <>
+              <Field label="Organization Name">
+                <input
+                  value={form.certificateOrganization}
+                  onChange={(e) => update("certificateOrganization", e.target.value)}
+                  placeholder="e.g. Sahyadri College of Engineering / Acme Innovations"
+                />
+              </Field>
+              <div className="builder-two" style={{ marginTop: 12 }}>
+                <Field label="Header Font Size">
+                  <div className="builder-mini-pills">
+                    {[
+                      { id: "sm", label: "Small" },
+                      { id: "md", label: "Medium" },
+                      { id: "lg", label: "Large" },
+                      { id: "xl", label: "XL" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        className={`builder-mini-pill${(form.certificateOrganizationSize || "md") === opt.id ? " is-active" : ""}`}
+                        onClick={() => update("certificateOrganizationSize", opt.id)}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+                <Field label="Header Position">
+                  <div className="builder-mini-pills">
+                    {[
+                      { id: "left", label: "Left" },
+                      { id: "center", label: "Middle" },
+                      { id: "right", label: "Right" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        className={`builder-mini-pill${(form.certificateOrganizationAlign || "center") === opt.id ? " is-active" : ""}`}
+                        onClick={() => update("certificateOrganizationAlign", opt.id)}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+              </div>
+              <div className="toggle-row" style={{ marginTop: 10 }}>
+                <span>
+                  <strong>Uppercase Header Text</strong>
+                  <small>Force organization name to display in ALL CAPS on the certificate.</small>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={form.certificateOrganizationUppercase === true}
+                  onChange={(e) => update("certificateOrganizationUppercase", e.target.checked)}
+                />
+              </div>
+            </>
           )}
 
           {eventId && (
@@ -1929,29 +2073,60 @@ function Certificates({ form, update, eventId }) {
           )}
         </>
       )}
+    </div>
+  );
+}
 
-      {/* Post-Event Attendee Feedback Configuration */}
-      <div className="toggle-row" style={{ marginTop: 24, background: "rgba(124, 77, 255, 0.05)" }}>
+/* -------------------------------------------------------------------------
+   STEP 9: FEEDBACK FORM
+------------------------------------------------------------------------- */
+function FeedbackFormSection({ form, update }) {
+  const feedbackActive = form.requireFeedbackForCertificate || (form.feedbackEnabled ?? true);
+
+  return (
+    <div className="builder-card">
+      <div className="toggle-row" style={{ background: "rgba(124, 77, 255, 0.05)" }}>
         <span>
           <strong>Collect Post-Event Attendee Feedback</strong>
-          <small>Automatically invite attendees to review the event and share satisfaction ratings</small>
+          <small>Automatically invite attendees to review the event and customize the survey questions below</small>
         </span>
         <input
           type="checkbox"
-          checked={form.feedbackEnabled ?? true}
+          checked={feedbackActive}
+          disabled={form.requireFeedbackForCertificate}
           onChange={(e) => update("feedbackEnabled", e.target.checked)}
         />
       </div>
 
-      {(form.requireFeedbackForCertificate || (form.feedbackEnabled ?? true)) && (
+      {form.requireFeedbackForCertificate && (
+        <div
+          style={{
+            marginTop: 12,
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: "rgba(16, 185, 129, 0.1)",
+            border: "1px solid rgba(16, 185, 129, 0.3)",
+            color: "#6ee7b7",
+            fontSize: "0.82rem",
+          }}
+        >
+          Feedback is required before certificate download, so the feedback form stays enabled automatically.
+        </div>
+      )}
+
+      {feedbackActive ? (
         <FeedbackQuestionBuilder form={form} update={update} />
+      ) : (
+        <p className="muted" style={{ marginTop: 16 }}>
+          Enable post-event feedback collection above to customize survey questions for participants.
+        </p>
       )}
     </div>
   );
 }
 
 /* -------------------------------------------------------------------------
-   STEP 9: PREVIEW
+   STEP 10: PREVIEW
 ------------------------------------------------------------------------- */
 function Preview({ form }) {
   return (
@@ -1969,9 +2144,14 @@ function Preview({ form }) {
           )}
         </div>
 
-        <div className="preview-body">
+        <div
+          className="preview-body"
+          style={{ fontFamily: getEventFontConfig(form.eventFont).bodyFont }}
+        >
           <p className="section-kicker">{form.category || "General Event"} · {form.mode?.toUpperCase() || "OFFLINE"}</p>
-          <h2>{form.title || "Event Title"}</h2>
+          <h2 style={{ fontFamily: getEventFontConfig(form.eventFont).headingFont }}>
+            {form.title || "Event Title"}
+          </h2>
           <p>{form.description || "Detailed event description will be visible to participants."}</p>
 
           <div className="preview-meta">

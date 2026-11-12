@@ -2,22 +2,24 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api";
 
+const ANALYTICS_SECTION_DEF = {
+  key: "analytics",
+  title: "Attendance & Participation Analytics",
+  desc: "Visual attendance breakdown cards, registration metrics, and department-wise turnout tables.",
+};
+
 const SECTION_DEFINITIONS = [
   { key: "executiveSummary", title: "Executive Summary", desc: "High-level summary of the event execution, attendance turnover, and overarching impact." },
   { key: "objectives", title: "Event Objectives", desc: "Core goals and intended educational or collaborative outcomes established for the program." },
   { key: "eventOverview", title: "Event Overview & Context", desc: "Venue, format, timings, organizers, capacity, and operational parameters." },
   { key: "activities", title: "Activities Conducted", desc: "Chronological or modular breakdown of presentations, workshops, discussions, and program flow." },
-  { key: "highlights", title: "Key Highlights", desc: "Milestones, distinguished achievements, standout sessions, and high-impact moments." },
-  { key: "speakersSummary", title: "Speakers & Sessions", desc: "Profiles and presentation topics led by featured speakers, guests, and session leaders." },
+  { key: "highlights", title: "Key Event Highlights", desc: "Milestones, distinguished achievements, standout sessions, and high-impact moments." },
+  { key: "speakersSummary", title: "Speakers, Guests & Sessions", desc: "Profiles and presentation topics led by featured speakers, guests, and session leaders." },
   { key: "participantEngagement", title: "Participant Engagement", desc: "Analysis of attendee turnout, interactive Q&A rounds, and department/college involvement." },
   { key: "outcomes", title: "Event Outcomes", desc: "Knowledge gained, skill advancements, project collaborations, and tangible participant takeaways." },
+  { key: "feedbackSummary", title: "Feedback Analysis", desc: "Analysis of attendee evaluations, average scores across categories, and qualitative comments/suggestions." },
   { key: "challenges", title: "Challenges Faced & Mitigations", desc: "Logistical, technical, or timing hurdles encountered and how they were addressed." },
-  {
-    key: "feedbackSummary",
-    title: "Participant Feedback & Satisfaction Analysis",
-    desc: "Analysis of attendee evaluations, average scores across categories, and qualitative comments/suggestions.",
-  },
-  { key: "futureImprovements", title: "Future Improvements & Recommendations", desc: "Strategic recommendations and procedural adjustments for subsequent editions." },
+  { key: "futureImprovements", title: "Recommendations & Future Improvements", desc: "Strategic recommendations and procedural adjustments for subsequent editions." },
   { key: "conclusion", title: "Conclusion", desc: "Formal closing remarks, acknowledgments, and institutional sign-off." },
 ];
 
@@ -46,6 +48,7 @@ export default function PostEventReport() {
   const [aiInstruction, setAiInstruction] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState(null);
+  const [aiSource, setAiSource] = useState("gemini");
   const [aiConfigured, setAiConfigured] = useState(true);
 
   useEffect(() => {
@@ -83,6 +86,94 @@ export default function PostEventReport() {
     setNotice("");
   }
 
+  function toggleStandardSection(key) {
+    setReport((prev) => ({
+      ...prev,
+      includedSections: {
+        ...(prev.includedSections || {}),
+        [key]: prev.includedSections?.[key] === false,
+      },
+    }));
+    setNotice("");
+  }
+
+  function updateSectionHeading(key, value) {
+    setReport((prev) => ({
+      ...prev,
+      sectionTitles: {
+        ...(prev.sectionTitles || {}),
+        [key]: value,
+      },
+    }));
+    setNotice("");
+  }
+
+  function selectAllSections() {
+    const nextIncluded = { [ANALYTICS_SECTION_DEF.key]: true };
+    SECTION_DEFINITIONS.forEach((d) => {
+      nextIncluded[d.key] = true;
+    });
+    setReport((prev) => ({
+      ...prev,
+      includedSections: nextIncluded,
+      customSections: (prev.customSections || []).map((c) => ({ ...c, included: true })),
+    }));
+    setNotice("All sections ticked for PDF export.");
+  }
+
+  function untickEmptySections() {
+    setReport((prev) => {
+      const nextIncluded = { ...(prev.includedSections || {}) };
+      SECTION_DEFINITIONS.forEach((d) => {
+        const txt = String(prev[d.key] || "").trim();
+        nextIncluded[d.key] = Boolean(txt);
+      });
+      const nextCustom = (prev.customSections || []).map((c) => ({
+        ...c,
+        included: Boolean(String(c.content || "").trim()),
+      }));
+      return { ...prev, includedSections: nextIncluded, customSections: nextCustom };
+    });
+    setNotice("Unticked all sections that currently have no details entered.");
+  }
+
+  function addCustomSection() {
+    const nextIndex = (report.customSections?.length || 0) + 1;
+    const newSec = {
+      id: `custom_${Date.now()}_${nextIndex}`,
+      title: `Additional Section ${nextIndex}`,
+      content: "",
+      included: true,
+    };
+    setReport((prev) => ({
+      ...prev,
+      customSections: [...(prev.customSections || []), newSec],
+    }));
+    setNotice("Extra section added. Edit its heading and details below.");
+  }
+
+  function updateCustomSection(id, patch) {
+    setReport((prev) => ({
+      ...prev,
+      customSections: (prev.customSections || []).map((sec) =>
+        sec.id === id ? { ...sec, ...patch } : sec
+      ),
+    }));
+    setNotice("");
+  }
+
+  function removeCustomSection(id) {
+    setReport((prev) => ({
+      ...prev,
+      customSections: (prev.customSections || []).filter((sec) => sec.id !== id),
+    }));
+    if (aiActiveSection === id) {
+      setAiActiveSection(null);
+      setAiSuggestion(null);
+    }
+    setNotice("Extra section removed.");
+  }
+
   async function saveReport(statusToSave = reportStatus) {
     setSaving(true);
     setError("");
@@ -108,6 +199,15 @@ export default function PostEventReport() {
     setDownloading(true);
     setError("");
     try {
+      // Save latest section ticks, custom headings, edits, and extra sections before building PDF
+      const { data: savedData } = await api.put(`/reports/event/${eventId}`, {
+        ...report,
+        reportStatus,
+      });
+      if (savedData?.report) {
+        setReport(savedData.report);
+        setLastSaved(new Date());
+      }
       const response = await api.get(`/reports/event/${eventId}/pdf`, { responseType: "blob" });
       const blobUrl = URL.createObjectURL(response.data);
       const anchor = document.createElement("a");
@@ -124,17 +224,20 @@ export default function PostEventReport() {
     }
   }
 
-  async function requestAiAssist(sectionKey, sectionTitle, overrideInstruction) {
+  async function requestAiAssist(sectionKey, sectionTitle, overrideInstruction, customDraftOverride) {
     setAiLoading(true);
     setAiSuggestion(null);
     setError("");
     try {
-      const currentDraft = (report[sectionKey] || "").trim();
+      const currentDraft = String(
+        customDraftOverride !== undefined ? customDraftOverride : (report[sectionKey] || "")
+      ).trim();
       const instructionToUse = overrideInstruction || aiInstruction || (currentDraft
         ? "Improve tone, clarity, and professionalism"
         : "Draft a comprehensive, executive-ready section for this report based on event information");
 
       const { data } = await api.post(`/reports/event/${eventId}/ai-assist`, {
+        sectionKey,
         section: sectionTitle,
         text: currentDraft,
         instruction: instructionToUse,
@@ -146,7 +249,14 @@ export default function PostEventReport() {
         return;
       }
 
-      setAiSuggestion(data.suggestion);
+      const nextSuggestion = String(data.suggestion || "").trim();
+      if (!nextSuggestion) {
+        setError("AI returned an empty suggestion. Try a different preset or custom instruction.");
+        return;
+      }
+
+      setAiSource(data.source || "gemini");
+      setAiSuggestion(nextSuggestion);
     } catch (err) {
       setError(err.response?.data?.message || "Could not generate AI suggestion.");
     } finally {
@@ -154,12 +264,88 @@ export default function PostEventReport() {
     }
   }
 
-  function applyAiSuggestion(sectionKey) {
+  function applyAiSuggestion(sectionKey, isCustomSection = false) {
     if (!aiSuggestion) return;
-    updateSection(sectionKey, aiSuggestion);
+    if (isCustomSection) {
+      updateCustomSection(sectionKey, { content: aiSuggestion });
+    } else {
+      updateSection(sectionKey, aiSuggestion);
+    }
     setAiSuggestion(null);
     setAiActiveSection(null);
-    setNotice("AI suggestion applied. Click Save Draft to persist changes.");
+    setNotice("AI suggestion applied. Click Save Draft or Download PDF to persist changes.");
+  }
+
+  function renderAiAssistDrawer(sectionId, sectionTitle, currentDraft, isCustomSection = false) {
+    if (aiActiveSection !== sectionId) return null;
+    return (
+      <div className="ai-assist-box">
+        <p>✨ AI Writing Assistant for {sectionTitle}</p>
+        <div className="ai-preset-chips">
+          {["Draft from Scratch", "Professional Polish", "Executive Tone", "Concise Summary"].map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className="ai-chip"
+              onClick={() => {
+                setAiInstruction(preset);
+                requestAiAssist(sectionId, sectionTitle, preset, currentDraft);
+              }}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+        <input
+          className="ai-custom-input"
+          placeholder="Or type custom instruction (e.g., 'Draft from event details', 'Emphasize student engagement')..."
+          value={aiInstruction}
+          onChange={(e) => setAiInstruction(e.target.value)}
+        />
+        <button
+          type="button"
+          className="report-btn report-btn-primary"
+          disabled={aiLoading}
+          onClick={() => requestAiAssist(sectionId, sectionTitle, undefined, currentDraft)}
+        >
+          {aiLoading
+            ? "Generating with Gemini AI..."
+            : (String(currentDraft || "").trim() ? "✨ Polish / Improve with AI" : "✨ Generate Draft with AI")}
+        </button>
+
+        {!aiConfigured && (
+          <p style={{ color: "#fcd34d", marginTop: 8, fontSize: "0.72rem" }}>
+            Configure AI_API_KEY on the server to enable AI text assistance.
+          </p>
+        )}
+
+        {aiSuggestion && (
+          <div className="ai-suggestion-preview">
+            <strong>
+              Proposed Revision
+              {aiSource === "fallback" ? " (Structured Smart Draft)" : " (Gemini AI)"}:
+            </strong>
+            <p>{aiSuggestion}</p>
+            <div className="ai-suggestion-actions">
+              <button
+                type="button"
+                className="report-btn report-btn-primary"
+                onClick={() => applyAiSuggestion(sectionId, isCustomSection)}
+              >
+                Accept & Apply to Section
+              </button>
+              <button
+                type="button"
+                className="report-btn"
+                onClick={() => setAiSuggestion(null)}
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (loading) {
@@ -298,111 +484,212 @@ export default function PostEventReport() {
               </div>
             </section>
 
-            {/* 12 Sections */}
-            <section className="report-sections-wrap">
-              {SECTION_DEFINITIONS.map((def, idx) => {
-                const isAiOpen = aiActiveSection === def.key;
+            {/* Standard + Custom Sections with Tick Toggles & Editable Headings */}
+            {(() => {
+              const customSections = report.customSections || [];
+              const standardIncludedCount =
+                (report.includedSections?.[ANALYTICS_SECTION_DEF.key] !== false ? 1 : 0) +
+                SECTION_DEFINITIONS.filter((d) => report.includedSections?.[d.key] !== false).length;
+              const customIncludedCount = customSections.filter((c) => c.included !== false).length;
+              const totalSectionsCount = 1 + SECTION_DEFINITIONS.length + customSections.length;
+              const totalIncludedCount = standardIncludedCount + customIncludedCount;
+              const analyticsIncluded = report.includedSections?.[ANALYTICS_SECTION_DEF.key] !== false;
+              const analyticsHeading = report.sectionTitles?.[ANALYTICS_SECTION_DEF.key] ?? ANALYTICS_SECTION_DEF.title;
 
-                return (
-                  <article className="report-section-card" key={def.key}>
-                    <div className="report-section-header">
-                      <div className="report-section-title">
-                        <span className="report-section-num">{String(idx + 1).padStart(2, "0")}</span>
-                        <h3>{def.title}</h3>
-                      </div>
-                      <button
-                        type="button"
-                        className="report-btn report-btn-secondary"
-                        onClick={() => {
-                          setAiActiveSection(isAiOpen ? null : def.key);
-                          setAiSuggestion(null);
-                        }}
-                      >
-                        {isAiOpen ? "Close AI Assist" : "✨ AI Assist"}
+              return (
+                <section className="report-sections-wrap">
+                  <div className="report-sections-toolbar">
+                    <div className="report-sections-toolbar-info">
+                      <strong>{totalIncludedCount} of {totalSectionsCount}</strong> sections ticked for PDF export · Untick any section to hide it completely from the downloaded PDF.
+                    </div>
+                    <div className="report-sections-toolbar-actions">
+                      <button type="button" className="report-btn report-btn-secondary" onClick={selectAllSections}>
+                        ☑ Tick All
+                      </button>
+                      <button type="button" className="report-btn report-btn-secondary" onClick={untickEmptySections}>
+                        Untick Empty Sections
+                      </button>
+                      <button type="button" className="report-btn report-btn-primary" onClick={addCustomSection}>
+                        ＋ Add Extra Section
                       </button>
                     </div>
+                  </div>
 
-                    <p className="report-section-desc">{def.desc}</p>
-
-                    {/* AI Assist Drawer */}
-                    {isAiOpen && (
-                      <div className="ai-assist-box">
-                        <p>✨ AI Writing Assistant for {def.title}</p>
-                        <div className="ai-preset-chips">
-                          {["Draft from Scratch", "Professional Polish", "Executive Tone", "Concise Summary"].map((preset) => (
-                            <button
-                              key={preset}
-                              type="button"
-                              className="ai-chip"
-                              onClick={() => {
-                                setAiInstruction(preset);
-                                requestAiAssist(def.key, def.title, preset);
-                              }}
-                            >
-                              {preset}
-                            </button>
-                          ))}
+                  {/* Analytics Section Toggle & Editable Heading */}
+                  <article className={`report-section-card${analyticsIncluded ? "" : " is-excluded"}`}>
+                    <div className="report-section-header">
+                      <div className="report-section-title" style={{ flex: 1 }}>
+                        <span className="report-section-num">DATA</span>
+                        <div className="report-heading-input-wrap">
+                          <input
+                            type="text"
+                            maxLength={120}
+                            className="report-heading-input"
+                            value={analyticsHeading}
+                            onChange={(e) => updateSectionHeading(ANALYTICS_SECTION_DEF.key, e.target.value)}
+                            aria-label="Analytics section heading"
+                          />
                         </div>
+                      </div>
+                      <label className={`report-include-toggle${analyticsIncluded ? "" : " is-off"}`}>
                         <input
-                          className="ai-custom-input"
-                          placeholder="Or type custom instruction (e.g., 'Draft from event details', 'Emphasize student engagement')..."
-                          value={aiInstruction}
-                          onChange={(e) => setAiInstruction(e.target.value)}
+                          type="checkbox"
+                          checked={analyticsIncluded}
+                          onChange={() => toggleStandardSection(ANALYTICS_SECTION_DEF.key)}
                         />
-                        <button
-                          type="button"
-                          className="report-btn report-btn-primary"
-                          disabled={aiLoading}
-                          onClick={() => requestAiAssist(def.key, def.title)}
-                        >
-                          {aiLoading
-                            ? "Generating with Gemini AI..."
-                            : (report[def.key]?.trim() ? "✨ Polish / Improve with AI" : "✨ Generate Draft with AI")}
-                        </button>
+                        <span>{analyticsIncluded ? "Include in PDF" : "Excluded from PDF"}</span>
+                      </label>
+                    </div>
+                    <p className="report-section-desc" style={{ marginBottom: 0 }}>
+                      {ANALYTICS_SECTION_DEF.desc}
+                    </p>
+                  </article>
 
-                        {!aiConfigured && (
-                          <p style={{ color: "#fcd34d", marginTop: 8, fontSize: "0.72rem" }}>
-                            Configure AI_API_KEY on the server to enable AI text assistance.
-                          </p>
-                        )}
+                  {SECTION_DEFINITIONS.map((def, idx) => {
+                    const isAiOpen = aiActiveSection === def.key;
+                    const isIncluded = report.includedSections?.[def.key] !== false;
+                    const headingValue = report.sectionTitles?.[def.key] ?? def.title;
 
-                        {aiSuggestion && (
-                          <div className="ai-suggestion-preview">
-                            <strong>Proposed Revision:</strong>
-                            <p>{aiSuggestion}</p>
-                            <div className="ai-suggestion-actions">
-                              <button
-                                type="button"
-                                className="report-btn report-btn-primary"
-                                onClick={() => applyAiSuggestion(def.key)}
-                              >
-                                Accept & Apply to Section
-                              </button>
-                              <button
-                                type="button"
-                                className="report-btn"
-                                onClick={() => setAiSuggestion(null)}
-                              >
-                                Discard
-                              </button>
+                    return (
+                      <article className={`report-section-card${isIncluded ? "" : " is-excluded"}`} key={def.key}>
+                        <div className="report-section-header">
+                          <div className="report-section-title" style={{ flex: 1 }}>
+                            <span className="report-section-num">{String(idx + 1).padStart(2, "0")}</span>
+                            <div className="report-heading-input-wrap">
+                              <input
+                                type="text"
+                                maxLength={120}
+                                className="report-heading-input"
+                                value={headingValue}
+                                onChange={(e) => updateSectionHeading(def.key, e.target.value)}
+                                aria-label={`Heading for ${def.title}`}
+                              />
                             </div>
                           </div>
-                        )}
-                      </div>
-                    )}
+                          <div className="report-section-actions">
+                            <label className={`report-include-toggle${isIncluded ? "" : " is-off"}`}>
+                              <input
+                                type="checkbox"
+                                checked={isIncluded}
+                                onChange={() => toggleStandardSection(def.key)}
+                              />
+                              <span>{isIncluded ? "Include in PDF" : "Excluded from PDF"}</span>
+                            </label>
+                            <button
+                              type="button"
+                              className="report-btn report-btn-secondary"
+                              onClick={() => {
+                                setAiActiveSection(isAiOpen ? null : def.key);
+                                setAiSuggestion(null);
+                              }}
+                            >
+                              {isAiOpen ? "Close AI Assist" : "✨ AI Assist"}
+                            </button>
+                          </div>
+                        </div>
 
-                    {/* Editable Section Content */}
-                    <textarea
-                      className="report-textarea"
-                      rows={6}
-                      value={report[def.key] || ""}
-                      onChange={(e) => updateSection(def.key, e.target.value)}
-                      placeholder={`Enter ${def.title}...`}
-                    />
-                  </article>
-                );
-              })}
-            </section>
+                        <p className="report-section-desc">{def.desc}</p>
+                        {!isIncluded && (
+                          <span className="report-badge-inactive">
+                            Unticked — This heading and section will NOT print in the downloaded PDF.
+                          </span>
+                        )}
+
+                        {renderAiAssistDrawer(def.key, headingValue || def.title, report[def.key] || "", false)}
+
+                        {/* Editable Section Content */}
+                        <textarea
+                          className="report-textarea"
+                          rows={6}
+                          value={report[def.key] || ""}
+                          onChange={(e) => updateSection(def.key, e.target.value)}
+                          placeholder={`Enter ${headingValue || def.title}...`}
+                        />
+                      </article>
+                    );
+                  })}
+
+                  {/* Extra User-Added Sections */}
+                  {customSections.map((customSec, cIdx) => {
+                    const isAiOpen = aiActiveSection === customSec.id;
+                    const isIncluded = customSec.included !== false;
+                    return (
+                      <article className={`report-section-card${isIncluded ? "" : " is-excluded"}`} key={customSec.id}>
+                        <div className="report-section-header">
+                          <div className="report-section-title" style={{ flex: 1 }}>
+                            <span className="report-section-num">EXTRA {cIdx + 1}</span>
+                            <div className="report-heading-input-wrap">
+                              <input
+                                type="text"
+                                maxLength={120}
+                                className="report-heading-input"
+                                value={customSec.title || ""}
+                                placeholder="Enter custom section heading..."
+                                onChange={(e) => updateCustomSection(customSec.id, { title: e.target.value })}
+                                aria-label="Custom section heading"
+                              />
+                            </div>
+                          </div>
+                          <div className="report-section-actions">
+                            <label className={`report-include-toggle${isIncluded ? "" : " is-off"}`}>
+                              <input
+                                type="checkbox"
+                                checked={isIncluded}
+                                onChange={() => updateCustomSection(customSec.id, { included: !isIncluded })}
+                              />
+                              <span>{isIncluded ? "Include in PDF" : "Excluded from PDF"}</span>
+                            </label>
+                            <button
+                              type="button"
+                              className="report-btn report-btn-secondary"
+                              onClick={() => {
+                                setAiActiveSection(isAiOpen ? null : customSec.id);
+                                setAiSuggestion(null);
+                              }}
+                            >
+                              {isAiOpen ? "Close AI Assist" : "✨ AI Assist"}
+                            </button>
+                            <button
+                              type="button"
+                              className="report-btn report-btn-secondary"
+                              style={{ color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.35)" }}
+                              onClick={() => removeCustomSection(customSec.id)}
+                            >
+                              🗑 Remove
+                            </button>
+                          </div>
+                        </div>
+
+                        <p className="report-section-desc">
+                          Custom extra section — edit the heading and content, or untick to omit from the downloaded PDF.
+                        </p>
+                        {!isIncluded && (
+                          <span className="report-badge-inactive">
+                            Unticked — This custom section will NOT print in the downloaded PDF.
+                          </span>
+                        )}
+
+                        {renderAiAssistDrawer(customSec.id, customSec.title || "Additional Section", customSec.content || "", true)}
+
+                        <textarea
+                          className="report-textarea"
+                          rows={5}
+                          value={customSec.content || ""}
+                          onChange={(e) => updateCustomSection(customSec.id, { content: e.target.value })}
+                          placeholder={`Enter details for ${customSec.title || "this section"}...`}
+                        />
+                      </article>
+                    );
+                  })}
+
+                  <div className="report-add-section-row">
+                    <button type="button" className="report-btn report-btn-primary" onClick={addCustomSection}>
+                      ＋ Add Extra Section
+                    </button>
+                  </div>
+                </section>
+              );
+            })()}
 
             {/* Bottom Sticky Action Bar */}
             <div className="report-bottom-bar">

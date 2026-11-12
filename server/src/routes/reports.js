@@ -9,9 +9,65 @@ import { getEventEndDateTime, isEventCompleted } from "../utils/eventTiming.js";
 import { calculateReportAnalytics } from "../utils/reportAnalytics.js";
 import { generateDefaultReportContent } from "../utils/defaultReportContent.js";
 import { generateReportPdf } from "../utils/reportPdf.js";
-import { generateGeminiContent, isGeminiConfigured } from "../services/geminiService.js";
+import { generateGeminiReportSection, isGeminiConfigured } from "../services/geminiService.js";
 
 const router = express.Router();
+
+const REPORT_SECTION_KEYS = [
+  "executiveSummary",
+  "objectives",
+  "eventOverview",
+  "analytics",
+  "activities",
+  "speakersSummary",
+  "highlights",
+  "participantEngagement",
+  "outcomes",
+  "feedbackSummary",
+  "challenges",
+  "futureImprovements",
+  "conclusion",
+];
+
+function normalizeIncludedSections(raw = {}) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const result = {};
+  for (const key of REPORT_SECTION_KEYS) {
+    result[key] = source[key] !== false;
+  }
+  return result;
+}
+
+function normalizeSectionTitles(raw = {}) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const result = {};
+  for (const key of REPORT_SECTION_KEYS) {
+    const clean = String(source[key] || "").trim().slice(0, 120);
+    if (clean) result[key] = clean;
+  }
+  return result;
+}
+
+function normalizeCustomSections(raw = []) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .slice(0, 20)
+    .map((item, idx) => ({
+      id: String(item?.id || `custom_${idx}_${Date.now()}`).trim().slice(0, 60),
+      title: String(item?.title || `Additional Section ${idx + 1}`).trim().slice(0, 120) || `Additional Section ${idx + 1}`,
+      content: String(item?.content || "").trim(),
+      included: item?.included !== false,
+    }));
+}
+
+function enrichReportPayload(baseReport) {
+  return {
+    ...baseReport,
+    includedSections: normalizeIncludedSections(baseReport?.includedSections),
+    sectionTitles: normalizeSectionTitles(baseReport?.sectionTitles),
+    customSections: normalizeCustomSections(baseReport?.customSections),
+  };
+}
 
 function isValidEventId(id) {
   return /^[a-f\d]{24}$/i.test(id);
@@ -58,9 +114,11 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
     const analytics = calculateReportAnalytics(registrations, feedbacks);
     const defaultContent = generateDefaultReportContent(event, organizer, analytics);
 
-    const reportData = existingReport
-      ? { ...defaultContent, ...existingReport }
-      : { ...defaultContent, reportStatus: "not_started" };
+    const reportData = enrichReportPayload(
+      existingReport
+        ? { ...defaultContent, ...existingReport }
+        : { ...defaultContent, reportStatus: "not_started" }
+    );
 
     res.json({
       isEventEnded: true,
@@ -108,6 +166,9 @@ async function saveOrUpdateReport(req, res) {
     feedbackSummary,
     futureImprovements,
     conclusion,
+    includedSections,
+    sectionTitles,
+    customSections,
     reportStatus,
   } = req.body;
 
@@ -129,6 +190,9 @@ async function saveOrUpdateReport(req, res) {
     feedbackSummary: String(feedbackSummary || "").trim(),
     futureImprovements: String(futureImprovements || "").trim(),
     conclusion: String(conclusion || "").trim(),
+    includedSections: normalizeIncludedSections(includedSections),
+    sectionTitles: normalizeSectionTitles(sectionTitles),
+    customSections: normalizeCustomSections(customSections),
     reportStatus: validStatus,
     updatedAt: new Date(),
   };
@@ -197,9 +261,11 @@ router.get("/event/:eventId/pdf", requireAuth, async (req, res) => {
 
     const analytics = calculateReportAnalytics(registrations, feedbacks);
     const defaultContent = generateDefaultReportContent(event, organizer, analytics);
-    const reportData = savedReport
-      ? { ...defaultContent, ...savedReport }
-      : { ...defaultContent, reportStatus: "completed" };
+    const reportData = enrichReportPayload(
+      savedReport
+        ? { ...defaultContent, ...savedReport }
+        : { ...defaultContent, reportStatus: "completed" }
+    );
 
     const pdfBuffer = await generateReportPdf(event, organizer, reportData, analytics);
 
@@ -212,6 +278,7 @@ router.get("/event/:eventId/pdf", requireAuth, async (req, res) => {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="eventra-post-event-report-${safeSlug}.pdf"`,
       "Content-Length": pdfBuffer.length,
+      "Cache-Control": "no-store, no-cache, must-revalidate, private",
     });
 
     res.send(pdfBuffer);
@@ -237,50 +304,49 @@ router.post("/event/:eventId/ai-assist", requireAuth, async (req, res) => {
       });
     }
 
-    const { section, text, instruction } = req.body;
-    if (!section) {
+    const { section, sectionKey, text, instruction } = req.body;
+    if (!section && !sectionKey) {
       return res.status(400).json({ message: "Section title is required." });
     }
 
-    const hasExistingDraft = Boolean(text && String(text).trim().length > 0);
-    const cleanDraft = hasExistingDraft ? String(text).trim().slice(0, 3000) : "";
+    const [organizer, registrations, feedbacks] = await Promise.all([
+      User.findById(event.organizerId).select("name email organization").lean(),
+      Registration.find({ eventId: event._id }).lean(),
+      Feedback.find({ eventId: event._id }).lean(),
+    ]);
 
-    const systemPrompt =
-      "You are an expert executive reporting assistant for EVENTRA. " +
-      "Your task is to professionally draft or refine post-event report sections based on the provided event context. " +
-      "STRICT RULES:\n" +
-      "1. NEVER invent attendance counts, percentages, or participant metrics.\n" +
-      "2. NEVER invent fake speakers, activities, feedback, or sponsor names.\n" +
-      "3. Write with executive professionalism, clear grammar, and structured paragraphs or bullet points.\n" +
-      "4. Return a JSON object with a single key 'improvedText' containing the polished or generated text.";
+    const analytics = calculateReportAnalytics(registrations, feedbacks);
+    const defaultContent = generateDefaultReportContent(event, organizer, analytics);
+    const fallbackDraft =
+      sectionKey && typeof defaultContent[sectionKey] === "string"
+        ? defaultContent[sectionKey]
+        : "";
 
-    const userPrompt = JSON.stringify({
-      eventTitle: event.title,
-      eventType: event.eventType || "General Event",
-      eventDate: event.date ? new Date(event.date).toLocaleDateString() : "Event Date",
-      venue: event.venue || "Venue",
-      description: event.description || event.shortDescription || "",
-      section: String(section).slice(0, 100),
-      currentDraftText: cleanDraft || "(No draft yet. Please draft this section from scratch based on event details.)",
-      customInstruction: instruction
-        ? String(instruction).slice(0, 300)
-        : (hasExistingDraft ? "Improve tone, clarity, and professionalism" : "Draft a comprehensive, executive-ready section for this report based on the event information"),
-    });
-
-    const resultObj = await generateGeminiContent({
-      systemPrompt,
-      prompt: userPrompt,
-      jsonMode: true,
+    const { suggestion, source } = await generateGeminiReportSection({
+      sectionKey: sectionKey ? String(sectionKey) : "",
+      sectionTitle: String(section || sectionKey).slice(0, 100),
+      event,
+      organizer,
+      analytics,
+      currentDraft: text || "",
+      instruction: instruction || "",
+      fallbackDraft,
     });
 
     res.json({
       configured: true,
-      suggestion: String(resultObj?.improvedText || text).trim(),
+      suggestion: String(suggestion || "").trim(),
+      source,
     });
   } catch (err) {
     console.error("Report AI assist error:", err);
+    if (err?.fatalAuth) {
+      return res.status(401).json({
+        message: "Configured Gemini API key was rejected by Google AI. Please verify GEMINI_API_KEY or AI_API_KEY on the server.",
+      });
+    }
     res.status(502).json({
-      message: "Could not generate AI suggestion from configured provider.",
+      message: err?.message || "Could not generate AI suggestion from configured provider.",
     });
   }
 });

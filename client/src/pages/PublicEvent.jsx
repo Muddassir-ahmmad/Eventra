@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../api";
 import { isEventPastOrCompleted } from "../utils/eventTiming";
+import { getEventFontConfig } from "../utils/eventFonts";
 
 export default function PublicEvent() {
   const { slug } = useParams();
@@ -199,8 +200,16 @@ export default function PublicEvent() {
       )}`
     : null;
 
+  const fontConfig = getEventFontConfig(event?.eventFont);
+
   return (
-    <main className="public-page-root">
+    <main
+      className="public-page-root"
+      style={{
+        "--event-heading-font": fontConfig.headingFont,
+        "--event-body-font": fontConfig.bodyFont,
+      }}
+    >
       {/* Ambient Radial Lighting */}
       <div className="ambient-glow-bg" />
 

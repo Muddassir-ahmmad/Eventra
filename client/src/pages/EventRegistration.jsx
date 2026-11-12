@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api";
+import { getEventFontConfig } from "../utils/eventFonts";
 
 export default function EventRegistration() {
   const { slug } = useParams();
@@ -116,7 +117,7 @@ export default function EventRegistration() {
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(success.registrationId)}`;
 
     return (
-      <main className="public-page-root" style={{ padding: "40px 20px 80px" }}>
+      <main className="public-page-root" style={{ padding: "40px 20px 80px", "--event-heading-font": getEventFontConfig(event?.eventFont).headingFont, "--event-body-font": getEventFontConfig(event?.eventFont).bodyFont }}>
         <div style={{ maxWidth: 540, margin: "0 auto" }}>
           <div
             style={{
@@ -229,7 +230,7 @@ export default function EventRegistration() {
   const customFields = regFields.filter((f) => !["name", "email", "phone", "college", "department"].includes(f.key));
 
   return (
-    <main className="public-page-root" style={{ padding: "40px 20px 80px" }}>
+    <main className="public-page-root" style={{ padding: "40px 20px 80px", "--event-heading-font": getEventFontConfig(event?.eventFont).headingFont, "--event-body-font": getEventFontConfig(event?.eventFont).bodyFont }}>
       <div style={{ maxWidth: 620, margin: "0 auto" }}>
         <Link to={`/events/${slug}`} style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
           ← Back to Event Details
@@ -248,7 +249,7 @@ export default function EventRegistration() {
             <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#a855f7", letterSpacing: "0.1em" }}>
               FAST-TRACK REGISTRATION
             </span>
-            <h1 style={{ fontSize: "1.75rem", fontWeight: 800, margin: "6px 0 6px", color: "#ffffff" }}>
+            <h1 style={{ fontSize: "1.75rem", fontWeight: 800, margin: "6px 0 6px", color: "#ffffff", fontFamily: "var(--event-heading-font, inherit)" }}>
               {event.title}
             </h1>
             <p style={{ color: "#94a3b8", fontSize: "0.9rem", margin: 0 }}>

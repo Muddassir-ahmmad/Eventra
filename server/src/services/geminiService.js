@@ -5,14 +5,54 @@
  */
 
 export const CANDIDATE_GEMINI_MODELS = [
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro",
   "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
   "gemini-2.0-flash-lite",
-  "gemini-3.1-flash-lite",
   "gemini-3-flash-preview",
+  "gemini-3.1-flash-lite",
 ];
+
+const RETIRED_MODEL_PATTERN = /^gemini-1\.5-/i;
+
+function buildModelAttemptList(explicitModel) {
+  const normalizedExplicit = explicitModel ? String(explicitModel).trim() : "";
+  const envPreferred = String(process.env.GEMINI_MODEL || process.env.AI_MODEL || "").trim();
+
+  if (normalizedExplicit) {
+    return [normalizedExplicit, ...CANDIDATE_GEMINI_MODELS.filter((m) => m !== normalizedExplicit)];
+  }
+
+  // Avoid spending proxy timeout budget on retired gemini-1.5-* defaults from older env configs
+  if (envPreferred && !RETIRED_MODEL_PATTERN.test(envPreferred)) {
+    return [envPreferred, ...CANDIDATE_GEMINI_MODELS.filter((m) => m !== envPreferred)];
+  }
+
+  return [...CANDIDATE_GEMINI_MODELS];
+}
+
+function parseGeminiJson(rawText) {
+  const trimmed = String(rawText || "").trim();
+  if (!trimmed) return {};
+
+  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = (fenceMatch ? fenceMatch[1] : trimmed).trim();
+
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    const firstBrace = candidate.indexOf("{");
+    const lastBrace = candidate.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      try {
+        return JSON.parse(candidate.slice(firstBrace, lastBrace + 1));
+      } catch {
+        // Fall through to plain text preservation
+      }
+    }
+    return { _rawText: candidate };
+  }
+}
 
 export function getGeminiApiKey() {
   return (
@@ -47,17 +87,18 @@ export async function generateGeminiContent({
     throw new Error("Gemini API key is not configured. Set AI_API_KEY or GEMINI_API_KEY in server environment.");
   }
 
-  // Build model priority list
-  const preferredModel = model || process.env.GEMINI_MODEL || process.env.AI_MODEL;
-  const modelsToTry = preferredModel
-    ? [preferredModel, ...CANDIDATE_GEMINI_MODELS.filter((m) => m !== preferredModel)]
-    : CANDIDATE_GEMINI_MODELS;
-
+  const modelsToTry = buildModelAttemptList(model);
+  const deadline = Date.now() + 20000;
   let lastError = null;
 
   for (const targetModel of modelsToTry) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 1200) {
+      break;
+    }
+
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
       const payload = {
         contents: [
@@ -85,7 +126,7 @@ export async function generateGeminiContent({
         headers: {
           "Content-Type": "application/json",
         },
-        signal: AbortSignal.timeout(25000),
+        signal: AbortSignal.timeout(Math.min(9000, remainingMs)),
         body: JSON.stringify(payload),
       });
 
@@ -99,8 +140,16 @@ export async function generateGeminiContent({
         } catch (_) {}
 
         lastError = new Error(errMessage);
-        // If model not found (404), rate-limited (429), or overloaded (503), try next candidate
-        if ([404, 429, 503].includes(response.status)) {
+        const isFatalAuth =
+          response.status === 401 ||
+          response.status === 403 ||
+          /API_KEY_INVALID|API key not valid|PERMISSION_DENIED/i.test(errMessage);
+        if (isFatalAuth) {
+          lastError.fatalAuth = true;
+          throw lastError;
+        }
+
+        if ([400, 404, 429, 500, 502, 503, 504].includes(response.status)) {
           console.warn(`[GeminiService] Model '${targetModel}' returned ${response.status}, attempting fallback...`);
           continue;
         }
@@ -108,32 +157,60 @@ export async function generateGeminiContent({
       }
 
       const data = await response.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const parts = Array.isArray(data?.candidates?.[0]?.content?.parts)
+        ? data.candidates[0].content.parts
+        : [];
+      const outputParts = parts.filter((p) => !p?.thought && typeof p?.text === "string");
+      const rawText = (outputParts.length > 0 ? outputParts : parts)
+        .map((p) => (typeof p?.text === "string" ? p.text : ""))
+        .join("")
+        .trim();
+
+      if (!rawText) {
+        lastError = new Error(`Gemini API (${targetModel}) returned an empty response.`);
+        console.warn(`[GeminiService] Empty response from '${targetModel}', trying next model...`);
+        continue;
+      }
 
       if (jsonMode) {
-        try {
-          // Clean possible markdown code fences (```json ... ```)
-          const cleanJson = rawText.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
-          return JSON.parse(cleanJson);
-        } catch (parseErr) {
-          console.warn("Failed to parse Gemini JSON output:", parseErr.message, "Raw:", rawText);
-          return {};
-        }
+        return parseGeminiJson(rawText);
       }
 
       return rawText;
     } catch (err) {
+      if (err?.fatalAuth) {
+        throw err;
+      }
       lastError = err;
       if (err.name === "TimeoutError" || err.message?.includes("fetch failed")) {
         console.warn(`[GeminiService] Network/timeout on '${targetModel}': ${err.message}`);
         continue;
       }
-      // If we still have more models to try, continue
       console.warn(`[GeminiService] Error with '${targetModel}': ${err.message}, checking next model...`);
     }
   }
 
   throw lastError || new Error("Failed to generate content with available Gemini models.");
+}
+
+function buildFallbackEventCopy({
+  title = "Untitled Event",
+  category = "Event",
+  venue = "Campus Venue",
+  existingDescription = "",
+}) {
+  const cleanTitle = String(title || "Event").trim();
+  const cleanCat = String(category || "Featured Event").trim();
+  const cleanVenue = String(venue || "Designated Venue").trim();
+  const seed = String(existingDescription || "").trim();
+
+  const tagline = `✨ ${cleanTitle} — Experience ${cleanCat} Excellence`;
+  const shortDescription = `Join ${cleanTitle} at ${cleanVenue} for curated ${cleanCat.toLowerCase()} sessions, peer learning, and hands-on collaboration.`.slice(0, 160);
+  const description = seed
+    ? `${seed}\n\nHosted at ${cleanVenue}, ${cleanTitle} brings participants together for structured ${cleanCat.toLowerCase()} sessions, interactive discussions, and verified digital credentialing via EVENTRA.`
+    : `${cleanTitle} is a premier ${cleanCat.toLowerCase()} program hosted at ${cleanVenue}, bringing participants together for focused knowledge sharing and collaborative engagement.\n\nAttendees benefit from structured sessions, guided interactions, QR-enabled check-in, and verified digital certification upon completion.`;
+
+  return { tagline, shortDescription, description };
 }
 
 /**
@@ -152,6 +229,10 @@ export async function generateGeminiEventCopy({
   venue = "Main Campus",
   existingDescription = "",
 }) {
+  if (!getGeminiApiKey()) {
+    throw new Error("Gemini API key is not configured. Set AI_API_KEY or GEMINI_API_KEY in server environment.");
+  }
+
   const systemPrompt =
     "You are an elite, world-class event copywriter and promoter for EVENTRA. " +
     "Create magnetic, highly engaging, professional, and clear event descriptions that drive registrations. " +
@@ -168,17 +249,27 @@ export async function generateGeminiEventCopy({
     organizerNotes: existingDescription.slice(0, 500),
   });
 
-  const result = await generateGeminiContent({
-    systemPrompt,
-    prompt,
-    jsonMode: true,
-  });
+  const fallback = buildFallbackEventCopy({ title, category, venue, existingDescription });
 
-  return {
-    tagline: result?.tagline || "",
-    shortDescription: result?.shortDescription || "",
-    description: result?.description || "",
-  };
+  try {
+    const result = await generateGeminiContent({
+      systemPrompt,
+      prompt,
+      jsonMode: true,
+    });
+
+    return {
+      tagline: String(result?.tagline || fallback.tagline).trim(),
+      shortDescription: String(result?.shortDescription || fallback.shortDescription).trim(),
+      description: String(result?.description || result?._rawText || fallback.description).trim(),
+    };
+  } catch (err) {
+    if (err?.fatalAuth) {
+      throw err;
+    }
+    console.warn("[GeminiService] Event copy generation falling back to structured copy:", err.message);
+    return fallback;
+  }
 }
 
 /**
@@ -617,19 +708,27 @@ Return valid JSON with:
       : "Curate 4 distinct certificate templates, headlines, and wording variations suited for this event.",
   });
 
-  const raw = await generateGeminiContent({
-    systemPrompt,
-    prompt: userPrompt,
-    jsonMode: true,
-  });
+  if (!getGeminiApiKey()) {
+    throw new Error("Gemini API key is not configured. Set AI_API_KEY or GEMINI_API_KEY in server environment.");
+  }
+
+  let raw = {};
+  try {
+    raw = await generateGeminiContent({
+      systemPrompt,
+      prompt: userPrompt,
+      jsonMode: true,
+    });
+  } catch (err) {
+    if (err?.fatalAuth || /not configured/i.test(err?.message || "")) {
+      throw err;
+    }
+    console.warn("[GeminiService] Certificate design generation falling back to curated catalog:", err.message);
+  }
 
   let parsed = {};
   if (typeof raw === "string") {
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      parsed = {};
-    }
+    parsed = parseGeminiJson(raw);
   } else if (raw && typeof raw === "object") {
     parsed = raw;
   }
@@ -644,5 +743,205 @@ Return valid JSON with:
   return {
     ...primary,
     suggestions,
+  };
+}
+
+function extractReportSuggestionText(resultObj) {
+  if (!resultObj) return "";
+  if (typeof resultObj === "string") return resultObj.trim();
+  if (typeof resultObj !== "object") return "";
+
+  const candidateKeys = [
+    "improvedText",
+    "improved_text",
+    "suggestion",
+    "text",
+    "content",
+    "draft",
+    "summary",
+    "sectionText",
+    "_rawText",
+  ];
+  for (const key of candidateKeys) {
+    const val = resultObj[key];
+    if (typeof val === "string" && val.trim()) {
+      return val.trim();
+    }
+  }
+
+  for (const val of Object.values(resultObj)) {
+    if (typeof val === "string" && val.trim().length > 20) {
+      return val.trim();
+    }
+  }
+  return "";
+}
+
+function buildFallbackReportSection({
+  sectionTitle,
+  currentDraft = "",
+  fallbackDraft = "",
+  instruction = "",
+  event = {},
+  analytics = null,
+}) {
+  const cleanDraft = String(currentDraft || "").trim();
+  const cleanFallback = String(fallbackDraft || "").trim();
+  const baseText = cleanDraft || cleanFallback;
+  const instrLower = String(instruction || "").toLowerCase();
+
+  if (baseText) {
+    // Normalize whitespace and bullet consistency without inventing facts
+    const paragraphs = baseText
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    if (instrLower.includes("concise") || instrLower.includes("short") || instrLower.includes("summary")) {
+      const condensed = paragraphs
+        .slice(0, 2)
+        .map((p) => {
+          const sentences = p.split(/(?<=[.!?])\s+/).filter(Boolean);
+          return sentences.slice(0, 3).join(" ");
+        })
+        .join("\n\n");
+      if (condensed.trim()) return condensed.trim();
+    }
+
+    if (instrLower.includes("bullet") || instrLower.includes("point")) {
+      const lines = baseText
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^[-•*\d.)\s]+/, "").trim())
+        .filter(Boolean);
+      if (lines.length > 1) {
+        return lines.map((l) => `- ${l}`).join("\n");
+      }
+    }
+
+    return paragraphs.join("\n\n");
+  }
+
+  const title = event?.title || "the event";
+  const venue = event?.venue ? ` at ${event.venue}` : "";
+  const attendanceNote = analytics
+    ? ` Verified records show ${analytics.confirmedCount ?? 0} confirmed registrations and ${analytics.attendedCount ?? 0} checked-in attendees (${analytics.attendanceRate ?? 0}% attendance).`
+    : "";
+
+  return `This ${String(sectionTitle || "report").toLowerCase()} section documents the execution of "${title}"${venue}.${attendanceNote} All recorded activities, participant interactions, and evaluation insights contribute to institutional documentation and continual quality improvement.`;
+}
+
+/**
+ * Draft or refine a single Post-Event Report section using Gemini AI with verified analytics context
+ * and deterministic fallback synthesis for transient upstream failures.
+ *
+ * @param {Object} options
+ * @returns {Promise<{suggestion: string, source: "gemini"|"fallback"}>}
+ */
+export async function generateGeminiReportSection({
+  sectionKey = "",
+  sectionTitle = "Report Section",
+  event = {},
+  organizer = {},
+  analytics = null,
+  currentDraft = "",
+  instruction = "",
+  fallbackDraft = "",
+}) {
+  if (!getGeminiApiKey()) {
+    throw new Error("Gemini API key is not configured. Set AI_API_KEY or GEMINI_API_KEY in server environment.");
+  }
+
+  const cleanDraft = String(currentDraft || "").trim().slice(0, 3000);
+  const hasExistingDraft = cleanDraft.length > 0;
+  const effectiveInstruction = instruction
+    ? String(instruction).trim().slice(0, 300)
+    : hasExistingDraft
+      ? "Improve tone, clarity, and professionalism"
+      : "Draft a comprehensive, executive-ready section for this report based on verified event details";
+
+  const systemPrompt =
+    "You are an expert executive reporting assistant for EVENTRA. " +
+    "Draft or refine post-event report sections based ONLY on verified context.\n" +
+    "STRICT RULES:\n" +
+    "1. NEVER invent attendance counts, percentages, feedback scores, or sponsor names not present in verifiedMetrics or currentDraftText.\n" +
+    "2. NEVER invent fake speaker names or fabricated quotes.\n" +
+    "3. Write with executive professionalism, clear grammar, and structured paragraphs or crisp bullet points.\n" +
+    "4. Return a valid JSON object with a single key \"improvedText\" containing the finished section text.";
+
+  const verifiedMetrics = analytics
+    ? {
+        totalRegistrations: analytics.totalRegistrations ?? 0,
+        confirmedCount: analytics.confirmedCount ?? 0,
+        attendedCount: analytics.attendedCount ?? 0,
+        absentCount: analytics.absentCount ?? 0,
+        attendanceRatePercent: analytics.attendanceRate ?? 0,
+        feedbackSubmissions: analytics.feedbackSubmissions ?? 0,
+        avgRatingOverall: analytics.avgRatingOverall ?? 0,
+        avgRatingOrg: analytics.avgRatingOrg ?? 0,
+        avgRatingSpeakers: analytics.avgRatingSpeakers ?? 0,
+        avgRatingVenue: analytics.avgRatingVenue ?? 0,
+        sampleLiked: Array.isArray(analytics.feedbackLiked) ? analytics.feedbackLiked.slice(0, 3) : [],
+        sampleImprovements: Array.isArray(analytics.feedbackImprovements)
+          ? analytics.feedbackImprovements.slice(0, 3)
+          : [],
+        sampleSuggestions: Array.isArray(analytics.feedbackSuggestions)
+          ? analytics.feedbackSuggestions.slice(0, 3)
+          : [],
+      }
+    : null;
+
+  const userPrompt = JSON.stringify({
+    eventTitle: event?.title || "Event",
+    eventType: event?.eventType || event?.category || "Academic / Professional Event",
+    eventDate: event?.date ? new Date(event.date).toLocaleDateString("en-US") : "Event Date",
+    venue: event?.venue || "Venue",
+    capacity: event?.capacity ?? null,
+    organizerName: organizer?.organization || organizer?.name || "",
+    description: String(event?.description || event?.shortDescription || "").slice(0, 800),
+    speakers: Array.isArray(event?.speakers)
+      ? event.speakers
+          .filter((s) => s?.name)
+          .slice(0, 8)
+          .map((s) => `${s.name}${s.designation ? ` (${s.designation})` : ""}`)
+      : [],
+    verifiedMetrics,
+    sectionKey: String(sectionKey || "").slice(0, 60),
+    section: String(sectionTitle || "Section").slice(0, 100),
+    currentDraftText: cleanDraft || "(Blank — draft from verified event details and baselineFacts below.)",
+    baselineFacts: String(fallbackDraft || "").slice(0, 1200),
+    customInstruction: effectiveInstruction,
+  });
+
+  try {
+    const resultObj = await generateGeminiContent({
+      systemPrompt,
+      prompt: userPrompt,
+      jsonMode: true,
+    });
+
+    const extracted = extractReportSuggestionText(resultObj);
+    if (extracted) {
+      return {
+        suggestion: extracted,
+        source: "gemini",
+      };
+    }
+  } catch (err) {
+    if (err?.fatalAuth) {
+      throw err;
+    }
+    console.warn(`[GeminiService] Report section '${sectionKey || sectionTitle}' falling back:`, err.message);
+  }
+
+  return {
+    suggestion: buildFallbackReportSection({
+      sectionTitle,
+      currentDraft: cleanDraft,
+      fallbackDraft,
+      instruction: effectiveInstruction,
+      event,
+      analytics,
+    }),
+    source: "fallback",
   };
 }

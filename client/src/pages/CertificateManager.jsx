@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api";
+import CertificateImageCropper from "../components/CertificateImageCropper";
+import { formatParticipantName } from "../utils/participantName";
 
 const DEFAULT_DESCRIPTION = "This certificate is proudly presented to {name} for participating in {event}.";
 const TEMPLATES = [
@@ -25,17 +27,116 @@ const PLACEHOLDER_TAGS = [
   { tag: "{eventDate}", label: "Full Date" },
 ];
 
+const CERTIFICATE_FONTS = [
+  { id: "theme", label: "Theme Default", cssFamily: null, cssStyle: "normal" },
+  { id: "serif", label: "Classic Serif", cssFamily: 'Georgia, "Times New Roman", serif', cssStyle: "normal" },
+  { id: "sans", label: "Modern Sans", cssFamily: 'Arial, "Helvetica Neue", system-ui, sans-serif', cssStyle: "normal" },
+  { id: "italicSerif", label: "Elegant Italic Serif", cssFamily: 'Georgia, "Times New Roman", serif', cssStyle: "italic" },
+  { id: "italicSans", label: "Sleek Oblique Sans", cssFamily: 'Arial, "Helvetica Neue", system-ui, sans-serif', cssStyle: "italic" },
+  { id: "mono", label: "Technical Mono", cssFamily: '"Courier New", ui-monospace, monospace', cssStyle: "normal" },
+];
+
+const TEXT_ELEMENT_CONFIG = {
+  organization: {
+    label: "Top Header",
+    editableKey: "certificateOrganization",
+    defaultSize: 14,
+    minSize: 8,
+    maxSize: 30,
+    presets: { sm: 10, md: 14, lg: 18, xl: 22 },
+  },
+  title: {
+    label: "Headline",
+    editableKey: "certificateTitle",
+    defaultSize: 28,
+    minSize: 14,
+    maxSize: 44,
+    presets: { sm: 20, md: 28, lg: 34, xl: 40 },
+  },
+  recipient: {
+    label: "Participant Name",
+    editableKey: null,
+    defaultSize: 34,
+    minSize: 16,
+    maxSize: 48,
+    presets: { sm: 24, md: 34, lg: 40, xl: 46 },
+  },
+  description: {
+    label: "Description",
+    editableKey: "certificateDescription",
+    multiline: true,
+    defaultSize: 13,
+    minSize: 8,
+    maxSize: 24,
+    presets: { sm: 10, md: 13, lg: 16, xl: 19 },
+  },
+  eventName: {
+    label: "Event Name",
+    editableKey: "certificateEventTitle",
+    defaultSize: 16,
+    minSize: 9,
+    maxSize: 32,
+    presets: { sm: 12, md: 16, lg: 20, xl: 26 },
+  },
+};
+
+function buildTextStylesState(raw = {}, legacyOrgSize = "md", legacyOrgAlign = "center") {
+  const input = raw && typeof raw === "object" ? raw : {};
+  const out = {};
+  for (const [key, cfg] of Object.entries(TEXT_ELEMENT_CONFIG)) {
+    const item = input[key] && typeof input[key] === "object" ? input[key] : {};
+    const orgPreset = key === "organization" ? cfg.presets[legacyOrgSize] : null;
+    out[key] = {
+      font: item.font || "theme",
+      fontSize: item.fontSize ?? orgPreset ?? null,
+      align: item.align ?? (key === "organization" ? legacyOrgAlign : null),
+      x: item.x ?? null,
+      y: item.y ?? null,
+    };
+  }
+  return out;
+}
+
+function resolveCssFontStyle(styleObj) {
+  const fontEntry = CERTIFICATE_FONTS.find((f) => f.id === styleObj?.font) || CERTIFICATE_FONTS[0];
+  const css = {};
+  if (fontEntry.cssFamily) css.fontFamily = fontEntry.cssFamily;
+  if (fontEntry.id !== "theme") css.fontStyle = fontEntry.cssStyle;
+  if (styleObj?.fontSize) {
+    // 1 PDF pt on 841.89pt A4 landscape equals 0.1188cqw across any viewport width
+    const cqw = Math.round(Number(styleObj.fontSize) * 0.1188 * 100) / 100;
+    css.fontSize = `${cqw}cqw`;
+  }
+  if (styleObj?.align) {
+    css.textAlign = styleObj.align;
+    css.alignSelf =
+      styleObj.align === "left" ? "flex-start" : styleObj.align === "right" ? "flex-end" : "center";
+  }
+  return css;
+}
+
 function certificateSettings(event) {
+  const orgSize = event.certificateOrganizationSize || "md";
+  const orgAlign = event.certificateOrganizationAlign || "center";
+  const savedOrg = String(event.certificateOrganization || "").trim();
   return {
     certificateEnabled: event.certificateEnabled ?? false,
     requireFeedbackForCertificate: event.requireFeedbackForCertificate === true,
     certificateTemplate: event.certificateTemplate || "classic",
     certificateTitle: event.certificateTitle || "Certificate of Participation",
     certificateDescription: event.certificateDescription || DEFAULT_DESCRIPTION,
-    certificateShowOrganization: event.certificateShowOrganization !== false,
-    certificateOrganization: event.certificateOrganization || "EVENTRA",
+    certificateEventTitle: event.certificateEventTitle || "",
+    certificateShowOrganization: event.certificateShowOrganization === true || Boolean(savedOrg) || !event.certificateUpdatedAt,
+    certificateOrganization: savedOrg || "EVENTRA",
+    certificateOrganizationSize: orgSize,
+    certificateOrganizationAlign: orgAlign,
+    certificateOrganizationUppercase: event.certificateOrganizationUppercase === true,
+    certificateTextStyles: buildTextStylesState(event.certificateTextStyles, orgSize, orgAlign),
     certificateLogoUrl: event.certificateLogoUrl || "",
     certificateLogoPath: event.certificateLogoPath || "",
+    certificateLogoX: event.certificateLogoX ?? null,
+    certificateLogoY: event.certificateLogoY ?? null,
+    certificateLogoSize: event.certificateLogoSize ?? 8,
     eventType: event.eventType || "",
     signatures: (event.signatures || []).map((signature) => ({
       ...signature,
@@ -56,6 +157,9 @@ export default function CertificateManager() {
   const [suggestions, setSuggestions] = useState([]);
   const [shownTemplates, setShownTemplates] = useState([]);
   const [customAiPrompt, setCustomAiPrompt] = useState("");
+  const lastAiTitleRef = useRef("");
+  const [selectedCanvasItem, setSelectedCanvasItem] = useState({ type: "text", key: "title" });
+  const [cropQueue, setCropQueue] = useState(null);
   const [imageStorage, setImageStorage] = useState("local");
   const [emailConfigured, setEmailConfigured] = useState(false);
   const [aiConfigured, setAiConfigured] = useState(false);
@@ -94,7 +198,13 @@ export default function CertificateManager() {
   }
 
   function update(key, value) {
-    setSettings((current) => ({ ...current, [key]: value }));
+    setSettings((current) => ({
+      ...current,
+      [key]: value,
+      ...(key === "certificateOrganization" && String(value || "").trim()
+        ? { certificateShowOrganization: true }
+        : {}),
+    }));
     setNotice("");
   }
 
@@ -136,6 +246,20 @@ export default function CertificateManager() {
     }
   }
 
+  function openCropper(kind, file, index = -1) {
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type) && !/\.(png|jpe?g)$/i.test(file.name)) {
+      setError("Choose a PNG or JPEG image.");
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      setError("Source image must be 15 MB or smaller.");
+      return;
+    }
+    setError("");
+    setCropQueue({ file, kind, index });
+  }
+
   async function uploadImage(kind, file, index = -1) {
     if (!file) return;
     if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type) && !/\.(png|jpe?g)$/i.test(file.name)) {
@@ -154,14 +278,21 @@ export default function CertificateManager() {
       formData.append("image", file);
       const { data } = await api.post(`/certificates/event/${eventId}/assets/${kind}`, formData);
       if (kind === "logo") {
-        update("certificateLogoUrl", data.imageUrl);
-        update("certificateLogoPath", data.imagePath);
+        setSettings((current) => ({
+          ...current,
+          certificateLogoUrl: data.imageUrl,
+          certificateLogoPath: data.imagePath,
+        }));
+        setSelectedCanvasItem({ type: "logo" });
       } else {
-        const signatures = [...settings.signatures];
-        signatures[index] = { ...signatures[index], imagePath: data.imagePath, imageUrl: data.imageUrl };
-        update("signatures", signatures);
+        setSettings((current) => {
+          const signatures = [...current.signatures];
+          signatures[index] = { ...signatures[index], imagePath: data.imagePath, imageUrl: data.imageUrl };
+          return { ...current, signatures };
+        });
+        setSelectedCanvasItem({ type: "signature", index });
       }
-      setNotice("Image uploaded. Save settings to use it on certificates.");
+      setNotice("Cropped image uploaded. Drag on the certificate to place it, then Save settings.");
     } catch (uploadError) {
       setError(uploadError.response?.data?.message || "Could not upload the image.");
     } finally {
@@ -241,8 +372,18 @@ export default function CertificateManager() {
     }
   }
 
-  function applySuggestion(chosenSuggestion, includeSignatories = false) {
+  function applySuggestion(chosenSuggestion, includeSignatories = false, forceAiTitle = false) {
     if (!chosenSuggestion) return;
+    const aiTitleSet = new Set(suggestions.map((s) => String(s?.title || "").trim()).filter(Boolean));
+    const currentTitle = String(settings?.certificateTitle || "").trim();
+    const isCustomHeading = Boolean(
+      currentTitle &&
+      currentTitle !== "Certificate of Participation" &&
+      !aiTitleSet.has(currentTitle) &&
+      currentTitle !== lastAiTitleRef.current
+    );
+    const keepCustomHeading = !forceAiTitle && isCustomHeading;
+
     setSettings((current) => {
       let nextSignatures = current.signatures || [];
       if (includeSignatories && Array.isArray(chosenSuggestion.suggestedSignatories) && chosenSuggestion.suggestedSignatories.length > 0) {
@@ -261,17 +402,21 @@ export default function CertificateManager() {
         });
         nextSignatures = existing;
       }
+      const nextTitle = keepCustomHeading ? current.certificateTitle : chosenSuggestion.title;
+      if (!keepCustomHeading) {
+        lastAiTitleRef.current = String(chosenSuggestion.title || "").trim();
+      }
       return {
         ...current,
         certificateTemplate: chosenSuggestion.template,
-        certificateTitle: chosenSuggestion.title,
+        certificateTitle: nextTitle,
         certificateDescription: chosenSuggestion.description,
         signatures: nextSignatures,
       };
     });
     const matchedTemplate = TEMPLATES.find((t) => t.id === chosenSuggestion.template);
     setNotice(
-      `Applied "${matchedTemplate?.name || chosenSuggestion.template}" design${includeSignatories ? " + signatory roles" : ""} to preview! Click 'Save settings' to keep it.`
+      `Applied "${matchedTemplate?.name || chosenSuggestion.template}" design${includeSignatories ? " + signatory roles" : ""}${keepCustomHeading ? ` (kept your custom heading "${currentTitle}")` : ""}! Click 'Save settings' or 'Download PDF' to publish.`
     );
   }
 
@@ -322,6 +467,9 @@ export default function CertificateManager() {
     setWorking(true);
     setError("");
     try {
+      if (settings) {
+        await api.put(`/certificates/event/${eventId}`, settings);
+      }
       const { data } = await api.get(`/certificates/event/${eventId}/${person._id}/download`, { responseType: "blob" });
       const url = URL.createObjectURL(data);
       const anchor = document.createElement("a");
@@ -351,6 +499,9 @@ export default function CertificateManager() {
     setError("");
     setNotice("");
     try {
+      if (settings) {
+        await api.put(`/certificates/event/${eventId}`, settings);
+      }
       const { data } = await api.post(`/certificates/event/${eventId}/email-bulk`, {
         registrationIds: targetIds,
       });
@@ -368,6 +519,9 @@ export default function CertificateManager() {
     setError("");
     setNotice("");
     try {
+      if (settings) {
+        await api.put(`/certificates/event/${eventId}`, settings);
+      }
       const { data } = await api.post(`/certificates/event/${eventId}/${person._id}/email`);
       setNotice(data.message);
       await loadCertificates();
@@ -399,7 +553,7 @@ export default function CertificateManager() {
   const eligibleList = participants.filter((person) => person.eligibilityStatus === "eligible");
   const selectedWithCertificates = participants.filter((person) => selected.includes(person._id) && person.certificate).length;
   const previewPerson = eligibleList.find((person) => person._id === previewId) || participants.find((person) => person._id === previewId) || eligibleList[0] || participants[0] || { name: "Jordan Lee" };
-  const storageAvailable = imageStorage === "local" || imageStorage === "cloudinary";
+  const storageAvailable = ["local", "cloudinary", "database"].includes(imageStorage);
 
   return (
     <main className="certificate-page">
@@ -458,6 +612,20 @@ export default function CertificateManager() {
               <span>Certificate headline</span>
               <input maxLength="100" value={settings.certificateTitle} onChange={(change) => update("certificateTitle", change.target.value)} />
             </label>
+            <InlineTextStyleRow
+              elementKey="title"
+              styleObj={settings.certificateTextStyles?.title}
+              onChange={(patch) => {
+                setSettings((curr) => ({
+                  ...curr,
+                  certificateTextStyles: {
+                    ...curr.certificateTextStyles,
+                    title: { ...curr.certificateTextStyles?.title, ...patch },
+                  },
+                }));
+                setNotice("");
+              }}
+            />
             <label className="certificate-field">
               <span>Certificate Top Header (Organization / Brand)</span>
               <input
@@ -470,6 +638,100 @@ export default function CertificateManager() {
                 Displays at the very top of the certificate (defaults to "EVENTRA", can be changed to your organization or institution).
               </small>
             </label>
+            <div className="certificate-header-style-controls">
+              <div className="certificate-style-group">
+                <span>Header size</span>
+                <div className="certificate-pill-group" role="group" aria-label="Header font size">
+                  {[
+                    { id: "sm", label: "Small" },
+                    { id: "md", label: "Medium" },
+                    { id: "lg", label: "Large" },
+                    { id: "xl", label: "XL" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`certificate-pill-btn${(settings.certificateOrganizationSize || "md") === item.id ? " is-active" : ""}`}
+                      onClick={() => {
+                        const presetPt = TEXT_ELEMENT_CONFIG.organization.presets[item.id];
+                        setSettings((curr) => ({
+                          ...curr,
+                          certificateOrganizationSize: item.id,
+                          certificateTextStyles: {
+                            ...curr.certificateTextStyles,
+                            organization: { ...curr.certificateTextStyles?.organization, fontSize: presetPt },
+                          },
+                        }));
+                        setNotice("");
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="certificate-style-group">
+                <span>Header font</span>
+                <select
+                  className="certificate-inline-select"
+                  value={settings.certificateTextStyles?.organization?.font || "theme"}
+                  onChange={(e) => {
+                    const font = e.target.value;
+                    setSettings((curr) => ({
+                      ...curr,
+                      certificateTextStyles: {
+                        ...curr.certificateTextStyles,
+                        organization: { ...curr.certificateTextStyles?.organization, font },
+                      },
+                    }));
+                    setNotice("");
+                  }}
+                >
+                  {CERTIFICATE_FONTS.map((f) => (
+                    <option key={f.id} value={f.id}>{f.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="certificate-style-group">
+                <span>Position</span>
+                <div className="certificate-pill-group" role="group" aria-label="Header alignment">
+                  {[
+                    { id: "left", label: "Left" },
+                    { id: "center", label: "Middle" },
+                    { id: "right", label: "Right" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`certificate-pill-btn${(settings.certificateOrganizationAlign || "center") === item.id ? " is-active" : ""}`}
+                      onClick={() => {
+                        setSettings((curr) => ({
+                          ...curr,
+                          certificateOrganizationAlign: item.id,
+                          certificateTextStyles: {
+                            ...curr.certificateTextStyles,
+                            organization: { ...curr.certificateTextStyles?.organization, align: item.id },
+                          },
+                        }));
+                        setNotice("");
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="certificate-style-group">
+                <span>Letter case</span>
+                <button
+                  type="button"
+                  className={`certificate-pill-btn${settings.certificateOrganizationUppercase ? " is-active" : ""}`}
+                  onClick={() => update("certificateOrganizationUppercase", !settings.certificateOrganizationUppercase)}
+                >
+                  {settings.certificateOrganizationUppercase ? "ALL CAPS ✓" : "UPPERCASE"}
+                </button>
+              </div>
+            </div>
             <label className="certificate-field">
               <span>Event type</span>
               <input maxLength="80" value={settings.eventType} onChange={(change) => update("eventType", change.target.value)} placeholder="Workshop, conference, symposium, course…" />
@@ -500,6 +762,20 @@ export default function CertificateManager() {
                 ))}
               </div>
             </label>
+            <InlineTextStyleRow
+              elementKey="description"
+              styleObj={settings.certificateTextStyles?.description}
+              onChange={(patch) => {
+                setSettings((curr) => ({
+                  ...curr,
+                  certificateTextStyles: {
+                    ...curr.certificateTextStyles,
+                    description: { ...curr.certificateTextStyles?.description, ...patch },
+                  },
+                }));
+                setNotice("");
+              }}
+            />
 
             {/* Feedback Gating Toggle */}
             <div
@@ -520,7 +796,13 @@ export default function CertificateManager() {
                 <span style={{ fontWeight: 600 }}>Require Feedback Before Issuing</span>
               </label>
               <small style={{ display: "block", color: "#94a3b8", marginTop: 4, fontSize: "0.78rem" }}>
-                When enabled, attendees must complete their post-event feedback survey before their certificate becomes eligible.
+                When enabled, attendees must complete their post-event feedback survey before their certificate becomes eligible.{" "}
+                <Link
+                  to={`/dashboard/events/${eventId}/edit?step=feedback`}
+                  style={{ color: "#a5b4fc", textDecoration: "underline", fontWeight: 600 }}
+                >
+                  Edit feedback questions →
+                </Link>
               </small>
             </div>
 
@@ -531,13 +813,28 @@ export default function CertificateManager() {
               </div>
               {settings.certificateLogoUrl && <img src={settings.certificateLogoUrl} alt="Certificate logo preview" />}
               <label className="cert-button upload-label">
-                {working ? "Working…" : settings.certificateLogoUrl ? "Replace logo" : "Upload logo"}
-                <input type="file" accept="image/png,image/jpeg,image/jpg,.png,.jpg,.jpeg" disabled={!storageAvailable || working} onChange={(change) => uploadImage("logo", change.target.files?.[0])} />
+                {working ? "Working…" : settings.certificateLogoUrl ? "Crop / replace logo" : "Upload & crop logo"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,.png,.jpg,.jpeg"
+                  disabled={!storageAvailable || working}
+                  onChange={(change) => {
+                    const picked = change.target.files?.[0];
+                    change.target.value = "";
+                    openCropper("logo", picked);
+                  }}
+                />
               </label>
               {settings.certificateLogoUrl && (
                 <button type="button" className="text-action" disabled={working} onClick={() => removeImage(settings.certificateLogoPath, () => {
-                  update("certificateLogoUrl", "");
-                  update("certificateLogoPath", "");
+                  setSettings((current) => ({
+                    ...current,
+                    certificateLogoUrl: "",
+                    certificateLogoPath: "",
+                    certificateLogoX: null,
+                    certificateLogoY: null,
+                  }));
+                  if (selectedCanvasItem?.type === "logo") setSelectedCanvasItem(null);
                 })}>Remove logo</button>
               )}
             </div>
@@ -654,7 +951,9 @@ export default function CertificateManager() {
 
                   {suggestions.map((item, idx) => {
                     const tmplMeta = TEMPLATES.find((t) => t.id === item.template);
-                    const isApplied = settings.certificateTemplate === item.template && settings.certificateTitle === item.title;
+                    const isApplied = settings.certificateTemplate === item.template;
+                    const curTitle = String(settings.certificateTitle || "").trim();
+                    const hasDifferentCustomTitle = Boolean(curTitle && curTitle !== item.title && curTitle !== "Certificate of Participation");
                     return (
                       <div
                         key={`${item.template}-${idx}`}
@@ -716,16 +1015,27 @@ export default function CertificateManager() {
                           <button
                             type="button"
                             className="cert-button cert-button-primary"
-                            onClick={() => applySuggestion(item, false)}
+                            onClick={() => applySuggestion(item, false, false)}
                             style={{ minHeight: 32, padding: "6px 11px", fontSize: "0.73rem" }}
                           >
                             {isApplied ? "Re-Apply Theme" : "Apply Theme"}
                           </button>
+                          {hasDifferentCustomTitle && (
+                            <button
+                              type="button"
+                              className="text-action"
+                              onClick={() => applySuggestion(item, false, true)}
+                              style={{ marginRight: 0, fontSize: "0.69rem" }}
+                              title={`Replace your current heading with "${item.title}"`}
+                            >
+                              + Use AI Heading
+                            </button>
+                          )}
                           {item.suggestedSignatories?.length > 0 && (
                             <button
                               type="button"
                               className="text-action"
-                              onClick={() => applySuggestion(item, true)}
+                              onClick={() => applySuggestion(item, true, false)}
                               style={{ marginRight: 0, fontSize: "0.69rem" }}
                             >
                               + Apply Signatories
@@ -752,8 +1062,74 @@ export default function CertificateManager() {
                 </select>
               </label>
             </div>
-            <CertificatePreview event={event} organizer={organizer} settings={settings} participant={previewPerson} />
-            <p className="preview-caption">Preview updates in real-time as you edit; generated PDFs use this saved design.</p>
+            <CertificatePreview
+              event={event}
+              organizer={organizer}
+              settings={settings}
+              participant={previewPerson}
+              selectedItem={selectedCanvasItem}
+              onSelectItem={setSelectedCanvasItem}
+              onUpdateField={(field, val) => update(field, val)}
+              onUpdateSignatureField={(sigIndex, field, val) => updateSignature(sigIndex, field, val)}
+              onMoveLogo={(x, y) => {
+                setSettings((curr) => ({ ...curr, certificateLogoX: x, certificateLogoY: y }));
+                setNotice("");
+              }}
+              onMoveSignature={(sigIndex, x, y) => {
+                setSettings((curr) => {
+                  const signatures = [...curr.signatures];
+                  signatures[sigIndex] = { ...signatures[sigIndex], x, y };
+                  return { ...curr, signatures };
+                });
+                setNotice("");
+              }}
+              onMoveText={(key, x, y) => {
+                setSettings((curr) => ({
+                  ...curr,
+                  certificateTextStyles: {
+                    ...curr.certificateTextStyles,
+                    [key]: { ...curr.certificateTextStyles?.[key], x, y },
+                  },
+                }));
+                setNotice("");
+              }}
+            />
+            <CertificatePlacementDock
+              event={event}
+              settings={settings}
+              selectedItem={selectedCanvasItem}
+              onSelectItem={setSelectedCanvasItem}
+              onUpdateField={(field, val) => update(field, val)}
+              onUpdateSignature={(sigIndex, patch) => {
+                setSettings((curr) => {
+                  const signatures = [...curr.signatures];
+                  signatures[sigIndex] = { ...signatures[sigIndex], ...patch };
+                  return { ...curr, signatures };
+                });
+                setNotice("");
+              }}
+              onUpdateLogo={(patch) => {
+                setSettings((curr) => ({ ...curr, ...patch }));
+                setNotice("");
+              }}
+              onUpdateTextStyle={(key, patch) => {
+                setSettings((curr) => {
+                  const next = {
+                    ...curr,
+                    certificateTextStyles: {
+                      ...curr.certificateTextStyles,
+                      [key]: { ...curr.certificateTextStyles?.[key], ...patch },
+                    },
+                  };
+                  if (key === "organization" && patch.align) {
+                    next.certificateOrganizationAlign = patch.align;
+                  }
+                  return next;
+                });
+                setNotice("");
+              }}
+            />
+            <p className="preview-caption">Tip: Click any text, logo, or signature on the certificate to drag, resize, change font/alignment, or double-click any text on the certificate to edit it directly.</p>
           </div>
         </section>
 
@@ -771,8 +1147,17 @@ export default function CertificateManager() {
                 <div className="signature-upload">
                   {signature.imageUrl ? <img src={signature.imageUrl} alt={`${signature.name || "Signatory"} signature preview`} /> : <span className="signature-placeholder">Signature image</span>}
                   <label className="cert-button upload-label">
-                    {working ? "Working…" : signature.imageUrl ? "Replace image" : "Upload image"}
-                    <input type="file" accept="image/png,image/jpeg,image/jpg,.png,.jpg,.jpeg" disabled={!storageAvailable || working} onChange={(change) => uploadImage("signature", change.target.files?.[0], index)} />
+                    {working ? "Working…" : signature.imageUrl ? "Crop / replace" : "Upload & crop"}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,.png,.jpg,.jpeg"
+                      disabled={!storageAvailable || working}
+                      onChange={(change) => {
+                        const picked = change.target.files?.[0];
+                        change.target.value = "";
+                        openCropper("signature", picked, index);
+                      }}
+                    />
                   </label>
                 </div>
                 {signature.imageUrl && <button type="button" className="text-action" disabled={working} onClick={() => removeImage(signature.imagePath, () => clearSignatureImage(index))}>Remove image</button>}
@@ -963,62 +1348,778 @@ export default function CertificateManager() {
           <button type="button" className="cert-button" onClick={testEmail} disabled={!emailConfigured || working}>Send test email</button>
         </section>
       </div>
+      {cropQueue && (
+        <CertificateImageCropper
+          file={cropQueue.file}
+          kind={cropQueue.kind}
+          onCancel={() => setCropQueue(null)}
+          onConfirm={(croppedFile) => {
+            const target = cropQueue;
+            setCropQueue(null);
+            uploadImage(target.kind, croppedFile, target.index);
+          }}
+        />
+      )}
     </main>
   );
 }
 
-function CertificatePreview({ event, organizer, settings, participant }) {
+const PLACEMENT_PRESETS = [
+  { id: "tl", label: "Top-Left", x: 14, y: 14 },
+  { id: "tc", label: "Top-Mid", x: 50, y: 12 },
+  { id: "tr", label: "Top-Right", x: 86, y: 14 },
+  { id: "ml", label: "Left", x: 14, y: 50 },
+  { id: "mc", label: "Middle", x: 50, y: 50 },
+  { id: "mr", label: "Right", x: 86, y: 50 },
+  { id: "bl", label: "Down-Left", x: 18, y: 80 },
+  { id: "bc", label: "Down-Mid", x: 50, y: 80 },
+  { id: "br", label: "Down-Right", x: 82, y: 80 },
+];
+
+function InlineTextStyleRow({ elementKey, styleObj, onChange }) {
+  const cfg = TEXT_ELEMENT_CONFIG[elementKey];
+  if (!cfg) return null;
+  const activeFont = styleObj?.font || "theme";
+  const activeSize = styleObj?.fontSize ?? cfg.defaultSize;
+  const activeAlign = styleObj?.align || "";
+
+  return (
+    <div className="certificate-header-style-controls" style={{ marginTop: -4, marginBottom: 14 }}>
+      <div className="certificate-style-group">
+        <span>{cfg.label} size ({Math.round(activeSize)}pt)</span>
+        <div className="certificate-pill-group" role="group" aria-label={`${cfg.label} font size`}>
+          {[
+            { id: "sm", label: "Small" },
+            { id: "md", label: "Medium" },
+            { id: "lg", label: "Large" },
+            { id: "xl", label: "XL" },
+          ].map((item) => {
+            const pt = cfg.presets[item.id];
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`certificate-pill-btn${activeSize === pt ? " is-active" : ""}`}
+                onClick={() => onChange({ fontSize: pt })}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="certificate-style-group">
+        <span>Font</span>
+        <select
+          className="certificate-inline-select"
+          value={activeFont}
+          onChange={(e) => onChange({ font: e.target.value })}
+        >
+          {CERTIFICATE_FONTS.map((f) => (
+            <option key={f.id} value={f.id}>{f.label}</option>
+          ))}
+        </select>
+      </div>
+      <div className="certificate-style-group">
+        <span>Align</span>
+        <div className="certificate-pill-group" role="group" aria-label={`${cfg.label} alignment`}>
+          {[
+            { id: "left", label: "Left" },
+            { id: "center", label: "Middle" },
+            { id: "right", label: "Right" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`certificate-pill-btn${activeAlign === item.id ? " is-active" : ""}`}
+              onClick={() => onChange({ align: item.id })}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CertificatePlacementDock({
+  event,
+  settings,
+  selectedItem,
+  onSelectItem,
+  onUpdateField,
+  onUpdateLogo,
+  onUpdateSignature,
+  onUpdateTextStyle,
+}) {
+  const dockItems = [
+    { type: "text", key: "organization", label: "Header" },
+    { type: "text", key: "title", label: "Headline" },
+    { type: "text", key: "recipient", label: "Name" },
+    { type: "text", key: "description", label: "Description" },
+    { type: "text", key: "eventName", label: "Event Name" },
+  ];
+  if (settings.certificateLogoUrl) {
+    dockItems.push({ type: "logo", label: "Logo" });
+  }
+  (settings.signatures || []).forEach((sig, index) => {
+    if (sig.name || sig.imageUrl) {
+      dockItems.push({
+        type: "signature",
+        index,
+        label: sig.name || `Signatory ${index + 1}`,
+      });
+    }
+  });
+
+  const active =
+    dockItems.find(
+      (item) =>
+        selectedItem &&
+        item.type === selectedItem.type &&
+        (item.type !== "text" || item.key === selectedItem.key) &&
+        (item.type !== "signature" || item.index === selectedItem.index)
+    ) || dockItems[1];
+
+  const isText = active.type === "text";
+  const isLogo = active.type === "logo";
+  const isSignature = active.type === "signature";
+
+  const textCfg = isText ? TEXT_ELEMENT_CONFIG[active.key] : null;
+  const textStyle = isText ? (settings.certificateTextStyles?.[active.key] || {}) : null;
+  const activeSig = isSignature ? settings.signatures[active.index] : null;
+
+  const isCustomPos = isText
+    ? textStyle?.x != null && textStyle?.y != null
+    : isLogo
+      ? settings.certificateLogoX != null && settings.certificateLogoY != null
+      : activeSig?.x != null && activeSig?.y != null;
+
+  const curX = isText ? textStyle?.x : isLogo ? settings.certificateLogoX : activeSig?.x;
+  const curY = isText ? textStyle?.y : isLogo ? settings.certificateLogoY : activeSig?.y;
+
+  function applyPreset(preset) {
+    if (isText) {
+      const presetAlign = preset.id.endsWith("l") ? "left" : preset.id.endsWith("r") ? "right" : "center";
+      onUpdateTextStyle(active.key, { x: preset.x, y: preset.y, align: presetAlign });
+    } else if (isLogo) {
+      onUpdateLogo({ certificateLogoX: preset.x, certificateLogoY: preset.y });
+    } else {
+      onUpdateSignature(active.index, { x: preset.x, y: preset.y });
+    }
+  }
+
+  function resetToAuto() {
+    if (isText) {
+      onUpdateTextStyle(active.key, {
+        font: "theme",
+        fontSize: active.key === "organization" ? textCfg.presets[settings.certificateOrganizationSize || "md"] : null,
+        align: active.key === "organization" ? settings.certificateOrganizationAlign || "center" : null,
+        x: null,
+        y: null,
+      });
+    } else if (isLogo) {
+      onUpdateLogo({ certificateLogoX: null, certificateLogoY: null, certificateLogoSize: 8 });
+    } else {
+      onUpdateSignature(active.index, { x: null, y: null, scale: 1 });
+    }
+  }
+
+  const currentTextValue =
+    active.key === "eventName"
+      ? (settings.certificateEventTitle || event?.title || "")
+      : textCfg?.editableKey
+        ? (settings[textCfg.editableKey] || "")
+        : "";
+
+  return (
+    <div className="certificate-placement-dock">
+      <div className="placement-dock-top">
+        <div className="placement-item-tabs" role="group" aria-label="Select item to edit or position">
+          {dockItems.map((item) => {
+            const isActive =
+              item.type === active.type &&
+              item.key === active.key &&
+              item.index === active.index;
+            const icon = item.type === "logo" ? "🖼 " : item.type === "signature" ? "✍ " : "𝐓 ";
+            return (
+              <button
+                key={item.type === "text" ? `text-${item.key}` : item.type === "logo" ? "logo" : `sig-${item.index}`}
+                type="button"
+                className={`certificate-pill-btn${isActive ? " is-active" : ""}`}
+                onClick={() =>
+                  onSelectItem(
+                    item.type === "text"
+                      ? { type: "text", key: item.key }
+                      : item.type === "logo"
+                        ? { type: "logo" }
+                        : { type: "signature", index: item.index }
+                  )
+                }
+              >
+                {icon}
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+        <span className="placement-coords-badge">
+          {isCustomPos ? `${Math.round(curX)}% × ${Math.round(curY)}%` : "Auto Layout"}
+        </span>
+      </div>
+
+      <div className="placement-dock-controls">
+        {isText && textCfg?.editableKey && (
+          <label className="placement-inline-editor">
+            <span>Edit {textCfg.label} Text</span>
+            {textCfg.multiline ? (
+              <textarea
+                rows={2}
+                maxLength={500}
+                value={currentTextValue}
+                onChange={(e) => onUpdateField(textCfg.editableKey, e.target.value)}
+              />
+            ) : (
+              <input
+                type="text"
+                maxLength={150}
+                value={currentTextValue}
+                onChange={(e) => onUpdateField(textCfg.editableKey, e.target.value)}
+                placeholder={active.key === "eventName" ? event?.title || "Event Name" : ""}
+              />
+            )}
+          </label>
+        )}
+
+        {isText && (
+          <div className="placement-text-toolbar">
+            <label className="placement-mini-field">
+              <span>Font</span>
+              <select
+                value={textStyle?.font || "theme"}
+                onChange={(e) => onUpdateTextStyle(active.key, { font: e.target.value })}
+              >
+                {CERTIFICATE_FONTS.map((f) => (
+                  <option key={f.id} value={f.id}>{f.label}</option>
+                ))}
+              </select>
+            </label>
+
+            <div className="placement-mini-field">
+              <span>Size ({Math.round(textStyle?.fontSize ?? textCfg.defaultSize)}pt)</span>
+              <div className="certificate-pill-group">
+                {["sm", "md", "lg", "xl"].map((sz) => {
+                  const pt = textCfg.presets[sz];
+                  return (
+                    <button
+                      key={sz}
+                      type="button"
+                      className={`certificate-pill-btn${(textStyle?.fontSize ?? textCfg.defaultSize) === pt ? " is-active" : ""}`}
+                      onClick={() => onUpdateTextStyle(active.key, { fontSize: pt })}
+                    >
+                      {sz.toUpperCase()}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="placement-mini-field">
+              <span>Align</span>
+              <div className="certificate-pill-group">
+                {[
+                  { id: "left", label: "Left" },
+                  { id: "center", label: "Mid" },
+                  { id: "right", label: "Right" },
+                ].map((al) => (
+                  <button
+                    key={al.id}
+                    type="button"
+                    className={`certificate-pill-btn${(textStyle?.align || "center") === al.id ? " is-active" : ""}`}
+                    onClick={() => onUpdateTextStyle(active.key, { align: al.id })}
+                  >
+                    {al.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <label className="placement-size-slider">
+          <span>
+            {isText
+              ? `${textCfg.label} Font Size (${Math.round(textStyle?.fontSize ?? textCfg.defaultSize)}pt)`
+              : isLogo
+                ? `Logo Size (${Math.round(settings.certificateLogoSize || 8)}%)`
+                : `Signature Size (${Math.round(((activeSig?.scale ?? 1) || 1) * 100)}%)`}
+          </span>
+          {isText ? (
+            <input
+              type="range"
+              min={textCfg.minSize}
+              max={textCfg.maxSize}
+              step="1"
+              value={textStyle?.fontSize ?? textCfg.defaultSize}
+              onChange={(e) => onUpdateTextStyle(active.key, { fontSize: Number(e.target.value) })}
+            />
+          ) : isLogo ? (
+            <input
+              type="range"
+              min="4"
+              max="24"
+              step="0.5"
+              value={settings.certificateLogoSize ?? 8}
+              onChange={(e) => onUpdateLogo({ certificateLogoSize: Number(e.target.value) })}
+            />
+          ) : (
+            <input
+              type="range"
+              min="0.65"
+              max="1.8"
+              step="0.05"
+              value={activeSig?.scale ?? 1}
+              onChange={(e) => onUpdateSignature(active.index, { scale: Number(e.target.value) })}
+            />
+          )}
+        </label>
+
+        <div className="placement-preset-grid" role="group" aria-label="Quick placement presets">
+          {PLACEMENT_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              className="placement-preset-btn"
+              onClick={() => applyPreset(preset)}
+            >
+              {preset.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="placement-preset-btn is-reset"
+            onClick={resetToAuto}
+          >
+            ↺ Auto
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CertificatePreview({
+  event,
+  organizer,
+  settings,
+  participant,
+  selectedItem,
+  onSelectItem,
+  onUpdateField,
+  onMoveLogo,
+  onMoveSignature,
+  onMoveText,
+}) {
+  const artRef = useRef(null);
+  const dragRef = useRef(null);
+  const [snapGuides, setSnapGuides] = useState({ x: false, y: false });
+  const [draggingKey, setDraggingKey] = useState("");
+  const [editingKey, setEditingKey] = useState("");
+
+  useEffect(() => {
+    function handleMove(ev) {
+      const drag = dragRef.current;
+      const art = artRef.current;
+      if (!drag || !art) return;
+      const rect = art.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const minX = drag.kind === "logo" ? 4 : 8;
+      const maxX = drag.kind === "logo" ? 96 : 92;
+      const minY = drag.kind === "logo" ? 4 : 8;
+      const maxY = drag.kind === "logo" ? 96 : 92;
+
+      let xPct = ((ev.clientX + drag.offsetX - rect.left) / rect.width) * 100;
+      let yPct = ((ev.clientY + drag.offsetY - rect.top) / rect.height) * 100;
+      xPct = Math.min(maxX, Math.max(minX, xPct));
+      yPct = Math.min(maxY, Math.max(minY, yPct));
+
+      const snapX = Math.abs(xPct - 50) < 1.6;
+      const snapY = Math.abs(yPct - 50) < 1.6;
+      if (snapX) xPct = 50;
+      if (snapY) yPct = 50;
+
+      const roundedX = Math.round(xPct * 100) / 100;
+      const roundedY = Math.round(yPct * 100) / 100;
+      setSnapGuides({ x: snapX, y: snapY });
+
+      if (drag.kind === "logo") {
+        onMoveLogo?.(roundedX, roundedY);
+      } else if (drag.kind === "signature") {
+        onMoveSignature?.(drag.index, roundedX, roundedY);
+      } else if (drag.kind === "text") {
+        onMoveText?.(drag.key, roundedX, roundedY);
+      }
+    }
+
+    function handleUp() {
+      if (!dragRef.current) return;
+      dragRef.current = null;
+      setDraggingKey("");
+      setSnapGuides({ x: false, y: false });
+    }
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, [onMoveLogo, onMoveSignature, onMoveText]);
+
+  function startCanvasDrag(kind, meta, e) {
+    if (editingKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const elRect = e.currentTarget.getBoundingClientRect();
+    const centerX = elRect.left + elRect.width / 2;
+    const centerY = elRect.top + elRect.height / 2;
+    dragRef.current = {
+      kind,
+      index: kind === "signature" ? meta : -1,
+      key: kind === "text" ? meta : "",
+      offsetX: centerX - e.clientX,
+      offsetY: centerY - e.clientY,
+    };
+    setDraggingKey(kind === "logo" ? "logo" : kind === "signature" ? `sig-${meta}` : `text-${meta}`);
+    onSelectItem?.(
+      kind === "logo"
+        ? { type: "logo" }
+        : kind === "signature"
+          ? { type: "signature", index: meta }
+          : { type: "text", key: meta }
+    );
+  }
+
+  const participantName = formatParticipantName(participant?.name, "Participant Name");
+  const eventDisplayTitle = (settings.certificateEventTitle || "").trim() || event.title || "Event Name";
   const date = event.date
     ? new Date(event.date).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })
     : "Event date";
   const description = (settings.certificateDescription || DEFAULT_DESCRIPTION)
-    .replaceAll("{name}", participant.name || "Participant Name")
-    .replaceAll("{participantName}", participant.name || "Participant Name")
-    .replaceAll("{event}", event.title || "Event Name")
-    .replaceAll("{eventName}", event.title || "Event Name")
+    .replaceAll("{name}", participantName)
+    .replaceAll("{participantName}", participantName)
+    .replaceAll("{event}", eventDisplayTitle)
+    .replaceAll("{eventName}", eventDisplayTitle)
     .replaceAll("{date}", date)
     .replaceAll("{eventDate}", date)
     .replace(/\{[^{}]+\}/g, "");
-  const signatures = (settings.signatures || []).filter((signature) => signature.name || signature.imageUrl);
+  const indexedSignatures = (settings.signatures || [])
+    .map((signature, index) => ({ signature, index }))
+    .filter(({ signature }) => signature.name || signature.imageUrl)
+    .slice(0, 4);
+  const flowSignatures = indexedSignatures.filter(({ signature }) => signature.x == null || signature.y == null);
+  const pinnedSignatures = indexedSignatures.filter(({ signature }) => signature.x != null && signature.y != null);
+  const hasCustomLogoPos = settings.certificateLogoX != null && settings.certificateLogoY != null;
   const organizationDisplay = (settings.certificateOrganization || "EVENTRA").trim();
+  const orgSize = settings.certificateOrganizationSize || "md";
+  const orgAlign = settings.certificateOrganizationAlign || "center";
+  const orgUppercase = settings.certificateOrganizationUppercase === true;
+  const hasTopHeader = Boolean(organizationDisplay || (settings.certificateLogoUrl && !hasCustomLogoPos));
+
+  const textStyles = settings.certificateTextStyles || {};
+  const isTextSelected = (key) => selectedItem?.type === "text" && selectedItem.key === key;
+  const isFloatingText = (key) => textStyles[key]?.x != null && textStyles[key]?.y != null;
+
+  function renderEditableText(key, displayText, className, Tag = "div") {
+    const styleObj = textStyles[key] || {};
+    const cfg = TEXT_ELEMENT_CONFIG[key];
+    const floating = styleObj.x != null && styleObj.y != null;
+    const inlineCss = resolveCssFontStyle(styleObj);
+    const isSelected = isTextSelected(key);
+    const isEditing = editingKey === key;
+
+    const floatingStyle = floating
+      ? {
+          left: `${styleObj.x}%`,
+          top: `${styleObj.y}%`,
+          maxWidth: key === "description" ? "78%" : "86%",
+          textAlign: styleObj.align || "center",
+        }
+      : {};
+
+    if (isEditing && cfg?.editableKey) {
+      const editVal =
+        key === "eventName"
+          ? (settings.certificateEventTitle || event.title || "")
+          : (settings[cfg.editableKey] || "");
+      return (
+        <div
+          className={`certificate-inline-edit-wrap${floating ? " certificate-floating-text" : ""}`}
+          style={floatingStyle}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {cfg.multiline ? (
+            <textarea
+              autoFocus
+              rows={3}
+              value={editVal}
+              onChange={(e) => onUpdateField?.(cfg.editableKey, e.target.value)}
+              onBlur={() => setEditingKey("")}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setEditingKey("");
+              }}
+            />
+          ) : (
+            <input
+              autoFocus
+              type="text"
+              value={editVal}
+              onChange={(e) => onUpdateField?.(cfg.editableKey, e.target.value)}
+              onBlur={() => setEditingKey("")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "Escape") setEditingKey("");
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <Tag
+        className={`${className} is-draggable-item${floating ? " certificate-floating-text" : ""}${isSelected ? " is-selected" : ""}${draggingKey === `text-${key}` ? " is-dragging" : ""}`}
+        style={{ ...inlineCss, ...floatingStyle }}
+        title={`Click to select & drag ${cfg.label}${cfg.editableKey ? " · Double-click to edit text directly" : ""}`}
+        onPointerDown={(e) => startCanvasDrag("text", key, e)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectItem?.({ type: "text", key });
+        }}
+        onDoubleClick={(e) => {
+          if (!cfg.editableKey) return;
+          e.stopPropagation();
+          setEditingKey(key);
+        }}
+      >
+        {displayText}
+      </Tag>
+    );
+  }
+
   return (
-    <div className={`certificate-art certificate-art-${settings.certificateTemplate}`}>
+    <div
+      ref={artRef}
+      className={`certificate-art certificate-art-${settings.certificateTemplate}${hasTopHeader ? " has-org-header" : ""}`}
+      onClick={() => {
+        setEditingKey("");
+        onSelectItem?.(null);
+      }}
+    >
       <div className="certificate-art-inner">
-        <header className="certificate-art-header">
-          {settings.certificateLogoUrl && <img className="certificate-organization-logo" src={settings.certificateLogoUrl} alt="Organization logo" />}
-          {organizationDisplay && <span className="certificate-organization-name">{organizationDisplay}</span>}
+        <header
+          className={`certificate-art-header is-align-${textStyles.organization?.align || orgAlign} is-size-${orgSize}${orgUppercase ? " is-uppercase" : ""}`}
+        >
+          {settings.certificateLogoUrl && !hasCustomLogoPos && (
+            <img
+              className={`certificate-organization-logo is-draggable-item${selectedItem?.type === "logo" ? " is-selected" : ""}`}
+              src={settings.certificateLogoUrl}
+              alt="Organization logo"
+              draggable={false}
+              title="Drag logo anywhere on certificate"
+              onPointerDown={(e) => startCanvasDrag("logo", -1, e)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectItem?.({ type: "logo" });
+              }}
+            />
+          )}
+          {organizationDisplay && !isFloatingText("organization") && renderEditableText(
+            "organization",
+            organizationDisplay,
+            "certificate-organization-name",
+            "span"
+          )}
         </header>
-        <span className="certificate-art-brand">
-          {settings.certificateTemplate === "techAurora"
-            ? "✦ TECH MERIT & INNOVATION ✦"
-            : settings.certificateTemplate === "royalGold"
-            ? "✦ ROYAL MERIT & DISTINCTION ✦"
-            : settings.certificateTemplate === "academic"
-            ? "ACADEMIC DISTINCTION"
-            : settings.certificateTemplate === "emeraldExecutive"
-            ? "EXECUTIVE LEADERSHIP"
-            : settings.certificateTemplate === "crimsonLuxe"
-            ? "PRESTIGIOUS HONORS"
-            : "OFFICIAL RECOGNITION"}
-        </span>
-        <h3>{settings.certificateTitle || "Certificate of Participation"}</h3>
-        <p className="certificate-presented">This certificate is proudly presented to</p>
-        <strong className="certificate-recipient">{participant.name || "Participant Name"}</strong>
-        <p className="certificate-art-description">{description}</p>
-        <strong className="certificate-event-name">{event.title || "Event Name"}</strong>
-        <span className="certificate-art-date">{date}</span>
+        <div className="certificate-art-main">
+          <span className="certificate-art-brand">
+            {settings.certificateTemplate === "techAurora"
+              ? "✦ TECH MERIT & INNOVATION ✦"
+              : settings.certificateTemplate === "royalGold"
+              ? "✦ ROYAL MERIT & DISTINCTION ✦"
+              : settings.certificateTemplate === "academic"
+              ? "ACADEMIC DISTINCTION"
+              : settings.certificateTemplate === "emeraldExecutive"
+              ? "EXECUTIVE LEADERSHIP"
+              : settings.certificateTemplate === "crimsonLuxe"
+              ? "PRESTIGIOUS HONORS"
+              : "OFFICIAL RECOGNITION"}
+          </span>
+          {!isFloatingText("title") && renderEditableText(
+            "title",
+            settings.certificateTitle || "Certificate of Participation",
+            "certificate-headline-el",
+            "h3"
+          )}
+          <p className="certificate-presented">This certificate is proudly presented to</p>
+          {!isFloatingText("recipient") && renderEditableText(
+            "recipient",
+            participantName,
+            "certificate-recipient",
+            "strong"
+          )}
+          {!isFloatingText("description") && renderEditableText(
+            "description",
+            description,
+            "certificate-art-description",
+            "p"
+          )}
+          {!isFloatingText("eventName") && (
+            <>
+              {renderEditableText("eventName", eventDisplayTitle, "certificate-event-name", "strong")}
+              <span
+                className="certificate-art-date"
+                style={
+                  textStyles.eventName?.align
+                    ? {
+                        textAlign: textStyles.eventName.align,
+                        alignSelf:
+                          textStyles.eventName.align === "left"
+                            ? "flex-start"
+                            : textStyles.eventName.align === "right"
+                              ? "flex-end"
+                              : "center",
+                      }
+                    : {}
+                }
+              >
+                {date}
+              </span>
+            </>
+          )}
+        </div>
         <div className="certificate-art-signatories">
-          {signatures.slice(0, 4).map((signature, index) => (
-            <div key={`${signature.name}-${index}`}>
-              {signature.imageUrl && <img src={signature.imageUrl} alt={`${signature.name || "Signatory"} signature`} />}
-              <i />
-              <strong>{signature.name || "Authorized signatory"}</strong>
-              <span>{signature.designation || signature.role}</span>
-            </div>
-          ))}
+          {flowSignatures.map(({ signature, index }) => {
+            const isSelected = selectedItem?.type === "signature" && selectedItem.index === index;
+            const scale = signature.scale ?? 1;
+            return (
+              <div
+                key={`${signature.name}-${index}`}
+                className={`is-draggable-item${isSelected ? " is-selected" : ""}`}
+                title="Drag signatory anywhere on certificate"
+                onPointerDown={(e) => startCanvasDrag("signature", index, e)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectItem?.({ type: "signature", index });
+                }}
+              >
+                {signature.imageUrl && (
+                  <img
+                    src={signature.imageUrl}
+                    alt={`${signature.name || "Signatory"} signature`}
+                    style={{ height: `${Math.round(24 * scale)}px` }}
+                    draggable={false}
+                  />
+                )}
+                <i />
+                <strong>{signature.name || "Authorized signatory"}</strong>
+                <span>{signature.designation || signature.role}</span>
+              </div>
+            );
+          })}
         </div>
         <span className="certificate-organizer">EVENTRA · EVENT CERTIFICATE</span>
       </div>
+
+      {/* Floating custom-positioned text elements */}
+      {organizationDisplay && isFloatingText("organization") && renderEditableText(
+        "organization",
+        orgUppercase ? organizationDisplay.toUpperCase() : organizationDisplay,
+        "certificate-organization-name",
+        "div"
+      )}
+      {isFloatingText("title") && renderEditableText(
+        "title",
+        settings.certificateTitle || "Certificate of Participation",
+        "certificate-headline-el",
+        "h3"
+      )}
+      {isFloatingText("recipient") && renderEditableText(
+        "recipient",
+        participantName,
+        "certificate-recipient",
+        "strong"
+      )}
+      {isFloatingText("description") && renderEditableText(
+        "description",
+        description,
+        "certificate-art-description",
+        "p"
+      )}
+      {isFloatingText("eventName") && renderEditableText(
+        "eventName",
+        `${eventDisplayTitle}\n${date}`,
+        "certificate-event-name certificate-event-floating-group",
+        "div"
+      )}
+
+      {settings.certificateLogoUrl && hasCustomLogoPos && (
+        <div
+          className={`certificate-floating-logo is-draggable-item${selectedItem?.type === "logo" ? " is-selected" : ""}${draggingKey === "logo" ? " is-dragging" : ""}`}
+          style={{
+            left: `${settings.certificateLogoX}%`,
+            top: `${settings.certificateLogoY}%`,
+            width: `${settings.certificateLogoSize || 8}%`,
+          }}
+          title="Drag logo anywhere"
+          onPointerDown={(e) => startCanvasDrag("logo", -1, e)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectItem?.({ type: "logo" });
+          }}
+        >
+          <img src={settings.certificateLogoUrl} alt="Organization logo" draggable={false} />
+        </div>
+      )}
+
+      {pinnedSignatures.map(({ signature, index }) => {
+        const scale = signature.scale ?? 1;
+        const isSelected = selectedItem?.type === "signature" && selectedItem.index === index;
+        return (
+          <div
+            key={`pinned-${index}`}
+            className={`certificate-floating-signatory is-draggable-item${isSelected ? " is-selected" : ""}${draggingKey === `sig-${index}` ? " is-dragging" : ""}`}
+            style={{
+              left: `${signature.x}%`,
+              top: `${signature.y}%`,
+              width: `${Math.round(16.6 * scale * 100) / 100}%`,
+            }}
+            title="Drag signatory anywhere"
+            onPointerDown={(e) => startCanvasDrag("signature", index, e)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectItem?.({ type: "signature", index });
+            }}
+          >
+            {signature.imageUrl && (
+              <img
+                src={signature.imageUrl}
+                alt={`${signature.name || "Signatory"} signature`}
+                style={{ height: `${Math.round(24 * scale)}px` }}
+                draggable={false}
+              />
+            )}
+            <i />
+            <strong>{signature.name || "Authorized signatory"}</strong>
+            <span>{signature.designation || signature.role}</span>
+          </div>
+        );
+      })}
+
+      {snapGuides.x && <div className="certificate-snap-guide-x" />}
+      {snapGuides.y && <div className="certificate-snap-guide-y" />}
     </div>
   );
 }

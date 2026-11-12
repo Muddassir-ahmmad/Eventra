@@ -10,15 +10,21 @@ import Feedback from "../models/Feedback.js";
 import EmailLog from "../models/EmailLog.js";
 import PostEventReport from "../models/PostEventReport.js";
 import Certificate from "../models/Certificate.js";
+import MediaAsset from "../models/MediaAsset.js";
 import { requireAuth } from "../middleware/auth.js";
 import { makeSlug } from "../utils/slug.js";
-import { DEFAULT_CERTIFICATE_DESCRIPTION } from "../utils/certificateDesign.js";
+import {
+  CERTIFICATE_ORG_ALIGNS,
+  CERTIFICATE_ORG_SIZES,
+  DEFAULT_CERTIFICATE_DESCRIPTION,
+} from "../utils/certificateDesign.js";
 import { sendFeedbackEmailsForEvent } from "../utils/feedbackEmail.js";
 import { calculateReportAnalytics } from "../utils/reportAnalytics.js";
 import { isEventCompleted, getEventEndDateTime } from "../utils/eventTiming.js";
 import { generateGeminiPoster, generateGeminiEventCopy, isGeminiConfigured } from "../services/geminiService.js";
 
 const router = express.Router();
+const ALLOWED_EVENT_FONTS = ["modern", "editorial", "futuristic", "classic", "bold", "mono"];
 
 const uploadDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../uploads");
 const maxImageSize = 5 * 1024 * 1024; // 5 MB
@@ -52,13 +58,26 @@ function cloudinarySignature(params, apiSecret) {
   return createHash("sha1").update(`${content}${apiSecret}`).digest("hex");
 }
 
+function posterBaseUrl(req) {
+  const proto = String(req.headers["x-forwarded-proto"] || req.protocol || "http")
+    .split(",")[0]
+    .trim();
+  return `${proto}://${req.get("host")}`;
+}
+
 async function savePosterImage(req, file) {
   if (process.env.NODE_ENV === "production") {
     const config = cloudinaryConfiguration();
     if (!config) {
-      const error = new Error("Configure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET for image uploads in production.");
-      error.status = 503;
-      throw error;
+      const asset = await MediaAsset.create({
+        scope: "poster",
+        mimeType: file.mimetype || "image/png",
+        data: file.buffer,
+      });
+      return {
+        posterUrl: `${posterBaseUrl(req)}/api/events/assets/${asset._id}`,
+        posterPath: `db:${asset._id}`,
+      };
     }
 
     const folder = "eventra/posters";
@@ -91,12 +110,28 @@ async function savePosterImage(req, file) {
   const filePath = path.join(uploadDirectory, filename);
   await fs.writeFile(filePath, file.buffer);
 
-  const baseUrl = `${req.protocol}://${req.get("host")}`;
+  const baseUrl = posterBaseUrl(req);
   return {
     posterUrl: `${baseUrl}/uploads/${filename}`,
     posterPath: `/uploads/${filename}`,
   };
 }
+
+router.get("/assets/:assetId", async (req, res) => {
+  try {
+    if (!/^[a-f\d]{24}$/i.test(req.params.assetId)) return res.status(404).end();
+    const asset = await MediaAsset.findOne({ _id: req.params.assetId, scope: "poster" }).lean();
+    if (!asset?.data) return res.status(404).end();
+    res.set({
+      "Content-Type": asset.mimeType || "image/png",
+      "Cache-Control": "public, max-age=86400",
+    });
+    res.send(Buffer.from(asset.data.buffer || asset.data));
+  } catch (error) {
+    console.error("Load poster asset error:", error);
+    res.status(500).end();
+  }
+});
 
 /*
   POST /api/events/upload-poster
@@ -239,6 +274,7 @@ router.post("/", requireAuth, async (req, res) => {
       posterType,
       posterTemplateData,
       theme,
+      eventFont,
       speakers,
       agenda,
       faqs,
@@ -256,6 +292,9 @@ router.post("/", requireAuth, async (req, res) => {
       signatures,
       certificateShowOrganization,
       certificateOrganization,
+      certificateOrganizationSize,
+      certificateOrganizationAlign,
+      certificateOrganizationUppercase,
       certificateLogoUrl,
       certificateLogoPath,
       requireFeedbackForCertificate,
@@ -309,6 +348,7 @@ router.post("/", requireAuth, async (req, res) => {
       posterType: posterType || "template",
       posterTemplateData: posterTemplateData || {},
       theme: theme || "aurora",
+      eventFont: ALLOWED_EVENT_FONTS.includes(eventFont) ? eventFont : "modern",
       speakers: Array.isArray(speakers) ? speakers : [],
       agenda: Array.isArray(agenda) ? agenda : [],
       faqs: Array.isArray(faqs) ? faqs : [],
@@ -328,6 +368,13 @@ router.post("/", requireAuth, async (req, res) => {
       signatures: Array.isArray(signatures) ? signatures : [],
       certificateShowOrganization: certificateShowOrganization === true,
       certificateOrganization: certificateOrganization || "",
+      certificateOrganizationSize: CERTIFICATE_ORG_SIZES.includes(certificateOrganizationSize)
+        ? certificateOrganizationSize
+        : "md",
+      certificateOrganizationAlign: CERTIFICATE_ORG_ALIGNS.includes(certificateOrganizationAlign)
+        ? certificateOrganizationAlign
+        : "center",
+      certificateOrganizationUppercase: certificateOrganizationUppercase === true,
       certificateLogoUrl: certificateLogoUrl || "",
       certificateLogoPath: certificateLogoPath || "",
       requireFeedbackForCertificate: requireFeedbackForCertificate === true,
@@ -461,6 +508,7 @@ router.put("/:eventId", requireAuth, async (req, res) => {
       posterType,
       posterTemplateData,
       theme,
+      eventFont,
       speakers,
       agenda,
       faqs,
@@ -478,6 +526,9 @@ router.put("/:eventId", requireAuth, async (req, res) => {
       signatures,
       certificateShowOrganization,
       certificateOrganization,
+      certificateOrganizationSize,
+      certificateOrganizationAlign,
+      certificateOrganizationUppercase,
       certificateLogoUrl,
       certificateLogoPath,
       completedAt,
@@ -506,6 +557,9 @@ router.put("/:eventId", requireAuth, async (req, res) => {
     if (posterType !== undefined) event.posterType = posterType;
     if (posterTemplateData !== undefined) event.posterTemplateData = posterTemplateData;
     if (theme !== undefined) event.theme = theme;
+    if (eventFont !== undefined && ALLOWED_EVENT_FONTS.includes(eventFont)) {
+      event.eventFont = eventFont;
+    }
     if (speakers !== undefined) event.speakers = Array.isArray(speakers) ? speakers : [];
     if (agenda !== undefined) event.agenda = Array.isArray(agenda) ? agenda : [];
     if (faqs !== undefined) event.faqs = Array.isArray(faqs) ? faqs : [];
@@ -521,6 +575,22 @@ router.put("/:eventId", requireAuth, async (req, res) => {
     if (ticketTypes !== undefined) event.ticketTypes = Array.isArray(ticketTypes) ? ticketTypes : [];
     if (volunteerEnabled !== undefined) event.volunteerEnabled = volunteerEnabled;
     if (volunteerRoles !== undefined) event.volunteerRoles = Array.isArray(volunteerRoles) ? volunteerRoles : [];
+    const hasCertificateSettingsChange = [
+      certificateEnabled,
+      certificateTemplate,
+      certificateTitle,
+      certificateDescription,
+      eventType,
+      signatures,
+      certificateShowOrganization,
+      certificateOrganization,
+      certificateOrganizationSize,
+      certificateOrganizationAlign,
+      certificateOrganizationUppercase,
+      certificateLogoUrl,
+      certificateLogoPath,
+    ].some((value) => value !== undefined);
+
     if (certificateEnabled !== undefined) event.certificateEnabled = certificateEnabled;
     if (certificateTemplate !== undefined) event.certificateTemplate = certificateTemplate;
     if (certificateTitle !== undefined) event.certificateTitle = certificateTitle;
@@ -529,8 +599,26 @@ router.put("/:eventId", requireAuth, async (req, res) => {
     if (signatures !== undefined) event.signatures = Array.isArray(signatures) ? signatures : [];
     if (certificateShowOrganization !== undefined) event.certificateShowOrganization = certificateShowOrganization;
     if (certificateOrganization !== undefined) event.certificateOrganization = certificateOrganization;
+    if (
+      certificateOrganizationSize !== undefined &&
+      CERTIFICATE_ORG_SIZES.includes(certificateOrganizationSize)
+    ) {
+      event.certificateOrganizationSize = certificateOrganizationSize;
+    }
+    if (
+      certificateOrganizationAlign !== undefined &&
+      CERTIFICATE_ORG_ALIGNS.includes(certificateOrganizationAlign)
+    ) {
+      event.certificateOrganizationAlign = certificateOrganizationAlign;
+    }
+    if (certificateOrganizationUppercase !== undefined) {
+      event.certificateOrganizationUppercase = Boolean(certificateOrganizationUppercase);
+    }
     if (certificateLogoUrl !== undefined) event.certificateLogoUrl = certificateLogoUrl;
     if (certificateLogoPath !== undefined) event.certificateLogoPath = certificateLogoPath;
+    if (hasCertificateSettingsChange) {
+      event.certificateUpdatedAt = new Date();
+    }
     if (completedAt !== undefined) event.completedAt = completedAt;
     if (feedbackDeadline !== undefined) event.feedbackDeadline = feedbackDeadline ? new Date(feedbackDeadline) : null;
     if (requireFeedbackForCertificate !== undefined) event.requireFeedbackForCertificate = Boolean(requireFeedbackForCertificate);
@@ -554,6 +642,9 @@ router.put("/:eventId", requireAuth, async (req, res) => {
     }
 
     await event.save();
+    if (hasCertificateSettingsChange) {
+      await Certificate.updateMany({ eventId: event._id }, { $unset: { pdfData: 1 } });
+    }
 
     res.json({
       message: "Event updated successfully",

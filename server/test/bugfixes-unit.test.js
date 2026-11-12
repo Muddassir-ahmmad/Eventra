@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isEventCompleted, getEventEndDateTime } from "../src/utils/eventTiming.js";
+import {
+  isAttendanceEntryLocked,
+  isEventCompleted,
+  getEventEndDateTime,
+} from "../src/utils/eventTiming.js";
 
 test("Bugfix 5 & 7: isEventCompleted flags past dates and prevents registration & editing", () => {
   const pastEvent = {
@@ -113,5 +117,35 @@ test("Organizer Profile & Password settings validation", async () => {
     assert.equal(validateNewPassword("short"), false);
     assert.equal(validateNewPassword("newValidPass99"), true);
   });
+});
+
+test("Attendance entry lock prevents check-ins after event end date/time or closure", () => {
+  const ongoingEvent = {
+    date: "2026-11-12T00:00:00.000Z",
+    startTime: "10:00",
+    endTime: "17:00",
+    status: "published",
+  };
+
+  assert.equal(
+    isAttendanceEntryLocked(ongoingEvent, new Date("2026-11-12T16:59:59.000Z")),
+    false,
+    "Attendance must remain unlocked before endTime"
+  );
+  assert.equal(
+    isAttendanceEntryLocked(ongoingEvent, new Date("2026-11-12T17:00:00.000Z")),
+    true,
+    "Attendance must lock once event reaches endTime"
+  );
+  assert.equal(
+    isAttendanceEntryLocked({ ...ongoingEvent, status: "completed" }, new Date("2026-11-12T10:30:00.000Z")),
+    true,
+    "Explicit completed status must lock attendance immediately"
+  );
+  assert.equal(
+    isAttendanceEntryLocked({ ...ongoingEvent, status: "closed" }, new Date("2026-11-12T10:30:00.000Z")),
+    true,
+    "Explicit closed status must lock attendance immediately"
+  );
 });
 

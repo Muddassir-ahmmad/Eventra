@@ -69,3 +69,15 @@ export function isEventCompleted(event, currentTime = new Date()) {
 
   return currentTime.getTime() >= end.getTime();
 }
+
+/**
+ * Checks whether gate check-in / attendance entry must be locked because
+ * the event has ended or been explicitly closed.
+ *
+ * @param {Object} event Mongoose event document or plain object
+ * @param {Date} [currentTime=new Date()]
+ * @returns {boolean}
+ */
+export function isAttendanceEntryLocked(event, currentTime = new Date()) {
+  return isEventCompleted(event, currentTime);
+}

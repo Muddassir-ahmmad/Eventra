@@ -2,9 +2,31 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api, { setToken } from "../api";
 
+const DISMISSED_NOTIFICATIONS_KEY = "eventra_dismissed_platform_notifications";
+
+const NOTIFICATION_TYPE_META = {
+  SECURITY_ALERT: { label: "Security Alert", accent: "#ef4444", bg: "rgba(239, 68, 68, 0.1)" },
+  MAINTENANCE: { label: "Maintenance", accent: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" },
+  BILLING_REMINDER: { label: "Billing Reminder", accent: "#38bdf8", bg: "rgba(56, 189, 248, 0.1)" },
+  POLICY_UPDATE: { label: "Policy Update", accent: "#a855f7", bg: "rgba(168, 85, 247, 0.1)" },
+  ANNOUNCEMENT: { label: "Announcement", accent: "#10b981", bg: "rgba(16, 185, 129, 0.1)" },
+};
+
+function readDismissedNotifications() {
+  try {
+    const raw = localStorage.getItem(DISMISSED_NOTIFICATIONS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [dismissedIds, setDismissedIds] = useState(readDismissedNotifications);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -14,18 +36,42 @@ export default function Dashboard() {
 
   async function loadEvents() {
     try {
-      const { data } = await api.get("/events/mine");
-      setEvents(data.events || []);
-    } catch (err) {
-      setError(err.response?.data?.message || "Could not load your events.");
-      if (err.response?.status === 401) {
-        setToken(null);
-        navigate("/login");
+      const [eventsResult, notificationsResult] = await Promise.allSettled([
+        api.get("/events/mine"),
+        api.get("/organizer/notifications"),
+      ]);
+
+      if (eventsResult.status === "fulfilled") {
+        setEvents(eventsResult.value.data.events || []);
+      } else {
+        const err = eventsResult.reason;
+        setError(err?.response?.data?.message || "Could not load your events.");
+        if (err?.response?.status === 401) {
+          setToken(null);
+          navigate("/login");
+          return;
+        }
+      }
+
+      if (notificationsResult.status === "fulfilled") {
+        setNotifications(notificationsResult.value.data.notifications || []);
       }
     } finally {
       setLoading(false);
     }
   }
+
+  function dismissNotification(id) {
+    const next = Array.from(new Set([...dismissedIds, id]));
+    setDismissedIds(next);
+    try {
+      localStorage.setItem(DISMISSED_NOTIFICATIONS_KEY, JSON.stringify(next));
+    } catch {
+      // Ignore storage quota errors
+    }
+  }
+
+  const visibleNotifications = notifications.filter((n) => !dismissedIds.includes(n._id));
 
   const publishedCount = events.filter((e) => e.status === "published").length;
   const completedCount = events.filter((e) => e.status === "completed").length;
@@ -59,9 +105,6 @@ export default function Dashboard() {
             >
               🎧 Talk to Admin
             </Link>
-            <Link className="button button-ghost" to="/dashboard/settings" style={{ fontSize: "0.88rem" }}>
-              ⚙️ Account Settings
-            </Link>
             <Link className="button button-primary" to="/create-event">
               ＋ Create Event
             </Link>
@@ -69,6 +112,84 @@ export default function Dashboard() {
         </div>
 
         {error && <div className="alert-error">{error}</div>}
+
+        {visibleNotifications.length > 0 && (
+          <section
+            aria-label="Platform announcements"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              marginBottom: 22,
+            }}
+          >
+            {visibleNotifications.slice(0, 3).map((item) => {
+              const meta = NOTIFICATION_TYPE_META[item.type] || NOTIFICATION_TYPE_META.ANNOUNCEMENT;
+              return (
+                <div
+                  key={item._id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: 14,
+                    padding: "14px 16px",
+                    borderRadius: 12,
+                    border: `1px solid ${meta.accent}44`,
+                    background: meta.bg,
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span
+                        style={{
+                          fontSize: "0.7rem",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          background: `${meta.accent}22`,
+                          color: meta.accent,
+                          border: `1px solid ${meta.accent}55`,
+                        }}
+                      >
+                        {meta.label}
+                      </span>
+                      <strong style={{ color: "#f8fafc", fontSize: "0.95rem" }}>{item.title}</strong>
+                      {item.createdAt && (
+                        <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+                          · {new Date(item.createdAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ margin: 0, color: "#cbd5e1", fontSize: "0.86rem", lineHeight: 1.45 }}>
+                      {item.message}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => dismissNotification(item._id)}
+                    title="Dismiss announcement"
+                    aria-label="Dismiss announcement"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#94a3b8",
+                      cursor: "pointer",
+                      fontSize: "1.1rem",
+                      lineHeight: 1,
+                      padding: "2px 6px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+          </section>
+        )}
 
         <div className="stats-row">
           <Stat label="Total Events" value={events.length} icon="◈" />

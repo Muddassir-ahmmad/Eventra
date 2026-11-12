@@ -1,5 +1,33 @@
 import mongoose from "mongoose";
 
+const certificateTextElementSchema = new mongoose.Schema(
+  {
+    font: {
+      type: String,
+      enum: ["theme", "serif", "sans", "italicSerif", "italicSans", "mono"],
+      default: "theme",
+    },
+    fontSize: {
+      type: Number,
+      default: null,
+    },
+    align: {
+      type: String,
+      enum: ["left", "center", "right", null],
+      default: null,
+    },
+    x: {
+      type: Number,
+      default: null,
+    },
+    y: {
+      type: Number,
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
 const speakerSchema = new mongoose.Schema(
   {
     name: {
@@ -182,6 +210,18 @@ const signatureSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    x: {
+      type: Number,
+      default: null,
+    },
+    y: {
+      type: Number,
+      default: null,
+    },
+    scale: {
+      type: Number,
+      default: null,
+    },
   },
   { _id: true }
 );
@@ -313,6 +353,12 @@ const eventSchema = new mongoose.Schema(
       type: String,
       enum: ["aurora", "minimal", "conference", "creative"],
       default: "aurora",
+    },
+
+    eventFont: {
+      type: String,
+      enum: ["modern", "editorial", "futuristic", "classic", "bold", "mono"],
+      default: "modern",
     },
 
     /*
@@ -451,6 +497,23 @@ const eventSchema = new mongoose.Schema(
       default: "",
     },
 
+    certificateLogoX: {
+      type: Number,
+      default: null,
+    },
+
+    certificateLogoY: {
+      type: Number,
+      default: null,
+    },
+
+    certificateLogoSize: {
+      type: Number,
+      default: 8,
+      min: 4,
+      max: 30,
+    },
+
     certificateShowOrganization: {
       type: Boolean,
       default: false,
@@ -460,6 +523,42 @@ const eventSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+    },
+
+    certificateOrganizationSize: {
+      type: String,
+      enum: ["sm", "md", "lg", "xl"],
+      default: "md",
+    },
+
+    certificateOrganizationAlign: {
+      type: String,
+      enum: ["left", "center", "right"],
+      default: "center",
+    },
+
+    certificateOrganizationUppercase: {
+      type: Boolean,
+      default: false,
+    },
+
+    certificateEventTitle: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    certificateTextStyles: {
+      organization: { type: certificateTextElementSchema, default: () => ({}) },
+      title: { type: certificateTextElementSchema, default: () => ({}) },
+      recipient: { type: certificateTextElementSchema, default: () => ({}) },
+      description: { type: certificateTextElementSchema, default: () => ({}) },
+      eventName: { type: certificateTextElementSchema, default: () => ({}) },
+    },
+
+    certificateUpdatedAt: {
+      type: Date,
+      default: null,
     },
 
     signatures: {
