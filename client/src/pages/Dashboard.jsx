@@ -105,19 +105,6 @@ export default function Dashboard() {
             >
               🎧 Talk to Admin
             </Link>
-            <Link
-              className="button button-ghost"
-              to="/dashboard/settings"
-              style={{
-                fontSize: "0.88rem",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                fontWeight: 600,
-              }}
-            >
-              ⚙️ Account Settings
-            </Link>
             <Link className="button button-primary" to="/create-event">
               ＋ Create Event
             </Link>
