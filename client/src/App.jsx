@@ -251,7 +251,7 @@ function OrganizerHeader() {
                     🎧 Talk to Admin / Support
                   </button>
                   <button onClick={() => { setOpen(false); navigate("/dashboard/settings"); }}>
-                    👤 Profile Settings
+                    ⚙️ Account Settings
                   </button>
                   <button onClick={() => { setOpen(false); navigate("/dashboard/settings"); }}>
                     🔒 Change Password
