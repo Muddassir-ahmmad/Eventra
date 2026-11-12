@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import multer from "multer";
+import Attendance from "../models/Attendance.js";
 import Certificate from "../models/Certificate.js";
 import Event from "../models/Event.js";
 import MediaAsset from "../models/MediaAsset.js";
@@ -11,6 +12,13 @@ import Registration from "../models/Registration.js";
 import User from "../models/User.js";
 import { requireAuth } from "../middleware/auth.js";
 import emailService from "../services/emailService.js";
+import {
+  evaluateRegistrationCertificateEligibility,
+  formatEventDateRangeLabel,
+  getAllEventSessions,
+  getEventDaysNormalized,
+  normalizeCertificateEligibilityRule,
+} from "../utils/multiDay.js";
 import {
   CERTIFICATE_ORG_ALIGNS,
   CERTIFICATE_ORG_SIZES,
@@ -286,6 +294,15 @@ function drawCustomPositionedText(doc, {
   return { drawX, drawY, boxW, boxH };
 }
 
+function drawHeaderTagline(doc, tagline, { x, y, width, align, font, fontSize, color }) {
+  const clean = String(tagline || "").trim();
+  if (!clean || width <= 0) return 0;
+  doc.font(font).fontSize(fontSize).fillColor(color);
+  const height = doc.heightOfString(clean, { width, align, lineGap: 1.5 });
+  doc.text(clean, x, y, { width, align, lineGap: 1.5 });
+  return height;
+}
+
 export function renderCertificate(event, registration, organization, images = { logo: null, signatures: [] }) {
   return new Promise((resolve, reject) => {
     import("pdfkit").then(({ default: PDFDocument }) => {
@@ -391,7 +408,9 @@ export function renderCertificate(event, registration, organization, images = { 
       const align = style.layout === "left" ? "left" : "center";
       const title = event.certificateTitle || DEFAULT_CERTIFICATE_TITLE;
       const eventTitle = (event.certificateEventTitle || "").trim() || event.title || "Event";
-      const date = formatDate(event.date);
+      const date = event.eventDurationType === "multi_day"
+        ? formatEventDateRangeLabel(event)
+        : formatDate(event.date);
       const description = resolveCertificateDescription(
         event.certificateDescription,
         registration.name,
@@ -401,6 +420,7 @@ export function renderCertificate(event, registration, organization, images = { 
       const visibleOrganization =
         String(event.certificateOrganization || "").trim() ||
         (event.certificateShowOrganization ? organization : "");
+      const headerTagline = String(event.certificateOrganizationTagline || "").trim();
       const textStyles = normalizeCertificateTextStyles(event.certificateTextStyles, {
         size: event.certificateOrganizationSize || "md",
         align: event.certificateOrganizationAlign || "center",
@@ -473,13 +493,14 @@ export function renderCertificate(event, registration, organization, images = { 
       const headerSpacing = visibleOrganization ? 0.6 : 1.5;
       const hasCustomLogoPos = event.certificateLogoX != null && event.certificateLogoY != null;
       const hasCustomOrgPos = orgStyle.x != null && orgStyle.y != null;
-      const hasCustomHeader = Boolean(visibleOrganization || (images.logo && !hasCustomLogoPos));
+      const hasCustomHeader = Boolean(visibleOrganization || headerTagline || (images.logo && !hasCustomLogoPos));
       const headerY = hasCustomHeader ? 58 : style.layout === "academic" ? 108 : 82;
+      const taglineFont = resolvePdfFont(orgStyle.font, style.font, false);
 
       let headerBottomY = headerY;
       if (hasCustomOrgPos) {
         const headerFontSize = fitFontSize(doc, topHeadline, orgFont, contentWidth, maxHeaderSize, minHeaderSize);
-        drawCustomPositionedText(doc, {
+        const headlineBox = drawCustomPositionedText(doc, {
           text: topHeadline,
           font: orgFont,
           fontSize: headerFontSize,
@@ -492,6 +513,20 @@ export function renderCertificate(event, registration, organization, images = { 
           maxBoxWidth: contentWidth,
           characterSpacing: headerSpacing,
         });
+        if (headerTagline) {
+          const taglineSize = Math.max(7.5, Math.min(10.5, headerFontSize - 3));
+          const taglineBoxW = Math.min(contentWidth, Math.max(headlineBox.boxW, 240));
+          const taglineX = Math.max(48, Math.min(width - 48 - taglineBoxW, headlineBox.drawX + (headlineBox.boxW - taglineBoxW) / 2));
+          drawHeaderTagline(doc, headerTagline, {
+            x: taglineX,
+            y: headlineBox.drawY + headlineBox.boxH + 3,
+            width: taglineBoxW,
+            align: resolvedOrgAlign,
+            font: taglineFont,
+            fontSize: taglineSize,
+            color: style.ink,
+          });
+        }
         if (images.logo && !hasCustomLogoPos) {
           try {
             doc.image(images.logo, left, headerY, { fit: [38, 32], align: "center", valign: "center" });
@@ -506,12 +541,30 @@ export function renderCertificate(event, registration, organization, images = { 
         const gap = 10;
         const availTextWidth = Math.max(120, contentWidth - logoBox - gap);
         const headerFontSize = fitFontSize(doc, topHeadline, orgFont, availTextWidth, maxHeaderSize, minHeaderSize);
+        const taglineSize = Math.max(7.5, Math.min(10.5, headerFontSize - 3));
+
         doc.font(orgFont).fontSize(headerFontSize).fillColor(style.accent);
-        const measuredWidth = doc.widthOfString(topHeadline, { characterSpacing: headerSpacing });
-        const singleLine = measuredWidth <= availTextWidth;
-        const textBlockWidth = singleLine ? measuredWidth : availTextWidth;
+        const measuredHeadlineWidth = doc.widthOfString(topHeadline, { characterSpacing: headerSpacing });
+        const headlineBlockWidth = Math.min(availTextWidth, measuredHeadlineWidth);
+
+        let measuredTaglineWidth = 0;
+        if (headerTagline) {
+          doc.font(taglineFont).fontSize(taglineSize);
+          measuredTaglineWidth = doc.widthOfString(headerTagline);
+        }
+
+        const textBlockWidth = Math.min(availTextWidth, Math.max(headlineBlockWidth, measuredTaglineWidth));
+        doc.font(orgFont).fontSize(headerFontSize);
         const textHeight = doc.heightOfString(topHeadline, { width: textBlockWidth, characterSpacing: headerSpacing });
-        const rowHeight = Math.max(logoHeight, textHeight);
+
+        let taglineHeight = 0;
+        if (headerTagline) {
+          doc.font(taglineFont).fontSize(taglineSize);
+          taglineHeight = doc.heightOfString(headerTagline, { width: textBlockWidth, lineGap: 1.5 });
+        }
+
+        const totalTextHeight = headerTagline ? textHeight + 3 + taglineHeight : textHeight;
+        const rowHeight = Math.max(logoHeight, totalTextHeight);
         const totalBlockWidth = logoBox + gap + textBlockWidth;
         const blockX = resolvedOrgAlign === "left"
           ? left
@@ -529,14 +582,30 @@ export function renderCertificate(event, registration, organization, images = { 
           console.error("Certificate logo could not be rendered:", error.message);
         }
 
-        doc.text(topHeadline, blockX + logoBox + gap, headerY + Math.max(0, (rowHeight - textHeight) / 2), {
+        const textStartX = blockX + logoBox + gap;
+        const textStartY = headerY + Math.max(0, (rowHeight - totalTextHeight) / 2);
+        const headlineAlign = measuredHeadlineWidth <= textBlockWidth && !headerTagline ? "left" : resolvedOrgAlign;
+        doc.font(orgFont).fontSize(headerFontSize).fillColor(style.accent);
+        doc.text(topHeadline, textStartX, textStartY, {
           width: textBlockWidth,
-          align: singleLine ? "left" : resolvedOrgAlign,
+          align: headlineAlign,
           characterSpacing: headerSpacing,
         });
+        if (headerTagline) {
+          drawHeaderTagline(doc, headerTagline, {
+            x: textStartX,
+            y: textStartY + textHeight + 3,
+            width: textBlockWidth,
+            align: resolvedOrgAlign,
+            font: taglineFont,
+            fontSize: taglineSize,
+            color: style.ink,
+          });
+        }
         headerBottomY = headerY + rowHeight;
       } else {
         const headerFontSize = fitFontSize(doc, topHeadline, orgFont, contentWidth, maxHeaderSize, minHeaderSize);
+        const taglineSize = Math.max(7.5, Math.min(10.5, headerFontSize - 3));
         doc.font(orgFont).fontSize(headerFontSize).fillColor(style.accent);
         const textHeight = doc.heightOfString(topHeadline, { width: contentWidth, align: resolvedOrgAlign, characterSpacing: headerSpacing });
         doc.text(topHeadline, left, headerY, {
@@ -544,7 +613,16 @@ export function renderCertificate(event, registration, organization, images = { 
           align: resolvedOrgAlign,
           characterSpacing: headerSpacing,
         });
-        headerBottomY = headerY + textHeight;
+        const taglineHeight = drawHeaderTagline(doc, headerTagline, {
+          x: left,
+          y: headerY + textHeight + 3,
+          width: contentWidth,
+          align: resolvedOrgAlign,
+          font: taglineFont,
+          fontSize: taglineSize,
+          color: style.ink,
+        });
+        headerBottomY = headerY + textHeight + (taglineHeight > 0 ? 3 + taglineHeight : 0);
       }
 
       if (images.logo && hasCustomLogoPos) {
@@ -811,26 +889,31 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
     const event = await findOwnedEvent(req.params.eventId, req.userId);
     if (!event) return res.status(404).json({ message: "Event not found" });
 
-    const [registrations, certificates, organizer, emailConfigured] = await Promise.all([
+    const [registrations, certificates, attendanceRecords, organizer, emailConfigured] = await Promise.all([
       Registration.find({ eventId: event._id }).sort({ name: 1 }).lean(),
       Certificate.find({ eventId: event._id }).select("-pdfData").lean(),
+      Attendance.find({ eventId: event._id }).lean(),
       User.findById(event.organizerId).select("name organization").lean(),
       Promise.resolve(emailService.isConfigured()),
     ]);
     const issuedByRegistration = new Map(
       certificates.map((certificate) => [String(certificate.registrationId), certificatePayload(certificate)])
     );
+    const attendanceByRegistration = new Map();
+    for (const record of attendanceRecords) {
+      const key = String(record.registrationId);
+      if (!attendanceByRegistration.has(key)) attendanceByRegistration.set(key, []);
+      attendanceByRegistration.get(key).push(record);
+    }
+
+    const days = getEventDaysNormalized(event);
+    const allSessions = getAllEventSessions(event);
     const participants = registrations.map((registration) => {
-      const checkedIn = isAttendedRegistration(registration);
+      const regAttendance = attendanceByRegistration.get(String(registration._id)) || [];
+      const evalResult = evaluateRegistrationCertificateEligibility(event, registration, regAttendance);
+      const checkedIn = evalResult.attendedDayNumbers.length > 0 || evalResult.attendedSessionIds.length > 0 || isAttendedRegistration(registration);
       const feedbackSubmitted = registration.feedbackSubmitted === true;
-      let eligibilityStatus = "ineligible_absent";
-      if (checkedIn) {
-        if (event.requireFeedbackForCertificate && !feedbackSubmitted) {
-          eligibilityStatus = "feedback_pending";
-        } else {
-          eligibilityStatus = "eligible";
-        }
-      }
+
       return {
         _id: String(registration._id),
         name: formatParticipantName(registration.name, "Participant"),
@@ -839,7 +922,11 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
         checkedIn,
         checkedInAt: registration.checkedInAt,
         feedbackSubmitted,
-        eligibilityStatus,
+        eligibilityStatus: evalResult.eligibilityStatus,
+        eligibilityReason: evalResult.reason,
+        attendedDays: evalResult.attendedDayNumbers,
+        totalEventDays: evalResult.totalEventDays,
+        attendedSessions: evalResult.attendedSessionIds,
         certificate: issuedByRegistration.get(String(registration._id)) || null,
       };
     });
@@ -850,6 +937,12 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
 
     res.json({
       event,
+      days,
+      allSessions,
+      certificateEligibilityRule: normalizeCertificateEligibilityRule(
+        event.certificateEligibilityRule,
+        allSessions.map((s) => s.sessionId)
+      ),
       organizer: {
         name: organizer?.name || "",
         organization: organizer?.organization || "",
@@ -878,10 +971,15 @@ router.put("/event/:eventId", requireAuth, async (req, res) => {
   try {
     const event = await findOwnedEvent(req.params.eventId, req.userId);
     if (!event) return res.status(404).json({ message: "Event not found" });
+    const allSessions = getAllEventSessions(event);
     const settings = normalizeCertificateSettings({
       ...event.toObject(),
       ...req.body,
     });
+    settings.certificateEligibilityRule = normalizeCertificateEligibilityRule(
+      req.body.certificateEligibilityRule ?? settings.certificateEligibilityRule,
+      allSessions.map((s) => s.sessionId)
+    );
     Object.assign(event, settings, { certificateUpdatedAt: new Date() });
     await event.save();
     await Certificate.updateMany({ eventId: event._id }, { $unset: { pdfData: 1 } });
@@ -967,15 +1065,31 @@ router.post("/event/:eventId/generate", requireAuth, async (req, res) => {
     if (ids.length > 500 || ids.some((id) => !isValidEventId(id))) {
       return res.status(400).json({ message: "Select up to 500 valid participants at a time." });
     }
-    const eligibleRegs = await Registration.find({
-      _id: { $in: ids },
-      eventId: event._id,
-      status: "confirmed",
-      checkedIn: true,
+    const [candidateRegs, attendanceRecords] = await Promise.all([
+      Registration.find({
+        _id: { $in: ids },
+        eventId: event._id,
+        status: "confirmed",
+      }),
+      Attendance.find({
+        eventId: event._id,
+        registrationId: { $in: ids },
+      }).lean(),
+    ]);
+    const attByReg = new Map();
+    for (const record of attendanceRecords) {
+      const key = String(record.registrationId);
+      if (!attByReg.has(key)) attByReg.set(key, []);
+      attByReg.get(key).push(record);
+    }
+    const registrations = candidateRegs.filter((reg) => {
+      const evalResult = evaluateRegistrationCertificateEligibility(
+        event,
+        reg,
+        attByReg.get(String(reg._id)) || []
+      );
+      return evalResult.eligibilityStatus === "eligible";
     });
-    const registrations = event.requireFeedbackForCertificate
-      ? eligibleRegs.filter((item) => item.feedbackSubmitted === true)
-      : eligibleRegs;
     const eligibleIds = new Set(registrations.map((item) => String(item._id)));
     const ineligible = ids.filter((id) => !eligibleIds.has(id));
     const issued = [];
@@ -1049,7 +1163,7 @@ router.get("/event/:eventId/:registrationId/download", requireAuth, async (req, 
   try {
     const event = await findOwnedEvent(req.params.eventId, req.userId);
     if (!event) return res.status(404).json({ message: "Event not found" });
-    const [certificate, registration] = await Promise.all([
+    const [certificate, registration, attendanceRecords] = await Promise.all([
       Certificate.findOne({
         eventId: event._id,
         registrationId: req.params.registrationId,
@@ -1058,12 +1172,17 @@ router.get("/event/:eventId/:registrationId/download", requireAuth, async (req, 
         _id: req.params.registrationId,
         eventId: event._id,
         status: "confirmed",
-        checkedIn: true,
-        ...(event.requireFeedbackForCertificate ? { feedbackSubmitted: true } : {}),
       }),
+      Attendance.find({
+        eventId: event._id,
+        registrationId: req.params.registrationId,
+      }).lean(),
     ]);
-    if (!certificate || !registration) {
-      return res.status(404).json({ message: "Eligible generated certificate not found." });
+    const evalResult = registration
+      ? evaluateRegistrationCertificateEligibility(event, registration, attendanceRecords)
+      : null;
+    if (!certificate || !registration || evalResult?.eligibilityStatus !== "eligible") {
+      return res.status(404).json({ message: evalResult?.reason || "Eligible generated certificate not found." });
     }
     const pdf = await getCertificatePdf(event, registration, certificate);
     res.set({
@@ -1095,19 +1214,26 @@ router.get("/public/:registrationId/status", async (req, res) => {
     }
 
     const event = await Event.findById(registration.eventId).select(
-      "title date venue requireFeedbackForCertificate certificateEnabled certificateTitle"
+      "title date startDate endDate eventDurationType days venue requireFeedbackForCertificate certificateEnabled certificateTitle certificateEligibilityRule"
     );
 
     if (!event) {
       return res.status(404).json({ message: "Associated event not found." });
     }
 
-    const certificate = await Certificate.findOne({
-      eventId: event._id,
-      registrationId: registration._id,
-    }).select("generatedAt generation lastEmailedAt");
+    const [certificate, attendanceRecords] = await Promise.all([
+      Certificate.findOne({
+        eventId: event._id,
+        registrationId: registration._id,
+      }).select("generatedAt generation lastEmailedAt"),
+      Attendance.find({
+        eventId: event._id,
+        registrationId: registration._id,
+      }).lean(),
+    ]);
 
-    const attended = isAttendedRegistration(registration);
+    const evalResult = evaluateRegistrationCertificateEligibility(event, registration, attendanceRecords);
+    const attended = evalResult.attendedDayNumbers.length > 0 || evalResult.attendedSessionIds.length > 0 || isAttendedRegistration(registration);
     const feedbackSubmitted = registration.feedbackSubmitted === true;
     const requireFeedback = Boolean(event.requireFeedbackForCertificate);
 
@@ -1116,9 +1242,9 @@ router.get("/public/:registrationId/status", async (req, res) => {
 
     if (!event.certificateEnabled) {
       reason = "Certificates are not enabled for this event.";
-    } else if (!attended) {
-      reason = "Attendance was not verified at the event.";
-    } else if (requireFeedback && !feedbackSubmitted) {
+    } else if (!evalResult.eligibleByAttendance) {
+      reason = evalResult.reason || "Attendance requirements were not met for this event.";
+    } else if (evalResult.feedbackPending) {
       reason = "Participant feedback survey must be submitted before certificate access.";
     } else {
       eligible = true;
@@ -1130,6 +1256,12 @@ router.get("/public/:registrationId/status", async (req, res) => {
       attended,
       feedbackSubmitted,
       requireFeedback,
+      eligibilityDetails: {
+        attendedDays: evalResult.attendedDayNumbers,
+        totalEventDays: evalResult.totalEventDays,
+        attendedSessions: evalResult.attendedSessionIds,
+        ruleMode: evalResult.ruleMode,
+      },
       feedbackToken: registration.feedbackToken || null,
       certificateAvailable: Boolean(certificate),
       certificate: certificate
@@ -1141,6 +1273,9 @@ router.get("/public/:registrationId/status", async (req, res) => {
       event: {
         title: event.title,
         date: event.date,
+        startDate: event.startDate || event.date,
+        endDate: event.endDate || event.date,
+        eventDurationType: event.eventDurationType || "single_day",
         venue: event.venue,
         certificateTitle: event.certificateTitle,
       },
@@ -1176,11 +1311,19 @@ router.get("/public/:registrationId/download", async (req, res) => {
       return res.status(403).json({ message: "Certificates are not enabled for this event." });
     }
 
-    if (!isAttendedRegistration(registration)) {
-      return res.status(403).json({ message: "Only attendees who attended this event can receive certificates." });
+    const attendanceRecords = await Attendance.find({
+      eventId: event._id,
+      registrationId: registration._id,
+    }).lean();
+    const evalResult = evaluateRegistrationCertificateEligibility(event, registration, attendanceRecords);
+
+    if (!evalResult.eligibleByAttendance) {
+      return res.status(403).json({
+        message: evalResult.reason || "Attendance eligibility requirements for this certificate were not met.",
+      });
     }
 
-    if (event.requireFeedbackForCertificate && !registration.feedbackSubmitted) {
+    if (evalResult.feedbackPending) {
       return res.status(403).json({
         message: "You must complete the event feedback survey before downloading your certificate.",
         feedbackRequired: true,
@@ -1238,19 +1381,22 @@ router.post("/event/:eventId/:registrationId/email", requireAuth, async (req, re
     const event = await findOwnedEvent(req.params.eventId, req.userId);
     if (!event) return res.status(404).json({ message: "Event not found" });
 
-    const [certificate, registration] = await Promise.all([
+    const [certificate, registration, attendanceRecords] = await Promise.all([
       Certificate.findOne({ eventId: event._id, registrationId: req.params.registrationId }).select("+pdfData"),
       Registration.findOne({
         _id: req.params.registrationId,
         eventId: event._id,
         status: "confirmed",
-        checkedIn: true,
-        ...(event.requireFeedbackForCertificate ? { feedbackSubmitted: true } : {}),
       }),
+      Attendance.find({ eventId: event._id, registrationId: req.params.registrationId }).lean(),
     ]);
 
-    if (!certificate || !registration) {
-      return res.status(404).json({ message: "Eligible generated certificate not found." });
+    const evalResult = registration
+      ? evaluateRegistrationCertificateEligibility(event, registration, attendanceRecords)
+      : null;
+
+    if (!certificate || !registration || evalResult?.eligibilityStatus !== "eligible") {
+      return res.status(404).json({ message: evalResult?.reason || "Eligible generated certificate not found." });
     }
 
     const pdf = await getCertificatePdf(event, registration, certificate);
@@ -1300,13 +1446,27 @@ router.post("/event/:eventId/email-bulk", requireAuth, async (req, res) => {
     }
 
     const registrationIds = certificates.map((c) => c.registrationId);
-    const registrations = await Registration.find({
-      _id: { $in: registrationIds },
-      eventId: event._id,
-      status: "confirmed",
-      checkedIn: true,
-    });
-    const regMap = new Map(registrations.map((r) => [String(r._id), r]));
+    const [registrations, attendanceRecords] = await Promise.all([
+      Registration.find({
+        _id: { $in: registrationIds },
+        eventId: event._id,
+        status: "confirmed",
+      }),
+      Attendance.find({
+        eventId: event._id,
+        registrationId: { $in: registrationIds },
+      }).lean(),
+    ]);
+    const attByReg = new Map();
+    for (const record of attendanceRecords) {
+      const key = String(record.registrationId);
+      if (!attByReg.has(key)) attByReg.set(key, []);
+      attByReg.get(key).push(record);
+    }
+    const eligibleRegs = registrations.filter(
+      (r) => evaluateRegistrationCertificateEligibility(event, r, attByReg.get(String(r._id)) || []).eligibilityStatus === "eligible"
+    );
+    const regMap = new Map(eligibleRegs.map((r) => [String(r._id), r]));
 
     const sent = [];
     const failed = [];

@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import { formatParticipantName } from "../utils/participantName.js";
+import { formatEventDateRangeLabel, getEventDaysNormalized } from "../utils/multiDay.js";
 
 function formatTicketDate(date) {
   if (!date) return "Event Date";
@@ -74,10 +75,14 @@ export async function generateTicketPdf(event, registration) {
         .text(event.title || "Event Name", 42, 46, { width: 380, ellipsis: true, lineBreak: false });
 
       // Event Metadata Grid
-      const dateStr = formatTicketDate(event.date);
-      const timeStr = event.startTime
-        ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ""}`
-        : "Standard Entry Timing";
+      const isMultiDay = event.eventDurationType === "multi_day";
+      const daysList = isMultiDay ? getEventDaysNormalized(event) : [];
+      const dateStr = isMultiDay ? formatEventDateRangeLabel(event) : formatTicketDate(event.date);
+      const timeStr = isMultiDay
+        ? `Valid All ${daysList.length || 1} Days (${event.startTime || "Multi-Day Pass"}${event.endTime ? ` - ${event.endTime}` : ""})`
+        : event.startTime
+          ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ""}`
+          : "Standard Entry Timing";
       const cleanLocation = event.location && !/^https?:\/\//i.test(event.location.trim()) ? event.location.trim() : "";
       const venueStr = [event.venue, cleanLocation].filter(Boolean).join(", ") || "Designated Venue";
 

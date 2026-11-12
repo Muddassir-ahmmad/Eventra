@@ -6,6 +6,57 @@ import {
   generatePosterDataUrl,
 } from "../utils/posterTemplates";
 import { EVENT_FONT_OPTIONS, getEventFontConfig } from "../utils/eventFonts";
+import { formatEventDateDisplay, getEventTotalDays, isEventPastOrCompleted } from "../utils/eventTiming";
+
+function buildGeneratedDays(startDateStr, endDateStr, existingDays = [], defaultStartTime = "", defaultEndTime = "") {
+  if (!startDateStr || !endDateStr) return existingDays;
+  const start = new Date(`${startDateStr}T00:00:00Z`);
+  const end = new Date(`${endDateStr}T00:00:00Z`);
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return existingDays;
+
+  const existingByDate = new Map(
+    (Array.isArray(existingDays) ? existingDays : [])
+      .filter((d) => d?.date)
+      .map((d) => [String(d.date).slice(0, 10), d])
+  );
+
+  const days = [];
+  const cursor = new Date(start);
+  let idx = 0;
+  while (cursor <= end && idx < 14) {
+    const key = cursor.toISOString().slice(0, 10);
+    const prev = existingByDate.get(key) || existingDays[idx];
+    days.push({
+      dayNumber: idx + 1,
+      date: key,
+      title: prev?.title && !/^Day\s+\d+$/i.test(prev.title) ? prev.title : `Day ${idx + 1}`,
+      startTime: prev?.startTime || defaultStartTime || "",
+      endTime: prev?.endTime || defaultEndTime || "",
+      sessions: Array.isArray(prev?.sessions) ? prev.sessions : [],
+    });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    idx += 1;
+  }
+  return days;
+}
+
+function flattenDaysToAgenda(days = []) {
+  const flat = [];
+  for (const day of days) {
+    for (const ses of day.sessions || []) {
+      const slot = ses.startTime
+        ? `${ses.startTime}${ses.endTime ? ` - ${ses.endTime}` : ""}`
+        : "Scheduled";
+      flat.push({
+        time: `${day.title || `Day ${day.dayNumber}`} · ${slot}`,
+        title: ses.title || "",
+        description: ses.description || "",
+        speaker: ses.speaker || "",
+      });
+    }
+  }
+  return flat;
+}
 
 const STEPS = [
   ["basics", "Basics"],
@@ -41,6 +92,11 @@ const defaultForm = {
   contactEmail: "",
   contactPhone: "",
   date: "",
+  eventDurationType: "single_day",
+  startDate: "",
+  endDate: "",
+  days: [],
+  sessionAttendanceEnabled: false,
   startTime: "",
   endTime: "",
   venue: "",
@@ -79,9 +135,11 @@ const defaultForm = {
   certificateDescription: "This certificate is proudly presented to {name} for participating in {event}.",
   certificateShowOrganization: false,
   certificateOrganization: "",
+  certificateOrganizationTagline: "",
   certificateOrganizationSize: "md",
   certificateOrganizationAlign: "center",
   certificateOrganizationUppercase: false,
+  certificateEligibilityRule: { mode: "any_day", minDays: 1, requiredSessionIds: [] },
   certificateLogoUrl: "",
   certificateLogoPath: "",
   signatures: [],
@@ -139,17 +197,48 @@ export default function EventBuilder() {
           return;
         }
 
-        const isDatePassed = event.date ? new Date(event.date) < new Date(new Date().setHours(0, 0, 0, 0)) : false;
-        if (event.status === "completed" || isDatePassed) {
+        if (isEventPastOrCompleted(event)) {
           alert("This event has concluded. Concluded events cannot be edited; only management actions are permitted.");
           navigate(`/dashboard/events/${eventId}`, { replace: true });
           return;
         }
 
+        const isMulti = event.eventDurationType === "multi_day" || Boolean(event.endDate && event.endDate !== event.date);
+        const resolvedStart = event.startDate ? dateOnly(event.startDate) : (event.date ? dateOnly(event.date) : "");
+        const resolvedEnd = event.endDate ? dateOnly(event.endDate) : resolvedStart;
+        const normalizedLoadedDays = Array.isArray(event.days) && event.days.length > 0
+          ? event.days.map((d, idx) => ({
+              dayNumber: d.dayNumber || idx + 1,
+              date: d.date ? dateOnly(d.date) : resolvedStart,
+              title: d.title || `Day ${idx + 1}`,
+              startTime: d.startTime || event.startTime || "",
+              endTime: d.endTime || event.endTime || "",
+              sessions: Array.isArray(d.sessions)
+                ? d.sessions.map((s, sIdx) => ({
+                    sessionId: s.sessionId || `ses_${Date.now()}_${sIdx}`,
+                    title: s.title || "",
+                    description: s.description || "",
+                    startTime: s.startTime || "",
+                    endTime: s.endTime || "",
+                    speaker: s.speaker || "",
+                    venue: s.venue || "",
+                    capacity: s.capacity ? Number(s.capacity) : "",
+                    order: s.order ?? sIdx,
+                  }))
+                : [],
+            }))
+          : [];
+
         setForm((old) => ({
           ...old,
           ...event,
-          date: event.date ? dateOnly(event.date) : "",
+          eventDurationType: isMulti ? "multi_day" : "single_day",
+          date: event.date ? dateOnly(event.date) : resolvedStart,
+          startDate: resolvedStart,
+          endDate: resolvedEnd,
+          days: normalizedLoadedDays,
+          sessionAttendanceEnabled: Boolean(event.sessionAttendanceEnabled),
+          certificateEligibilityRule: event.certificateEligibilityRule || old.certificateEligibilityRule,
           registrationDeadline: event.registrationDeadline
             ? dateTimeLocal(event.registrationDeadline)
             : "",
@@ -175,6 +264,41 @@ export default function EventBuilder() {
     setMessage("");
   };
 
+  const buildNormalizedEventPayload = (statusOverride) => {
+    const isMulti = form.eventDurationType === "multi_day";
+    const resolvedStart = isMulti ? (form.startDate || form.date) : form.date;
+    const resolvedEnd = isMulti ? (form.endDate || resolvedStart) : resolvedStart;
+    const normalizedDays = isMulti
+      ? (Array.isArray(form.days) && form.days.length > 0
+          ? form.days
+          : buildGeneratedDays(resolvedStart, resolvedEnd, [], form.startTime, form.endTime))
+      : [];
+    const normalizedAgenda = isMulti && normalizedDays.length > 0
+      ? flattenDaysToAgenda(normalizedDays)
+      : form.agenda;
+
+    return {
+      ...form,
+      eventDurationType: isMulti ? "multi_day" : "single_day",
+      date: resolvedStart || new Date().toISOString().slice(0, 10),
+      startDate: resolvedStart || form.date || new Date().toISOString().slice(0, 10),
+      endDate: resolvedEnd || resolvedStart || form.date || new Date().toISOString().slice(0, 10),
+      days: normalizedDays.map((day, idx) => ({
+        ...day,
+        dayNumber: idx + 1,
+        sessions: (day.sessions || []).map((ses, sIdx) => ({
+          ...ses,
+          capacity: ses.capacity ? Number(ses.capacity) : null,
+          order: sIdx,
+        })),
+      })),
+      agenda: normalizedAgenda,
+      sessionAttendanceEnabled: Boolean(form.sessionAttendanceEnabled),
+      capacity: Number(form.capacity || 100),
+      status: statusOverride || form.status || "draft",
+    };
+  };
+
   async function saveDraft(goNext = false) {
     setSaving(true);
     setError("");
@@ -182,10 +306,8 @@ export default function EventBuilder() {
 
     try {
       if (editing) {
-        const { data } = await api.put(`/events/${eventId}`, {
-          ...form,
-          status: form.status || "draft",
-        });
+        const payload = buildNormalizedEventPayload(form.status || "draft");
+        const { data } = await api.put(`/events/${eventId}`, payload);
         setForm((old) => ({ ...old, ...data.event }));
         setMessage("Draft saved.");
       } else {
@@ -195,13 +317,8 @@ export default function EventBuilder() {
           return;
         }
 
-        const payload = {
-          ...form,
-          date: form.date || new Date().toISOString(),
-          venue: form.venue || "TBD Venue",
-          capacity: Number(form.capacity || 100),
-          status: "draft",
-        };
+        const payload = buildNormalizedEventPayload("draft");
+        payload.venue = form.venue || "TBD Venue";
 
         const { data } = await api.post("/events", payload);
         setMessage("Event draft created.");
@@ -224,7 +341,18 @@ export default function EventBuilder() {
       setStep(0);
       return;
     }
-    if (!form.date) {
+    if (form.eventDurationType === "multi_day") {
+      if (!form.startDate || !form.endDate) {
+        setError("Start date and end date are required for multi-day events.");
+        setStep(0);
+        return;
+      }
+      if (form.endDate < form.startDate) {
+        setError("End date must be on or after the start date.");
+        setStep(0);
+        return;
+      }
+    } else if (!form.date) {
       setError("Event date is required.");
       setStep(0);
       return;
@@ -244,11 +372,7 @@ export default function EventBuilder() {
     setError("");
 
     try {
-      const payload = {
-        ...form,
-        capacity: Number(form.capacity),
-        status: "published",
-      };
+      const payload = buildNormalizedEventPayload("published");
 
       if (editing) {
         await api.put(`/events/${eventId}`, payload);
@@ -548,18 +672,114 @@ function Basics({ form, update }) {
         </div>
       </div>
 
-      <div className="builder-two">
-        <Field label="Event Date" required>
-          <input type="date" value={form.date} onChange={(e) => update("date", e.target.value)} />
-        </Field>
-        <Field label="Registration Deadline">
-          <input
-            type="datetime-local"
-            value={form.registrationDeadline}
-            onChange={(e) => update("registrationDeadline", e.target.value)}
-          />
-        </Field>
-      </div>
+      <Field label="Event Duration Format" required>
+        <div className="multiday-duration-picker">
+          <button
+            type="button"
+            className={`multiday-duration-option${form.eventDurationType !== "multi_day" ? " is-active" : ""}`}
+            onClick={() => {
+              update("eventDurationType", "single_day");
+            }}
+          >
+            <strong>Single-Day Event</strong>
+            <small>1 event date with optional agenda sessions</small>
+          </button>
+          <button
+            type="button"
+            className={`multiday-duration-option${form.eventDurationType === "multi_day" ? " is-active" : ""}`}
+            onClick={() => {
+              const s = form.startDate || form.date || new Date().toISOString().slice(0, 10);
+              const e = form.endDate && form.endDate >= s ? form.endDate : s;
+              const generated = buildGeneratedDays(s, e, form.days, form.startTime, form.endTime);
+              update("eventDurationType", "multi_day");
+              update("startDate", s);
+              update("endDate", e);
+              update("date", s);
+              if (!form.days?.length) update("days", generated);
+            }}
+          >
+            <strong>Multi-Day Event</strong>
+            <small>Date range, day-wise schedules &amp; single ticket pass</small>
+          </button>
+        </div>
+      </Field>
+
+      {form.eventDurationType === "multi_day" ? (
+        <>
+          <div className="builder-two">
+            <Field label="Start Date" required>
+              <input
+                type="date"
+                value={form.startDate || form.date}
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  const newEnd = form.endDate && form.endDate >= newStart ? form.endDate : newStart;
+                  update("startDate", newStart);
+                  update("endDate", newEnd);
+                  update("date", newStart);
+                  update("days", buildGeneratedDays(newStart, newEnd, form.days, form.startTime, form.endTime));
+                }}
+              />
+            </Field>
+            <Field label="End Date" required>
+              <input
+                type="date"
+                min={form.startDate || form.date || undefined}
+                value={form.endDate || form.startDate || form.date}
+                onChange={(e) => {
+                  const newEnd = e.target.value;
+                  const s = form.startDate || form.date;
+                  update("endDate", newEnd);
+                  if (s && newEnd >= s) {
+                    update("days", buildGeneratedDays(s, newEnd, form.days, form.startTime, form.endTime));
+                  }
+                }}
+              />
+            </Field>
+          </div>
+
+          <div className="builder-two">
+            <Field label="Registration Deadline">
+              <input
+                type="datetime-local"
+                value={form.registrationDeadline}
+                onChange={(e) => update("registrationDeadline", e.target.value)}
+              />
+            </Field>
+            <div style={{ display: "flex", alignItems: "center", paddingTop: 18 }}>
+              <div style={{ fontSize: "0.82rem", color: "#a5b4fc", background: "rgba(99, 102, 241, 0.12)", border: "1px solid rgba(129, 140, 248, 0.3)", borderRadius: 10, padding: "8px 12px", width: "100%" }}>
+                Duration: <strong>{getEventTotalDays(form)} {getEventTotalDays(form) === 1 ? "Day" : "Days"}</strong>
+                {form.startDate && form.endDate ? ` (${formatEventDateDisplay(form)})` : ""}
+              </div>
+            </div>
+          </div>
+
+          <div className="toggle-row" style={{ marginBottom: 14 }}>
+            <span>
+              <strong>Enable Session-Level Attendance Tracking</strong>
+              <small>Allow organizers to scan tickets for individual sessions in addition to daily attendance.</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={Boolean(form.sessionAttendanceEnabled)}
+              onChange={(e) => update("sessionAttendanceEnabled", e.target.checked)}
+            />
+          </div>
+        </>
+      ) : (
+        <div className="builder-two">
+          <Field label="Event Date" required>
+            <input type="date" value={form.date} onChange={(e) => update("date", e.target.value)} />
+          </Field>
+          <Field label="Registration Deadline">
+            <input
+              type="datetime-local"
+              value={form.registrationDeadline}
+              onChange={(e) => update("registrationDeadline", e.target.value)}
+            />
+          </Field>
+        </div>
+      )}
 
       <div className="builder-two">
         <Field label="Start Time">
@@ -1259,6 +1479,142 @@ function Speakers({ form, update }) {
    STEP 4: SCHEDULE & AGENDA
 ------------------------------------------------------------------------- */
 function Agenda({ form, update }) {
+  const [activeDayIdx, setActiveDayIdx] = useState(0);
+  const [dayError, setDayError] = useState("");
+  const isMulti = form.eventDurationType === "multi_day";
+
+  const resolvedDays = useMemo(() => {
+    if (!isMulti) return [];
+    if (Array.isArray(form.days) && form.days.length > 0) return form.days;
+    const s = form.startDate || form.date || new Date().toISOString().slice(0, 10);
+    const e = form.endDate && form.endDate >= s ? form.endDate : s;
+    return buildGeneratedDays(s, e, [], form.startTime, form.endTime);
+  }, [isMulti, form.days, form.startDate, form.endDate, form.date, form.startTime, form.endTime]);
+
+  const safeActiveIdx = Math.min(activeDayIdx, Math.max(0, resolvedDays.length - 1));
+  const currentDay = resolvedDays[safeActiveIdx];
+
+  const syncDays = (nextDays) => {
+    const ordered = nextDays.map((d, i) => ({
+      ...d,
+      dayNumber: i + 1,
+      sessions: (d.sessions || []).map((s, sIdx) => ({ ...s, order: sIdx })),
+    }));
+    update("days", ordered);
+    update("agenda", flattenDaysToAgenda(ordered));
+  };
+
+  const addDay = () => {
+    setDayError("");
+    if (resolvedDays.length >= 14) {
+      setDayError("Multi-day events can have up to 14 days.");
+      return;
+    }
+    const startBound = form.startDate || form.date || new Date().toISOString().slice(0, 10);
+    const endBound = form.endDate || startBound;
+    const existingDates = new Set(resolvedDays.map((d) => String(d.date).slice(0, 10)));
+
+    // Find next unused date in [startBound, endBound], or extend endDate by +1 day
+    let nextDate = null;
+    const cursor = new Date(`${startBound}T00:00:00Z`);
+    const end = new Date(`${endBound}T00:00:00Z`);
+    while (cursor <= end) {
+      const k = cursor.toISOString().slice(0, 10);
+      if (!existingDates.has(k)) {
+        nextDate = k;
+        break;
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    if (!nextDate) {
+      const lastDateStr = resolvedDays[resolvedDays.length - 1]?.date || endBound;
+      const lastD = new Date(`${lastDateStr}T00:00:00Z`);
+      lastD.setUTCDate(lastD.getUTCDate() + 1);
+      nextDate = lastD.toISOString().slice(0, 10);
+      update("endDate", nextDate);
+    }
+
+    const nextDays = [
+      ...resolvedDays,
+      {
+        dayNumber: resolvedDays.length + 1,
+        date: nextDate,
+        title: `Day ${resolvedDays.length + 1}`,
+        startTime: form.startTime || "",
+        endTime: form.endTime || "",
+        sessions: [],
+      },
+    ];
+    syncDays(nextDays);
+    setActiveDayIdx(nextDays.length - 1);
+  };
+
+  const removeDay = (idx) => {
+    if (resolvedDays.length <= 1) return;
+    setDayError("");
+    const nextDays = resolvedDays.filter((_, i) => i !== idx);
+    syncDays(nextDays);
+    setActiveDayIdx(Math.max(0, idx - 1));
+  };
+
+  const updateDayField = (idx, key, val) => {
+    if (key === "date" && form.startDate && form.endDate) {
+      if (val < form.startDate || val > form.endDate) {
+        setDayError(`Day date (${val}) must fall between ${form.startDate} and ${form.endDate}.`);
+      } else {
+        setDayError("");
+      }
+    }
+    const nextDays = resolvedDays.map((d, i) => (i === idx ? { ...d, [key]: val } : d));
+    syncDays(nextDays);
+  };
+
+  const addSessionToDay = (dayIdx) => {
+    const newSession = {
+      sessionId: `ses_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      title: "",
+      description: "",
+      startTime: "",
+      endTime: "",
+      speaker: "",
+      venue: form.venue || "",
+      capacity: "",
+      order: (resolvedDays[dayIdx]?.sessions || []).length,
+    };
+    const nextDays = resolvedDays.map((d, i) =>
+      i === dayIdx ? { ...d, sessions: [...(d.sessions || []), newSession] } : d
+    );
+    syncDays(nextDays);
+  };
+
+  const updateDaySession = (dayIdx, sesIdx, key, val) => {
+    const nextDays = resolvedDays.map((d, i) => {
+      if (i !== dayIdx) return d;
+      const sessions = (d.sessions || []).map((s, si) => (si === sesIdx ? { ...s, [key]: val } : s));
+      return { ...d, sessions };
+    });
+    syncDays(nextDays);
+  };
+
+  const removeDaySession = (dayIdx, sesIdx) => {
+    const nextDays = resolvedDays.map((d, i) => {
+      if (i !== dayIdx) return d;
+      const sessions = (d.sessions || []).filter((_, si) => si !== sesIdx);
+      return { ...d, sessions };
+    });
+    syncDays(nextDays);
+  };
+
+  const moveDaySession = (dayIdx, sesIdx, direction) => {
+    const targetIdx = sesIdx + direction;
+    const list = [...(resolvedDays[dayIdx]?.sessions || [])];
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+    [list[sesIdx], list[targetIdx]] = [list[targetIdx], list[sesIdx]];
+    const nextDays = resolvedDays.map((d, i) => (i === dayIdx ? { ...d, sessions: list } : d));
+    syncDays(nextDays);
+  };
+
+  // Single-Day agenda controls (backward compatible)
   const addAgendaItem = () => {
     update("agenda", [
       ...form.agenda,
@@ -1275,6 +1631,209 @@ function Agenda({ form, update }) {
     list[index] = { ...list[index], [key]: val };
     update("agenda", list);
   };
+
+  if (isMulti) {
+    return (
+      <div className="builder-card">
+        <div className="section-row">
+          <div>
+            <h3 className="subheading">Day-Wise Multi-Day Schedule Builder</h3>
+            <p className="muted">
+              Build separate session lineups for each day within {form.startDate || "Start"} to {form.endDate || "End"}.
+            </p>
+          </div>
+          <button type="button" className="button button-ghost small" onClick={addDay}>
+            ＋ Add Day
+          </button>
+        </div>
+
+        {dayError && (
+          <div style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(239,68,68,0.14)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5", fontSize: "0.82rem", marginBottom: 14 }}>
+            {dayError}
+          </div>
+        )}
+
+        <div className="multiday-tabs-bar">
+          {resolvedDays.map((d, idx) => (
+            <button
+              key={idx}
+              type="button"
+              className={`multiday-tab-btn${safeActiveIdx === idx ? " is-active" : ""}`}
+              onClick={() => setActiveDayIdx(idx)}
+            >
+              Day {idx + 1} · {d.date ? new Date(`${d.date}T00:00:00Z`).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" }) : "Date"}
+              {" "}({(d.sessions || []).length})
+            </button>
+          ))}
+        </div>
+
+        {currentDay && (
+          <>
+            <div className="multiday-day-box">
+              <div className="repeat-card-title" style={{ marginBottom: 12 }}>
+                <strong>Day {safeActiveIdx + 1} Details</strong>
+                {resolvedDays.length > 1 && (
+                  <button type="button" className="remove-button" onClick={() => removeDay(safeActiveIdx)}>
+                    Remove Day
+                  </button>
+                )}
+              </div>
+
+              <div className="builder-two">
+                <Field label="Day Title / Theme">
+                  <input
+                    value={currentDay.title}
+                    onChange={(e) => updateDayField(safeActiveIdx, "title", e.target.value)}
+                    placeholder={`Day ${safeActiveIdx + 1}: Workshops & Tracks`}
+                  />
+                </Field>
+                <Field label="Day Date" required>
+                  <input
+                    type="date"
+                    min={form.startDate || undefined}
+                    max={form.endDate || undefined}
+                    value={currentDay.date}
+                    onChange={(e) => updateDayField(safeActiveIdx, "date", e.target.value)}
+                  />
+                </Field>
+              </div>
+
+              <div className="builder-two">
+                <Field label="Day Start Time">
+                  <input
+                    type="time"
+                    value={currentDay.startTime || ""}
+                    onChange={(e) => updateDayField(safeActiveIdx, "startTime", e.target.value)}
+                  />
+                </Field>
+                <Field label="Day End Time">
+                  <input
+                    type="time"
+                    value={currentDay.endTime || ""}
+                    onChange={(e) => updateDayField(safeActiveIdx, "endTime", e.target.value)}
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <div className="section-row" style={{ marginBottom: 12 }}>
+              <strong style={{ fontSize: "0.92rem", color: "#e2e8f0" }}>
+                Sessions for {currentDay.title || `Day ${safeActiveIdx + 1}`} ({(currentDay.sessions || []).length})
+              </strong>
+              <button
+                type="button"
+                className="button button-ghost small"
+                onClick={() => addSessionToDay(safeActiveIdx)}
+              >
+                ＋ Add Session
+              </button>
+            </div>
+
+            {(!currentDay.sessions || currentDay.sessions.length === 0) ? (
+              <div className="builder-empty">
+                <p>No sessions added for {currentDay.title || `Day ${safeActiveIdx + 1}`} yet. Click "+ Add Session" above.</p>
+              </div>
+            ) : (
+              currentDay.sessions.map((ses, sIdx) => (
+                <div key={ses.sessionId || sIdx} className="agenda-timeline-card">
+                  <div className="repeat-card-title">
+                    <strong>Session #{sIdx + 1}</strong>
+                    <div className="session-reorder-actions">
+                      <button
+                        type="button"
+                        className="session-order-btn"
+                        disabled={sIdx === 0}
+                        onClick={() => moveDaySession(safeActiveIdx, sIdx, -1)}
+                        title="Move session up"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="session-order-btn"
+                        disabled={sIdx === currentDay.sessions.length - 1}
+                        onClick={() => moveDaySession(safeActiveIdx, sIdx, 1)}
+                        title="Move session down"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        className="remove-button"
+                        onClick={() => removeDaySession(safeActiveIdx, sIdx)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+
+                  <Field label="Session Title" required>
+                    <input
+                      value={ses.title}
+                      onChange={(e) => updateDaySession(safeActiveIdx, sIdx, "title", e.target.value)}
+                      placeholder="Keynote / Technical Workshop / Track"
+                    />
+                  </Field>
+
+                  <div className="builder-two">
+                    <Field label="Start Time">
+                      <input
+                        type="time"
+                        value={ses.startTime || ""}
+                        onChange={(e) => updateDaySession(safeActiveIdx, sIdx, "startTime", e.target.value)}
+                      />
+                    </Field>
+                    <Field label="End Time">
+                      <input
+                        type="time"
+                        value={ses.endTime || ""}
+                        onChange={(e) => updateDaySession(safeActiveIdx, sIdx, "endTime", e.target.value)}
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="builder-three">
+                    <Field label="Speaker Details">
+                      <input
+                        value={ses.speaker || ""}
+                        onChange={(e) => updateDaySession(safeActiveIdx, sIdx, "speaker", e.target.value)}
+                        placeholder="Dr. A. Sharma"
+                      />
+                    </Field>
+                    <Field label="Venue / Room">
+                      <input
+                        value={ses.venue || ""}
+                        onChange={(e) => updateDaySession(safeActiveIdx, sIdx, "venue", e.target.value)}
+                        placeholder="Auditorium / Lab 2"
+                      />
+                    </Field>
+                    <Field label="Session Capacity (Optional)">
+                      <input
+                        type="number"
+                        min="1"
+                        value={ses.capacity || ""}
+                        onChange={(e) => updateDaySession(safeActiveIdx, sIdx, "capacity", e.target.value)}
+                        placeholder="Unlimited"
+                      />
+                    </Field>
+                  </div>
+
+                  <Field label="Description">
+                    <textarea
+                      rows="2"
+                      value={ses.description || ""}
+                      onChange={(e) => updateDaySession(safeActiveIdx, sIdx, "description", e.target.value)}
+                      placeholder="Topics covered, prerequisites, or session format..."
+                    />
+                  </Field>
+                </div>
+              ))
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="builder-card">
@@ -2007,6 +2566,14 @@ function Certificates({ form, update, eventId, onOpenFeedbackStep }) {
                   placeholder="e.g. Sahyadri College of Engineering / Acme Innovations"
                 />
               </Field>
+              <Field label="Header Tagline / Details (Optional)">
+                <input
+                  maxLength={200}
+                  value={form.certificateOrganizationTagline || ""}
+                  onChange={(e) => update("certificateOrganizationTagline", e.target.value)}
+                  placeholder="e.g. Adyar, Mangaluru - 575007 · Ph: 0824-2277222"
+                />
+              </Field>
               <div className="builder-two" style={{ marginTop: 12 }}>
                 <Field label="Header Font Size">
                   <div className="builder-mini-pills">
@@ -2155,7 +2722,10 @@ function Preview({ form }) {
           <p>{form.description || "Detailed event description will be visible to participants."}</p>
 
           <div className="preview-meta">
-            <span>📅 {form.date ? new Date(form.date).toLocaleDateString() : "Date TBD"}</span>
+            <span>📅 {form.eventDurationType === "multi_day" ? formatEventDateDisplay(form) : (form.date ? new Date(form.date).toLocaleDateString() : "Date TBD")}</span>
+            {form.eventDurationType === "multi_day" && (
+              <span>🗓️ {getEventTotalDays(form)} Days Event</span>
+            )}
             <span>⏰ {form.startTime || "Time TBD"}</span>
             <span>📍 {form.venue || "Venue TBD"}</span>
             <span>👥 Capacity: {form.capacity}</span>

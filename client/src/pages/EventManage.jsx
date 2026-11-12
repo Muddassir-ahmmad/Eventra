@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import api from "../api";
+import { formatEventDateDisplay, isEventPastOrCompleted } from "../utils/eventTiming";
 
 export default function EventManage() {
   const { eventId } = useParams();
@@ -115,8 +116,7 @@ export default function EventManage() {
     ["Post-Event Report", "📄", true, `/dashboard/events/${eventId}/report`],
   ];
 
-  const isDatePassed = event.date ? new Date(event.date) < new Date(new Date().setHours(0, 0, 0, 0)) : false;
-  const isCompleted = event.status === "completed" || isDatePassed;
+  const isCompleted = isEventPastOrCompleted(event);
 
   return (
     <main className="manage-page">
@@ -163,12 +163,7 @@ export default function EventManage() {
             </div>
             <h1 style={{ marginTop: 8 }}>{event.title}</h1>
             <p>
-              {new Date(event.date).toLocaleDateString([], {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}{" "}
+              {formatEventDateDisplay(event)}{" "}
               · {event.venue}
             </p>
           </div>

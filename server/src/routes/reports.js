@@ -1,4 +1,6 @@
 import express from "express";
+import Attendance from "../models/Attendance.js";
+import Certificate from "../models/Certificate.js";
 import Event from "../models/Event.js";
 import Registration from "../models/Registration.js";
 import User from "../models/User.js";
@@ -105,13 +107,21 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
       });
     }
 
-    const [registrations, feedbacks, existingReport] = await Promise.all([
+    const [registrations, feedbacks, attendanceRecords, certificates, existingReport] = await Promise.all([
       Registration.find({ eventId: event._id }).lean(),
       Feedback.find({ eventId: event._id }).lean(),
+      Attendance.find({ eventId: event._id }).lean(),
+      Certificate.find({ eventId: event._id }).select("-pdfData").lean(),
       PostEventReport.findOne({ eventId: event._id }).lean(),
     ]);
 
-    const analytics = calculateReportAnalytics(registrations, feedbacks);
+    const analytics = calculateReportAnalytics(
+      registrations,
+      feedbacks,
+      attendanceRecords,
+      event,
+      certificates
+    );
     const defaultContent = generateDefaultReportContent(event, organizer, analytics);
 
     const reportData = enrichReportPayload(
@@ -252,14 +262,22 @@ router.get("/event/:eventId/pdf", requireAuth, async (req, res) => {
       });
     }
 
-    const [organizer, registrations, feedbacks, savedReport] = await Promise.all([
+    const [organizer, registrations, feedbacks, attendanceRecords, certificates, savedReport] = await Promise.all([
       User.findById(event.organizerId).select("name email organization").lean(),
       Registration.find({ eventId: event._id }).lean(),
       Feedback.find({ eventId: event._id }).lean(),
+      Attendance.find({ eventId: event._id }).lean(),
+      Certificate.find({ eventId: event._id }).select("-pdfData").lean(),
       PostEventReport.findOne({ eventId: event._id }).lean(),
     ]);
 
-    const analytics = calculateReportAnalytics(registrations, feedbacks);
+    const analytics = calculateReportAnalytics(
+      registrations,
+      feedbacks,
+      attendanceRecords,
+      event,
+      certificates
+    );
     const defaultContent = generateDefaultReportContent(event, organizer, analytics);
     const reportData = enrichReportPayload(
       savedReport
@@ -309,13 +327,21 @@ router.post("/event/:eventId/ai-assist", requireAuth, async (req, res) => {
       return res.status(400).json({ message: "Section title is required." });
     }
 
-    const [organizer, registrations, feedbacks] = await Promise.all([
+    const [organizer, registrations, feedbacks, attendanceRecords, certificates] = await Promise.all([
       User.findById(event.organizerId).select("name email organization").lean(),
       Registration.find({ eventId: event._id }).lean(),
       Feedback.find({ eventId: event._id }).lean(),
+      Attendance.find({ eventId: event._id }).lean(),
+      Certificate.find({ eventId: event._id }).select("-pdfData").lean(),
     ]);
 
-    const analytics = calculateReportAnalytics(registrations, feedbacks);
+    const analytics = calculateReportAnalytics(
+      registrations,
+      feedbacks,
+      attendanceRecords,
+      event,
+      certificates
+    );
     const defaultContent = generateDefaultReportContent(event, organizer, analytics);
     const fallbackDraft =
       sectionKey && typeof defaultContent[sectionKey] === "string"

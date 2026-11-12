@@ -84,6 +84,90 @@ const agendaItemSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const sessionSchema = new mongoose.Schema(
+  {
+    sessionId: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    title: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    startTime: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    endTime: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    speaker: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    venue: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    capacity: {
+      type: Number,
+      default: null,
+      min: 1,
+    },
+    order: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false }
+);
+
+const eventDaySchema = new mongoose.Schema(
+  {
+    dayNumber: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    date: {
+      type: Date,
+      required: true,
+    },
+    title: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    startTime: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    endTime: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    sessions: {
+      type: [sessionSchema],
+      default: [],
+    },
+  },
+  { _id: false }
+);
+
 const faqItemSchema = new mongoose.Schema(
   {
     question: {
@@ -294,6 +378,22 @@ const eventSchema = new mongoose.Schema(
       required: true,
     },
 
+    eventDurationType: {
+      type: String,
+      enum: ["single_day", "multi_day"],
+      default: "single_day",
+    },
+
+    startDate: {
+      type: Date,
+      default: null,
+    },
+
+    endDate: {
+      type: Date,
+      default: null,
+    },
+
     startTime: {
       type: String,
       default: "",
@@ -302,6 +402,16 @@ const eventSchema = new mongoose.Schema(
     endTime: {
       type: String,
       default: "",
+    },
+
+    days: {
+      type: [eventDaySchema],
+      default: [],
+    },
+
+    sessionAttendanceEnabled: {
+      type: Boolean,
+      default: false,
     },
 
     venue: {
@@ -525,6 +635,12 @@ const eventSchema = new mongoose.Schema(
       default: "",
     },
 
+    certificateOrganizationTagline: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     certificateOrganizationSize: {
       type: String,
       enum: ["sm", "md", "lg", "xl"],
@@ -564,6 +680,23 @@ const eventSchema = new mongoose.Schema(
     signatures: {
       type: [signatureSchema],
       default: [],
+    },
+
+    certificateEligibilityRule: {
+      mode: {
+        type: String,
+        enum: ["any_day", "all_days", "min_days", "required_sessions"],
+        default: "any_day",
+      },
+      minDays: {
+        type: Number,
+        default: 1,
+        min: 1,
+      },
+      requiredSessionIds: {
+        type: [String],
+        default: [],
+      },
     },
 
     /*

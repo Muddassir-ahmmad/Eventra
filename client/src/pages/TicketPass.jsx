@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../api";
-import { isEventPastOrCompleted } from "../utils/eventTiming";
+import { formatEventDateDisplay, getEventTotalDays, isEventPastOrCompleted } from "../utils/eventTiming";
 
 export default function TicketPass() {
   const { registrationId } = useParams();
@@ -187,6 +187,10 @@ export default function TicketPass() {
                 <h1 style={{ fontSize: "1.6rem", fontWeight: 800, margin: "6px 0 0", color: "#ffffff" }}>
                   {event.title}
                 </h1>
+                <p style={{ margin: "4px 0 0", color: "#c7d2fe", fontSize: "0.85rem" }}>
+                  📅 {formatEventDateDisplay(event)}
+                  {event.eventDurationType === "multi_day" ? ` · ${getEventTotalDays(event)} Days All-Access Pass` : ""}
+                </p>
               </div>
               <span
                 style={{
@@ -242,6 +246,35 @@ export default function TicketPass() {
                     {registration.ticketType || "General Admission"}
                   </p>
                 </div>
+
+                {event.eventDurationType === "multi_day" && Array.isArray(event.days) && event.days.length > 0 && (
+                  <div style={{ marginTop: 14 }}>
+                    <span style={{ fontSize: "0.72rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
+                      DAILY CHECK-IN PROGRESS ({(registration.attendedDays || []).length}/{event.days.length})
+                    </span>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {event.days.map((d) => {
+                        const checked = (registration.attendedDays || []).includes(d.dayNumber);
+                        return (
+                          <span
+                            key={d.dayNumber}
+                            style={{
+                              padding: "4px 10px",
+                              borderRadius: 999,
+                              fontSize: "0.72rem",
+                              fontWeight: 700,
+                              background: checked ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.06)",
+                              border: `1px solid ${checked ? "#10b981" : "rgba(255, 255, 255, 0.14)"}`,
+                              color: checked ? "#6ee7b7" : "#94a3b8",
+                            }}
+                          >
+                            {checked ? "✓ " : ""}{d.title || `Day ${d.dayNumber}`}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Dynamic QR Code or Expired State */}

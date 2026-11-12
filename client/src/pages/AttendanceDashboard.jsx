@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import jsQR from "jsqr";
 import api from "../api";
+import { formatEventDateDisplay } from "../utils/eventTiming";
 import "../attendance-dashboard.css";
 
 // Helper to reliably extract registration ID from raw QR strings, JSON payloads, or pass URLs
@@ -42,7 +43,25 @@ export default function AttendanceDashboard() {
 
   // Filter & Search
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'attended' | 'absent'
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'attended' | 'absent' | 'attended_all' | 'missed_some' | 'attended_day' | 'absent_day' | 'attended_session'
+
+  // Multi-day & Session scanning mode
+  const [scanMode, setScanMode] = useState("daily"); // 'daily' | 'session'
+  const [selectedDayNumber, setSelectedDayNumber] = useState(1);
+  const [selectedSessionId, setSelectedSessionId] = useState("");
+  const scanModeRef = useRef("daily");
+  const selectedDayRef = useRef(1);
+  const selectedSessionRef = useRef("");
+
+  useEffect(() => {
+    scanModeRef.current = scanMode;
+  }, [scanMode]);
+  useEffect(() => {
+    selectedDayRef.current = selectedDayNumber;
+  }, [selectedDayNumber]);
+  useEffect(() => {
+    selectedSessionRef.current = selectedSessionId;
+  }, [selectedSessionId]);
 
   // Camera QR Scanner State & Refs
   const [cameraActive, setCameraActive] = useState(false);
@@ -97,6 +116,20 @@ export default function AttendanceDashboard() {
     try {
       const res = await api.get(`/registrations/event/${eventId}`);
       setData(res.data);
+
+      const loadedDays = res.data?.event?.days || [];
+      if (loadedDays.length > 0) {
+        const hasCurrentDay = loadedDays.some((d) => d.dayNumber === selectedDayRef.current);
+        if (!hasCurrentDay) {
+          const todayKey = new Date().toISOString().slice(0, 10);
+          const todayDay = loadedDays.find((d) => String(d.date).slice(0, 10) === todayKey);
+          setSelectedDayNumber(todayDay ? todayDay.dayNumber : loadedDays[0].dayNumber);
+        }
+        const allSes = loadedDays.flatMap((d) => d.sessions || []);
+        if (allSes.length > 0 && !allSes.some((s) => s.sessionId === selectedSessionRef.current)) {
+          setSelectedSessionId(allSes[0].sessionId);
+        }
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Could not load event attendance records.");
     } finally {
@@ -405,22 +438,26 @@ export default function AttendanceDashboard() {
     setScanFeedback(null);
 
     try {
+      const activeMode = scanModeRef.current;
       const res = await api.post(`/registrations/event/${eventId}/checkin`, {
         identifier: identifier.trim(),
+        attendanceType: activeMode,
+        dayNumber: selectedDayRef.current,
+        sessionId: activeMode === "session" ? selectedSessionRef.current : null,
       });
 
       if (res.data.alreadyCheckedIn) {
         playScanBeep(false);
         setScanFeedback({
           type: "warning",
-          message: `⚠️ Already Checked In: ${res.data.registration?.name} was checked in earlier (${res.data.message})`,
+          message: `⚠️ Already Checked In: ${res.data.registration?.name} (${res.data.message})`,
           participant: res.data.registration,
         });
       } else {
         playScanBeep(true);
         setScanFeedback({
           type: "success",
-          message: `✓ Verified! Welcome, ${res.data.registration.name} (${res.data.registration.ticketType || "General"})`,
+          message: res.data.message || `✓ Verified! Welcome, ${res.data.registration?.name}`,
           participant: res.data.registration,
         });
       }
@@ -452,7 +489,11 @@ export default function AttendanceDashboard() {
       return;
     }
     try {
-      await api.post(`/registrations/event/${eventId}/registrations/${registrationId}/toggle-attendance`);
+      await api.post(`/registrations/event/${eventId}/registrations/${registrationId}/toggle-attendance`, {
+        attendanceType: scanMode,
+        dayNumber: selectedDayNumber,
+        sessionId: scanMode === "session" ? selectedSessionId : null,
+      });
       loadAttendanceData();
     } catch (err) {
       if (err.response?.status === 403 && err.response?.data?.locked) {
@@ -488,6 +529,7 @@ export default function AttendanceDashboard() {
   function exportCsv() {
     if (!data?.registrations?.length) return;
 
+    const isMulti = data?.multiDayAnalytics?.isMultiDay || (data?.event?.days?.length > 1);
     const headers = [
       "Registration ID",
       "Full Name",
@@ -497,7 +539,17 @@ export default function AttendanceDashboard() {
       "Department",
       "Ticket Tier",
       "Gate Status",
-      "Checked In At",
+      ...(isMulti
+        ? [
+            "Attended All Days",
+            "Days Attended Count",
+            "Days Attended (List)",
+            "Sessions Attended Count",
+            "Sessions Attended (List)",
+          ]
+        : []),
+      "First Checked In At",
+      "Last Checked In At",
     ];
 
     const rows = data.registrations.map((r) => [
@@ -509,7 +561,17 @@ export default function AttendanceDashboard() {
       `"${r.department || ""}"`,
       `"${r.ticketType || "General"}"`,
       r.checkedIn ? '"Attended"' : '"Absent"',
+      ...(isMulti
+        ? [
+            r.attendedAllDays ? '"Yes"' : '"No"',
+            `"${(r.attendedDays || []).length}"`,
+            `"${(r.attendedDays || []).join(", ")}"`,
+            `"${(r.attendedSessions || []).length}"`,
+            `"${(r.attendedSessions || []).join(", ")}"`,
+          ]
+        : []),
       r.checkedInAt ? `"${new Date(r.checkedInAt).toLocaleString()}"` : '""',
+      r.lastCheckedInAt ? `"${new Date(r.lastCheckedInAt).toLocaleString()}"` : '""',
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
@@ -546,7 +608,12 @@ export default function AttendanceDashboard() {
     );
   }
 
-  const { event, stats, registrations } = data;
+  const { event, stats, registrations, multiDayAnalytics } = data;
+  const isMulti = Boolean(multiDayAnalytics?.isMultiDay || (event?.days && event.days.length > 1));
+  const eventDays = event?.days || [];
+  const allSessions = eventDays.flatMap((d) => (d.sessions || []).map((s) => ({ ...s, dayNumber: d.dayNumber, dayTitle: d.title })));
+  const currentTargetDay = eventDays.find((d) => d.dayNumber === selectedDayNumber) || eventDays[0];
+  const currentTargetSession = allSessions.find((s) => s.sessionId === selectedSessionId) || allSessions[0];
 
   const filteredList = registrations.filter((r) => {
     const matchesSearch =
@@ -560,6 +627,11 @@ export default function AttendanceDashboard() {
 
     if (statusFilter === "attended") return r.checkedIn === true;
     if (statusFilter === "absent") return r.status === "confirmed" && !r.checkedIn;
+    if (statusFilter === "attended_all") return r.status === "confirmed" && r.attendedAllDays;
+    if (statusFilter === "missed_some") return r.status === "confirmed" && !r.attendedAllDays;
+    if (statusFilter === "attended_day") return (r.attendedDays || []).includes(selectedDayNumber);
+    if (statusFilter === "absent_day") return r.status === "confirmed" && !(r.attendedDays || []).includes(selectedDayNumber);
+    if (statusFilter === "attended_session") return (r.attendedSessions || []).includes(selectedSessionId);
     return true;
   });
 
@@ -587,7 +659,9 @@ export default function AttendanceDashboard() {
             </span>
             <h1>{event.title}</h1>
             <p style={{ color: "#94a3b8", margin: "4px 0 0", fontSize: "0.9rem" }}>
-              📅 {event.date ? new Date(event.date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : ""} · 📍 {event.venue}
+              📅 {formatEventDateDisplay(event)}
+              {isMulti ? ` · 🗓️ ${eventDays.length}-Day Multi-Day Event` : ""}
+              {" "}· 📍 {event.venue}
             </p>
           </div>
 
@@ -622,10 +696,23 @@ export default function AttendanceDashboard() {
             <strong>{stats.attendedParticipants}</strong>
           </div>
 
-          <div className="attendance-stat-card">
-            <span>Absent Attendees</span>
-            <strong>{stats.absentParticipants}</strong>
-          </div>
+          {isMulti ? (
+            <>
+              <div className="attendance-stat-card highlight">
+                <span>Attending All {eventDays.length} Days</span>
+                <strong>{multiDayAnalytics?.participantsAttendingAllDaysCount ?? 0}</strong>
+              </div>
+              <div className="attendance-stat-card">
+                <span>Missing Some Days</span>
+                <strong>{multiDayAnalytics?.participantsMissingSomeDaysCount ?? 0}</strong>
+              </div>
+            </>
+          ) : (
+            <div className="attendance-stat-card">
+              <span>Absent Attendees</span>
+              <strong>{stats.absentParticipants}</strong>
+            </div>
+          )}
 
           <div className="attendance-stat-card highlight">
             <span>Attendance Rate</span>
@@ -637,6 +724,96 @@ export default function AttendanceDashboard() {
             <strong>{event.capacity}</strong>
           </div>
         </div>
+
+        {/* Multi-Day & Session Target Control */}
+        {(isMulti || event.sessionAttendanceEnabled) && (
+          <div className="multiday-attendance-panel">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+              <div>
+                <strong style={{ color: "#ffffff", fontSize: "0.95rem" }}>
+                  Active Check-In Target: {scanMode === "session" ? `Session: ${currentTargetSession?.title || "Selected Session"}` : `Day ${selectedDayNumber} (${currentTargetDay?.title || `Day ${selectedDayNumber}`})`}
+                </strong>
+                <span style={{ display: "block", color: "#94a3b8", fontSize: "0.78rem", marginTop: 2 }}>
+                  Scans and manual entries will be recorded under this selected {scanMode === "session" ? "session" : "event day"}.
+                </span>
+              </div>
+
+              {event.sessionAttendanceEnabled && (
+                <div className="multiday-mode-switch">
+                  <button
+                    type="button"
+                    className={`filter-pill ${scanMode === "daily" ? "active" : ""}`}
+                    onClick={() => setScanMode("daily")}
+                  >
+                    📅 Daily Attendance
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-pill ${scanMode === "session" ? "active" : ""}`}
+                    onClick={() => setScanMode("session")}
+                  >
+                    🏷️ Session Attendance
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {scanMode === "daily" ? (
+              <div className="multiday-day-strip">
+                {eventDays.map((d) => {
+                  const dayStat = (multiDayAnalytics?.days || []).find((ds) => ds.dayNumber === d.dayNumber);
+                  const isSel = selectedDayNumber === d.dayNumber;
+                  return (
+                    <button
+                      key={d.dayNumber}
+                      type="button"
+                      className={`multiday-day-card${isSel ? " is-selected" : ""}`}
+                      onClick={() => setSelectedDayNumber(d.dayNumber)}
+                    >
+                      <strong style={{ display: "block", fontSize: "0.85rem" }}>
+                        {d.title || `Day ${d.dayNumber}`}
+                      </strong>
+                      <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+                        {d.date ? new Date(d.date).toLocaleDateString([], { month: "short", day: "numeric", timeZone: "UTC" }) : ""}
+                      </span>
+                      <div style={{ marginTop: 6, fontSize: "0.82rem", fontWeight: 700, color: isSel ? "#6ee7b7" : "#38bdf8" }}>
+                        {dayStat?.attendedCount ?? 0} Attended ({dayStat?.attendancePercentage ?? 0}%)
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+                <span style={{ fontSize: "0.85rem", color: "#cbd5e1", fontWeight: 600 }}>Select Session:</span>
+                <select
+                  value={selectedSessionId}
+                  onChange={(e) => setSelectedSessionId(e.target.value)}
+                  style={{
+                    background: "#0f172a",
+                    color: "#ffffff",
+                    border: "1px solid rgba(129, 140, 248, 0.4)",
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                    fontSize: "0.85rem",
+                    maxWidth: 380,
+                  }}
+                >
+                  {allSessions.map((s) => (
+                    <option key={s.sessionId} value={s.sessionId}>
+                      D{s.dayNumber} · {s.title} ({s.startTime || "Scheduled"}){s.venue ? ` @ ${s.venue}` : ""}
+                    </option>
+                  ))}
+                </select>
+                {currentTargetSession?.capacity > 0 && (
+                  <span style={{ fontSize: "0.8rem", color: "#38bdf8", background: "rgba(56, 189, 248, 0.12)", padding: "4px 8px", borderRadius: 6 }}>
+                    Cap: {currentTargetSession.capacity}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 2. SCANNER & FAST CHECK-IN DESK */}
         <div className="scanner-checkin-card">
@@ -939,6 +1116,47 @@ export default function AttendanceDashboard() {
               >
                 Absent ({stats.absentParticipants})
               </button>
+              {isMulti && (
+                <>
+                  <button
+                    type="button"
+                    className={`filter-pill ${statusFilter === "attended_all" ? "active" : ""}`}
+                    onClick={() => setStatusFilter("attended_all")}
+                  >
+                    Attended All Days ({multiDayAnalytics?.participantsAttendingAllDaysCount ?? 0})
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-pill ${statusFilter === "missed_some" ? "active" : ""}`}
+                    onClick={() => setStatusFilter("missed_some")}
+                  >
+                    Missed Some Days ({multiDayAnalytics?.participantsMissingSomeDaysCount ?? 0})
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-pill ${statusFilter === "attended_day" ? "active" : ""}`}
+                    onClick={() => setStatusFilter("attended_day")}
+                  >
+                    Day {selectedDayNumber} Present
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-pill ${statusFilter === "absent_day" ? "active" : ""}`}
+                    onClick={() => setStatusFilter("absent_day")}
+                  >
+                    Day {selectedDayNumber} Absent
+                  </button>
+                </>
+              )}
+              {scanMode === "session" && selectedSessionId && (
+                <button
+                  type="button"
+                  className={`filter-pill ${statusFilter === "attended_session" ? "active" : ""}`}
+                  onClick={() => setStatusFilter("attended_session")}
+                >
+                  Selected Session Only
+                </button>
+              )}
             </div>
           </div>
 
@@ -962,7 +1180,15 @@ export default function AttendanceDashboard() {
                     </td>
                   </tr>
                 ) : (
-                  filteredList.map((reg) => (
+                  filteredList.map((reg) => {
+                    const attendedTarget =
+                      scanMode === "session" && selectedSessionId
+                        ? (reg.attendedSessions || []).includes(selectedSessionId)
+                        : isMulti
+                        ? (reg.attendedDays || []).includes(selectedDayNumber)
+                        : reg.checkedIn === true;
+
+                    return (
                     <tr key={reg._id}>
                       <td>
                         <span style={{ padding: "4px 8px", background: "rgba(255,255,255,0.06)", borderRadius: 6, fontSize: "0.8rem", color: "#38bdf8", fontWeight: 700 }}>
@@ -974,6 +1200,18 @@ export default function AttendanceDashboard() {
                       </td>
                       <td>
                         <strong style={{ color: "#ffffff" }}>{reg.name}</strong>
+                        {isMulti && (
+                          <div className="day-progress-chips">
+                            {eventDays.map((d) => {
+                              const yes = (reg.attendedDays || []).includes(d.dayNumber);
+                              return (
+                                <span key={d.dayNumber} className={`day-chip ${yes ? "yes" : "no"}`}>
+                                  D{d.dayNumber} {yes ? "✓" : "○"}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
                       </td>
                       <td>
                         <div>{reg.email}</div>
@@ -984,13 +1222,13 @@ export default function AttendanceDashboard() {
                         <small style={{ color: "#64748b" }}>{reg.department || "General"}</small>
                       </td>
                       <td>
-                        {reg.checkedIn ? (
+                        {attendedTarget ? (
                           <span className="status-badge present">
-                            ✓ Present ({new Date(reg.checkedInAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})
+                            ✓ {scanMode === "session" ? "Session Present" : isMulti ? `Day ${selectedDayNumber} Present` : `Present (${new Date(reg.checkedInAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})`}
                           </span>
                         ) : (
                           <span className="status-badge absent">
-                            ● Absent
+                            ● {scanMode === "session" ? "Session Absent" : isMulti ? `Day ${selectedDayNumber} Absent` : "Absent"}
                           </span>
                         )}
                       </td>
@@ -1011,11 +1249,13 @@ export default function AttendanceDashboard() {
                           ) : (
                             <button
                               type="button"
-                              className={reg.checkedIn ? "button button-ghost small" : "button button-primary small"}
+                              className={attendedTarget ? "button button-ghost small" : "button button-primary small"}
                               style={{ padding: "6px 14px", fontSize: "0.78rem" }}
                               onClick={() => handleToggleAttendance(reg._id)}
                             >
-                              {reg.checkedIn ? "Undo Entry" : "Mark Present ✓"}
+                              {attendedTarget
+                                ? (scanMode === "session" ? "Undo Session" : isMulti ? `Undo D${selectedDayNumber}` : "Undo Entry")
+                                : (scanMode === "session" ? "Mark Session ✓" : isMulti ? `Mark D${selectedDayNumber} ✓` : "Mark Present ✓")}
                             </button>
                           )}
                           <button
@@ -1037,7 +1277,8 @@ export default function AttendanceDashboard() {
                         </div>
                       </td>
                     </tr>
-                  ))
+                  );
+                  })
                 )}
               </tbody>
             </table>

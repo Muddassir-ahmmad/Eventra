@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import { formatEventDateRangeLabel } from "./multiDay.js";
 
 function formatDate(date) {
   if (!date) return "Event Date";
@@ -91,7 +92,9 @@ export function generateReportPdf(event, organizer, report, analytics) {
     try {
       const eventTitle = String(event?.title || "Post-Event Report").trim() || "Post-Event Report";
       const orgName = organizer?.organization || organizer?.name || "The Organizing Committee";
-      const dateStr = formatDate(event?.date);
+      const dateStr = event?.eventDurationType === "multi_day"
+        ? formatEventDateRangeLabel(event)
+        : formatDate(event?.date);
 
       const doc = new PDFDocument({
         size: "A4",
@@ -363,6 +366,107 @@ export function generateReportPdf(event, organizer, report, analytics) {
             cursorY += 18;
           });
           cursorY += 18;
+        }
+
+        // Multi-day attendance table (Day-by-Day unique attendees + Attending All Days)
+        const dailyBreakdown = Array.isArray(analytics?.multiDay?.dailyBreakdown)
+          ? analytics.multiDay.dailyBreakdown
+          : [];
+        if (analytics?.multiDay?.isMultiDay && dailyBreakdown.length > 0) {
+          ensureSpace(64 + dailyBreakdown.length * 18);
+          doc.font("Helvetica-Bold").fontSize(10.5).fillColor("#0f172a")
+            .text(
+              `Daily Attendance Breakdown (${dailyBreakdown.length} Days · Attending All Days: ${analytics.multiDay.participantsAttendingAllDays ?? 0})`,
+              50,
+              cursorY,
+              { lineBreak: false }
+            );
+          cursorY += 16;
+
+          doc.rect(50, cursorY, contentWidth, 18).fill("#0f766e");
+          doc.font("Helvetica-Bold").fontSize(8).fillColor("#ffffff");
+          doc.text("Day", 60, cursorY + 5, { width: 120, lineBreak: false });
+          doc.text("Date", 180, cursorY + 5, { width: 130, lineBreak: false });
+          doc.text("Unique Attendees", 310, cursorY + 5, { width: 100, align: "center", lineBreak: false });
+          doc.text("Attendance %", 420, cursorY + 5, { width: 115, align: "right", lineBreak: false });
+          cursorY += 18;
+
+          dailyBreakdown.forEach((day, idx) => {
+            const bg = idx % 2 === 0 ? "#f8fafc" : "#ffffff";
+            doc.rect(50, cursorY, contentWidth, 18).fillAndStroke(bg, "#e2e8f0");
+            doc.font("Helvetica-Bold").fontSize(8).fillColor("#1e293b")
+              .text(day.title || `Day ${day.dayNumber}`, 60, cursorY + 5, { width: 120, lineBreak: false, ellipsis: true });
+            doc.font("Helvetica").fontSize(8).fillColor("#475569")
+              .text(formatDate(day.date), 180, cursorY + 5, { width: 130, lineBreak: false, ellipsis: true });
+            doc.font("Helvetica-Bold").fontSize(8).fillColor("#0f766e")
+              .text(String(day.uniqueAttendees ?? 0), 310, cursorY + 5, { width: 100, align: "center", lineBreak: false });
+            doc.font("Helvetica").fontSize(8).fillColor("#334155")
+              .text(`${day.attendanceRate ?? 0}%`, 420, cursorY + 5, { width: 115, align: "right", lineBreak: false });
+            cursorY += 18;
+          });
+          cursorY += 18;
+        }
+
+        // Session-level attendance breakdown when sessions are configured
+        const sessionRows = Array.isArray(analytics?.multiDay?.sessionParticipation)
+          ? analytics.multiDay.sessionParticipation.slice(0, 12)
+          : [];
+        if (sessionRows.length > 0) {
+          ensureSpace(46 + sessionRows.length * 18);
+          doc.font("Helvetica-Bold").fontSize(10.5).fillColor("#0f172a")
+            .text("Session Participation Summary", 50, cursorY, { lineBreak: false });
+          cursorY += 16;
+
+          doc.rect(50, cursorY, contentWidth, 18).fill("#334155");
+          doc.font("Helvetica-Bold").fontSize(8).fillColor("#ffffff");
+          doc.text("Day & Session", 60, cursorY + 5, { width: 230, lineBreak: false });
+          doc.text("Speaker / Venue", 290, cursorY + 5, { width: 130, lineBreak: false });
+          doc.text("Attended", 425, cursorY + 5, { width: 110, align: "right", lineBreak: false });
+          cursorY += 18;
+
+          sessionRows.forEach((ses, idx) => {
+            const bg = idx % 2 === 0 ? "#f8fafc" : "#ffffff";
+            doc.rect(50, cursorY, contentWidth, 18).fillAndStroke(bg, "#e2e8f0");
+            doc.font("Helvetica").fontSize(8).fillColor("#1e293b")
+              .text(`D${ses.dayNumber} · ${ses.title}`, 60, cursorY + 5, { width: 225, lineBreak: false, ellipsis: true });
+            doc.font("Helvetica").fontSize(7.5).fillColor("#64748b")
+              .text([ses.speaker, ses.venue].filter(Boolean).join(" · ") || "—", 290, cursorY + 5, { width: 130, lineBreak: false, ellipsis: true });
+            doc.font("Helvetica-Bold").fontSize(8).fillColor("#0f766e")
+              .text(`${ses.attendedCount ?? 0} (${ses.attendanceRate ?? 0}%)`, 425, cursorY + 5, { width: 110, align: "right", lineBreak: false });
+            cursorY += 18;
+          });
+          cursorY += 18;
+        }
+
+        // Certificate Eligibility Summary
+        if (analytics?.certificateStats) {
+          const cs = analytics.certificateStats;
+          ensureSpace(72);
+          doc.font("Helvetica-Bold").fontSize(10.5).fillColor("#0f172a")
+            .text("Certificate Eligibility Statistics", 50, cursorY, { lineBreak: false });
+          cursorY += 16;
+
+          doc.rect(50, cursorY, contentWidth, 18).fill("#0f766e");
+          doc.font("Helvetica-Bold").fontSize(8).fillColor("#ffffff");
+          doc.text("Rule Mode", 60, cursorY + 5, { width: 140, lineBreak: false });
+          doc.text("Eligible", 205, cursorY + 5, { width: 80, align: "center", lineBreak: false });
+          doc.text("Pending Feedback", 290, cursorY + 5, { width: 100, align: "center", lineBreak: false });
+          doc.text("Ineligible", 395, cursorY + 5, { width: 70, align: "center", lineBreak: false });
+          doc.text("Issued", 470, cursorY + 5, { width: 65, align: "right", lineBreak: false });
+          cursorY += 18;
+
+          doc.rect(50, cursorY, contentWidth, 20).fillAndStroke("#f8fafc", "#e2e8f0");
+          doc.font("Helvetica").fontSize(8).fillColor("#1e293b")
+            .text(cs.enabled ? String(cs.ruleMode || "any_day").replace(/_/g, " ") : "Disabled", 60, cursorY + 6, { width: 140, lineBreak: false });
+          doc.font("Helvetica-Bold").fontSize(8).fillColor("#0f766e")
+            .text(String(cs.eligibleCount ?? 0), 205, cursorY + 6, { width: 80, align: "center", lineBreak: false });
+          doc.font("Helvetica").fontSize(8).fillColor("#b45309")
+            .text(String(cs.feedbackPendingCount ?? 0), 290, cursorY + 6, { width: 100, align: "center", lineBreak: false });
+          doc.font("Helvetica").fontSize(8).fillColor("#64748b")
+            .text(String(cs.ineligibleCount ?? 0), 395, cursorY + 6, { width: 70, align: "center", lineBreak: false });
+          doc.font("Helvetica-Bold").fontSize(8).fillColor("#0f172a")
+            .text(String(cs.issuedCount ?? 0), 470, cursorY + 6, { width: 65, align: "right", lineBreak: false });
+          cursorY += 32;
         }
       }
 

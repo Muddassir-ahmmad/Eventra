@@ -227,6 +227,7 @@ test("normalizeCertificateSettings normalizes per-element typography, size, alig
 test("renderCertificate renders long AI theme custom heading and top header cleanly into PDF without ellipsis truncation", async () => {
   const customHeading = "Certificate of Extraordinary Technical Mastery";
   const customTopHeader = "SAHYADRI COLLEGE OF ENGINEERING";
+  const customTagline = "Adyar, Mangaluru - 575007 | Ph: 0824-2277222";
   const pdfBuffer = await renderCertificate(
     {
       title: "AI Innovation Challenge 2026",
@@ -236,6 +237,7 @@ test("renderCertificate renders long AI theme custom heading and top header clea
       certificateDescription: "Awarded to {name} for completing {event}.",
       certificateShowOrganization: false,
       certificateOrganization: customTopHeader,
+      certificateOrganizationTagline: customTagline,
       certificateTextStyles: {
         title: { fontSize: 40 },
       },
@@ -265,5 +267,14 @@ test("renderCertificate renders long AI theme custom heading and top header clea
 
   assert.ok(text.includes(customHeading), "Downloaded certificate PDF must print the full custom heading");
   assert.ok(text.includes(customTopHeader), "Downloaded certificate PDF must print the custom top header");
+  assert.ok(text.includes(customTagline), "Downloaded certificate PDF must print the optional header tagline");
   assert.ok(text.includes("Mudassir Ahmmad"), "Participant name should be properly capitalized in PDF");
+});
+
+test("normalizeCertificateSettings trims and clamps certificateOrganizationTagline to 200 characters", () => {
+  const longTagline = `  ${"A".repeat(250)}  `;
+  const normalized = normalizeCertificateSettings({
+    certificateOrganizationTagline: longTagline,
+  });
+  assert.equal(normalized.certificateOrganizationTagline.length, 200);
 });

@@ -1,4 +1,5 @@
 import { formatParticipantName } from "./participantName.js";
+import { normalizeCertificateEligibilityRule } from "./multiDay.js";
 
 export const DEFAULT_CERTIFICATE_TITLE = "Certificate of Participation";
 export const DEFAULT_CERTIFICATE_DESCRIPTION =
@@ -135,6 +136,7 @@ export function normalizeCertificateSettings(settings) {
     certificateEventTitle: String(settings.certificateEventTitle || "").trim().slice(0, 150),
     certificateShowOrganization: settings.certificateShowOrganization === true || Boolean(cleanOrg),
     certificateOrganization: cleanOrg,
+    certificateOrganizationTagline: String(settings.certificateOrganizationTagline || "").trim().slice(0, 200),
     certificateOrganizationSize: orgSize,
     certificateOrganizationAlign: orgAlign,
     certificateOrganizationUppercase: settings.certificateOrganizationUppercase === true,
@@ -167,5 +169,6 @@ export function normalizeCertificateSettings(settings) {
           return item;
         })
       : [],
+    certificateEligibilityRule: normalizeCertificateEligibilityRule(settings.certificateEligibilityRule),
   };
 }

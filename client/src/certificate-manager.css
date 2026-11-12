@@ -63,9 +63,16 @@
 .certificate-art .certificate-art-header.is-align-center{justify-content:center;text-align:center}
 .certificate-art .certificate-art-header.is-align-right{justify-content:flex-end;text-align:right}
 .certificate-art .certificate-art-header .certificate-organization-name{max-width:100%;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
-.certificate-art .certificate-art-header.is-align-left .certificate-organization-name{text-align:left}
-.certificate-art .certificate-art-header.is-align-center .certificate-organization-name{text-align:center}
-.certificate-art .certificate-art-header.is-align-right .certificate-organization-name{text-align:right}
+.certificate-art .certificate-art-header.is-align-left .certificate-organization-name,.certificate-art .certificate-art-header.is-align-left .certificate-organization-tagline{text-align:left}
+.certificate-art .certificate-art-header.is-align-center .certificate-organization-name,.certificate-art .certificate-art-header.is-align-center .certificate-organization-tagline{text-align:center}
+.certificate-art .certificate-art-header.is-align-right .certificate-organization-name,.certificate-art .certificate-art-header.is-align-right .certificate-organization-tagline{text-align:right}
+.certificate-org-stack{display:flex;flex-direction:column;gap:2px;max-width:100%}
+.certificate-organization-tagline{display:block;font-size:clamp(7px,1.25cqi,9.5px);font-weight:500;line-height:1.3;letter-spacing:.015em;text-transform:none;color:#526071;overflow-wrap:anywhere}
+.certificate-art-royalGold .certificate-organization-tagline{color:#cbd5e1}
+.certificate-art-techAurora .certificate-organization-tagline{color:#cbd5e1}
+.certificate-art-emeraldExecutive .certificate-organization-tagline{color:#065f46}
+.certificate-art-crimsonLuxe .certificate-organization-tagline{color:#9f1239}
+.certificate-art-vintageParchment .certificate-organization-tagline{color:#78350f}
 .certificate-art .certificate-art-header.is-size-sm .certificate-organization-name{font-size:.62rem;letter-spacing:.04em}
 .certificate-art .certificate-art-header.is-size-md .certificate-organization-name{font-size:.82rem;letter-spacing:.03em}
 .certificate-art .certificate-art-header.is-size-lg .certificate-organization-name{font-size:1.02rem;letter-spacing:.02em}

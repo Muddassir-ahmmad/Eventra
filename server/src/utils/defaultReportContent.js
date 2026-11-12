@@ -1,3 +1,5 @@
+import { formatEventDateRangeLabel } from "./multiDay.js";
+
 function formatDate(date) {
   if (!date) return "Event Date";
   return new Intl.DateTimeFormat("en", {
@@ -19,7 +21,9 @@ function formatDate(date) {
  */
 export function generateDefaultReportContent(event, organizer, analytics) {
   const eventTitle = event.title || "The Event";
-  const dateStr = formatDate(event.date);
+  const dateStr = event?.eventDurationType === "multi_day"
+    ? formatEventDateRangeLabel(event)
+    : formatDate(event.date);
   // Sanitize location: Never include raw links or Google Maps URLs in official report text
   const rawLoc = (event.location || "").trim();
   const isUrl = /^https?:\/\//i.test(rawLoc) || rawLoc.includes("maps.google") || rawLoc.includes("goo.gl");
@@ -87,6 +91,10 @@ export function generateDefaultReportContent(event, organizer, analytics) {
     `• Verified Attendees: ${analytics.attendedCount}\n` +
     `• Absenteeism: ${analytics.absentCount} (${analytics.confirmedCount > 0 ? (100 - analytics.attendanceRate).toFixed(1) : 0}%)\n` +
     `• Cancelled Registrations: ${analytics.cancelledCount}\n\n` +
+    (analytics.multiDay?.isMultiDay && Array.isArray(analytics.multiDay?.dailyBreakdown)
+      ? `Multi-Day Attendance Breakdown (${analytics.multiDay.totalDays} Days — All Days Attended: ${analytics.multiDay.participantsAttendingAllDays} / ${analytics.confirmedCount}):\n` +
+        analytics.multiDay.dailyBreakdown.map((d) => `• ${d.title}: ${d.uniqueAttendees} checked in (${d.attendanceRate}%)`).join("\n") + "\n\n"
+      : "") +
     (volunteersSummary ? `Volunteer Support Breakdown:\n${volunteersSummary}\n\n` : ``) +
     `Attendees demonstrated active involvement during key segments with consistent attendance across the scheduled timeline.`;
 

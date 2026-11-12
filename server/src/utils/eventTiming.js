@@ -1,17 +1,35 @@
 /**
- * Calculates the completion timestamp of an event based on its date,
- * start time, and end time.
+ * Calculates the completion timestamp of an event based on its date (or final day
+ * for multi-day events), start time, and end time.
  *
  * @param {Object} event Mongoose event document or plain object
  * @returns {Date|null}
  */
 export function getEventEndDateTime(event) {
-  if (!event || !event.date) return null;
-  const baseDate = new Date(event.date);
+  if (!event) return null;
+  const rawDate = event.date || event.startDate;
+  if (!rawDate) return null;
+
+  let baseDate = new Date(rawDate);
+  let targetStartTime = event.startTime;
+  let targetEndTime = event.endTime;
+
+  if (event.eventDurationType === "multi_day") {
+    const days = Array.isArray(event.days) ? [...event.days].sort((a, b) => (a.dayNumber || 0) - (b.dayNumber || 0)) : [];
+    const lastDay = days.length > 0 ? days[days.length - 1] : null;
+    const rawEnd = event.endDate || lastDay?.date || event.date;
+    const parsedEnd = new Date(rawEnd);
+    if (!isNaN(parsedEnd.getTime())) {
+      baseDate = parsedEnd;
+    }
+    if (lastDay?.endTime) targetEndTime = lastDay.endTime;
+    if (lastDay?.startTime) targetStartTime = lastDay.startTime;
+  }
+
   if (isNaN(baseDate.getTime())) return null;
 
-  if (event.endTime && typeof event.endTime === "string" && event.endTime.trim()) {
-    const raw = event.endTime.trim();
+  if (targetEndTime && typeof targetEndTime === "string" && targetEndTime.trim()) {
+    const raw = targetEndTime.trim();
     // Matches "18:00", "06:30 PM", "9:45 am"
     const match = raw.match(/^(\d{1,2}):(\d{2})(?:\s*([AP]M))?$/i);
     if (match) {
@@ -29,8 +47,8 @@ export function getEventEndDateTime(event) {
   }
 
   // Fallback: If startTime is present but no endTime, assume 3 hours duration
-  if (event.startTime && typeof event.startTime === "string" && event.startTime.trim()) {
-    const rawStart = event.startTime.trim();
+  if (targetStartTime && typeof targetStartTime === "string" && targetStartTime.trim()) {
+    const rawStart = targetStartTime.trim();
     const startMatch = rawStart.match(/^(\d{1,2}):(\d{2})(?:\s*([AP]M))?$/i);
     if (startMatch) {
       let hours = parseInt(startMatch[1], 10);

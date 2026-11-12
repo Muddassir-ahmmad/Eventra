@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import api from "../api";
-import { isEventPastOrCompleted } from "../utils/eventTiming";
+import { formatEventDateDisplay, getEventTotalDays, isEventPastOrCompleted } from "../utils/eventTiming";
 import "../participant-dashboard.css";
 
 export default function ParticipantDashboard() {
@@ -270,12 +270,17 @@ export default function ParticipantDashboard() {
             <div className="participant-grid">
               {registrations.map((reg) => {
                 const event = reg.eventId || {};
-                const eventDate = event.date ? new Date(event.date).toLocaleDateString("en-US", {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                }) : "Date TBD";
+                const isMulti = event.eventDurationType === "multi_day" || (Array.isArray(event.days) && event.days.length > 1);
+                const eventDate = isMulti
+                  ? formatEventDateDisplay(event)
+                  : event.date
+                  ? new Date(event.date).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : "Date TBD";
 
                 const isCheckedIn = reg.checkedIn === true;
                 const isExpired = isEventPastOrCompleted(event);

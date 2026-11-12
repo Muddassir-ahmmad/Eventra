@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../api";
-import { isEventPastOrCompleted } from "../utils/eventTiming";
+import {
+  formatEventDateDisplay,
+  getEventTotalDays,
+  isEventPastOrCompleted,
+} from "../utils/eventTiming";
 import { getEventFontConfig } from "../utils/eventFonts";
 
 export default function PublicEvent() {
@@ -11,6 +15,7 @@ export default function PublicEvent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeFaq, setActiveFaq] = useState(null);
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Participant ticket & certificate self-service retrieval
@@ -168,14 +173,17 @@ export default function PublicEvent() {
     );
   }
 
-  const isDatePassed = event.date ? new Date(event.date) < new Date(new Date().setHours(0, 0, 0, 0)) : false;
-  const isCompleted = event.status === "completed" || isDatePassed;
+  const isMultiDay = event.eventDurationType === "multi_day" || (Array.isArray(event.days) && event.days.length > 1);
+  const totalDays = getEventTotalDays(event);
+  const isCompleted = isEventPastOrCompleted(event);
   const isClosed = event.status === "closed" || isCompleted;
   const isSoldOut = event.isSoldOut === true;
   const canRegister = !isClosed && !isSoldOut;
 
   const eventDateObj = event.date ? new Date(event.date) : null;
-  const formattedDate = eventDateObj
+  const formattedDate = isMultiDay
+    ? formatEventDateDisplay(event)
+    : eventDateObj
     ? eventDateObj.toLocaleDateString("en-US", {
         weekday: "long",
         month: "long",
@@ -251,6 +259,11 @@ export default function PublicEvent() {
               <span className="mode-pill-badge">
                 {event.mode === "offline" ? "📍 In-Person" : event.mode === "online" ? "🌐 Online" : "⚡ Hybrid"}
               </span>
+              {isMultiDay && (
+                <span className="duration-pill-badge">
+                  🗓️ {totalDays}-Day Event · Single All-Access Pass
+                </span>
+              )}
               <span className={`status-pill-badge ${canRegister ? "open" : isSoldOut ? "soldout" : "completed"}`}>
                 {canRegister ? "● Registration Open" : isSoldOut ? "● Sold Out" : "● Concluded"}
               </span>
@@ -687,8 +700,97 @@ export default function PublicEvent() {
         </div>
       </section>
 
-      {/* 4. EVENT AGENDA & SCHEDULE (Only if populated) */}
-      {event.agenda?.length > 0 && (
+      {/* 4. EVENT AGENDA & SCHEDULE (Multi-Day Tabs or Single-Day List) */}
+      {(isMultiDay && Array.isArray(event.days) && event.days.length > 0) ? (
+        <section className="section-wrapper">
+          <div className="section-head">
+            <span className="section-kicker-pro">MULTI-DAY SCHEDULE</span>
+            <h2>Day-Wise Program Schedule</h2>
+            <p>Explore sessions across all {totalDays} days. One registration grants access to the entire event.</p>
+          </div>
+
+          <div className="public-multiday-tabs" role="tablist" aria-label="Event schedule by day">
+            {event.days.map((day, idx) => (
+              <button
+                key={day.dayNumber || idx}
+                type="button"
+                role="tab"
+                aria-selected={activeDayIndex === idx}
+                className={`public-day-tab${activeDayIndex === idx ? " is-active" : ""}`}
+                onClick={() => setActiveDayIndex(idx)}
+              >
+                <span>{day.title || `Day ${idx + 1}`}</span>
+                <small>
+                  {day.date
+                    ? new Date(day.date).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" })
+                    : `Day ${idx + 1}`}
+                  {" · "}{(day.sessions || []).length} {(day.sessions || []).length === 1 ? "session" : "sessions"}
+                </small>
+              </button>
+            ))}
+          </div>
+
+          {(() => {
+            const currentDay = event.days[Math.min(activeDayIndex, event.days.length - 1)];
+            if (!currentDay) return null;
+            const dayDateStr = currentDay.date
+              ? new Date(currentDay.date).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                  timeZone: "UTC",
+                })
+              : "";
+            return (
+              <>
+                <div className="public-day-banner">
+                  <div>
+                    <strong style={{ color: "#ffffff", fontSize: "1.05rem", display: "block" }}>
+                      {currentDay.title || `Day ${currentDay.dayNumber}`}
+                    </strong>
+                    <span style={{ color: "#cbd5e1", fontSize: "0.86rem" }}>{dayDateStr}</span>
+                  </div>
+                  {(currentDay.startTime || currentDay.endTime) && (
+                    <span className="agenda-time-pill">
+                      ⏰ {currentDay.startTime || ""}{currentDay.endTime ? ` – ${currentDay.endTime}` : ""}
+                    </span>
+                  )}
+                </div>
+
+                {(!currentDay.sessions || currentDay.sessions.length === 0) ? (
+                  <div className="agenda-row-card">
+                    <div className="agenda-content">
+                      <h3>General Program Schedule</h3>
+                      <p>Detailed sessions for {currentDay.title || `Day ${currentDay.dayNumber}`} will follow the event start and end timings.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="agenda-timeline-wrap">
+                    {currentDay.sessions.map((ses, sIdx) => (
+                      <div key={ses.sessionId || sIdx} className="agenda-row-card">
+                        <div className="agenda-time-pill">
+                          <span>⏱</span>
+                          {ses.startTime ? `${ses.startTime}${ses.endTime ? ` – ${ses.endTime}` : ""}` : "Scheduled"}
+                        </div>
+                        <div className="agenda-content">
+                          <h3>{ses.title}</h3>
+                          {ses.description && <p>{ses.description}</p>}
+                          <div className="agenda-meta-tags">
+                            {ses.speaker && <span className="agenda-speaker-tag">👤 {ses.speaker}</span>}
+                            {ses.venue && <span className="agenda-speaker-tag">📍 {ses.venue}</span>}
+                            {ses.capacity && <span className="agenda-speaker-tag">👥 Cap: {ses.capacity}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </section>
+      ) : event.agenda?.length > 0 && (
         <section className="section-wrapper">
           <div className="section-head">
             <span className="section-kicker-pro">TIMELINE</span>

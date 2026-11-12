@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api";
 import CertificateImageCropper from "../components/CertificateImageCropper";
+import { formatEventDateDisplay } from "../utils/eventTiming";
 import { formatParticipantName } from "../utils/participantName";
 
 const DEFAULT_DESCRIPTION = "This certificate is proudly presented to {name} for participating in {event}.";
@@ -125,9 +126,15 @@ function certificateSettings(event) {
     certificateTemplate: event.certificateTemplate || "classic",
     certificateTitle: event.certificateTitle || "Certificate of Participation",
     certificateDescription: event.certificateDescription || DEFAULT_DESCRIPTION,
+    certificateEligibilityRule: event.certificateEligibilityRule || {
+      mode: "any_day",
+      minDays: 1,
+      requiredSessionIds: [],
+    },
     certificateEventTitle: event.certificateEventTitle || "",
     certificateShowOrganization: event.certificateShowOrganization === true || Boolean(savedOrg) || !event.certificateUpdatedAt,
     certificateOrganization: savedOrg || "EVENTRA",
+    certificateOrganizationTagline: String(event.certificateOrganizationTagline || "").trim(),
     certificateOrganizationSize: orgSize,
     certificateOrganizationAlign: orgAlign,
     certificateOrganizationUppercase: event.certificateOrganizationUppercase === true,
@@ -151,6 +158,8 @@ export default function CertificateManager() {
   const [organizer, setOrganizer] = useState({});
   const [participants, setParticipants] = useState([]);
   const [counts, setCounts] = useState({ registered: 0, attended: 0, eligible: 0, generated: 0, cancelled: 0 });
+  const [eventDays, setEventDays] = useState([]);
+  const [allSessions, setAllSessions] = useState([]);
   const [settings, setSettings] = useState(null);
   const [selected, setSelected] = useState([]);
   const [previewId, setPreviewId] = useState("");
@@ -181,6 +190,8 @@ export default function CertificateManager() {
       setEvent(data.event);
       setOrganizer(data.organizer || {});
       setParticipants(data.participants || []);
+      setEventDays(data.days || []);
+      setAllSessions(data.allSessions || []);
       setCounts(data.counts || { registered: 0, attended: 0, eligible: 0, generated: 0, cancelled: 0 });
       setImageStorage(data.imageStorage || "unconfigured");
       setEmailConfigured(Boolean(data.emailConfigured));
@@ -638,6 +649,18 @@ export default function CertificateManager() {
                 Displays at the very top of the certificate (defaults to "EVENTRA", can be changed to your organization or institution).
               </small>
             </label>
+            <label className="certificate-field">
+              <span>Header Tagline / Sub-details (Optional — Address, Pin Code, Phone, Affiliation…)</span>
+              <input
+                maxLength="200"
+                value={settings.certificateOrganizationTagline || ""}
+                onChange={(change) => update("certificateOrganizationTagline", change.target.value)}
+                placeholder="e.g. Sahyadri Campus, Adyar, Mangaluru - 575007 · Ph: 0824-2277222"
+              />
+              <small style={{ color: "#94a3b8", fontSize: "0.72rem" }}>
+                Printed neatly below the top header on the certificate (leave blank to omit).
+              </small>
+            </label>
             <div className="certificate-header-style-controls">
               <div className="certificate-style-group">
                 <span>Header size</span>
@@ -776,6 +799,141 @@ export default function CertificateManager() {
                 setNotice("");
               }}
             />
+
+            {/* Multi-Day Certificate Eligibility Rules */}
+            <div
+              style={{
+                padding: "14px 16px",
+                background: "rgba(15, 23, 42, 0.7)",
+                border: "1px solid rgba(99, 102, 241, 0.28)",
+                borderRadius: 10,
+                marginTop: 14,
+              }}
+            >
+              <div style={{ marginBottom: 10 }}>
+                <strong style={{ color: "#ffffff", fontSize: "0.92rem", display: "block" }}>
+                  Certificate Eligibility Rule
+                </strong>
+                <small style={{ color: "#94a3b8", fontSize: "0.76rem" }}>
+                  Select the attendance verification criteria required before certificates can be generated or downloaded.
+                </small>
+              </div>
+
+              <div style={{ display: "grid", gap: 8 }}>
+                {[
+                  { id: "any_day", label: "At least one day attended", desc: "Participants verified on at least 1 event day qualify." },
+                  { id: "all_days", label: "All event days attended", desc: "Participants must attend every scheduled event day." },
+                  { id: "min_days", label: "Minimum number of days attended", desc: "Require a minimum day count across the event." },
+                  { id: "required_sessions", label: "Required sessions attended", desc: "Require check-ins for specific mandatory agenda sessions." },
+                ].map((rule) => {
+                  const currentMode = settings.certificateEligibilityRule?.mode || "any_day";
+                  const isSel = currentMode === rule.id;
+                  return (
+                    <label
+                      key={rule.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 10,
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        background: isSel ? "rgba(99, 102, 241, 0.16)" : "rgba(255, 255, 255, 0.02)",
+                        border: `1px solid ${isSel ? "#818cf8" : "rgba(255, 255, 255, 0.08)"}`,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="certRuleMode"
+                        checked={isSel}
+                        onChange={() => {
+                          update("certificateEligibilityRule", {
+                            ...settings.certificateEligibilityRule,
+                            mode: rule.id,
+                          });
+                        }}
+                        style={{ marginTop: 3 }}
+                      />
+                      <div>
+                        <strong style={{ fontSize: "0.85rem", color: isSel ? "#ffffff" : "#cbd5e1" }}>
+                          {rule.label}
+                        </strong>
+                        <p style={{ margin: "2px 0 0", fontSize: "0.74rem", color: "#94a3b8" }}>
+                          {rule.desc}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+
+              {settings.certificateEligibilityRule?.mode === "min_days" && (
+                <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(0,0,0,0.25)", borderRadius: 8 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "0.82rem", color: "#cbd5e1" }}>
+                    <span>Minimum days required:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={eventDays.length || 14}
+                      value={settings.certificateEligibilityRule?.minDays || 1}
+                      onChange={(e) => {
+                        const val = Math.max(1, Number(e.target.value) || 1);
+                        update("certificateEligibilityRule", {
+                          ...settings.certificateEligibilityRule,
+                          minDays: val,
+                        });
+                      }}
+                      style={{
+                        width: 70,
+                        padding: "4px 8px",
+                        background: "#0f172a",
+                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                        color: "#ffffff",
+                        borderRadius: 6,
+                        textAlign: "center",
+                      }}
+                    />
+                    <small style={{ color: "#94a3b8" }}>of {eventDays.length || 1} total days</small>
+                  </label>
+                </div>
+              )}
+
+              {settings.certificateEligibilityRule?.mode === "required_sessions" && (
+                <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(0,0,0,0.25)", borderRadius: 8 }}>
+                  <span style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#cbd5e1", marginBottom: 6 }}>
+                    Select mandatory sessions:
+                  </span>
+                  {allSessions.length === 0 ? (
+                    <small style={{ color: "#94a3b8" }}>No sessions configured in the event schedule yet.</small>
+                  ) : (
+                    <div style={{ display: "grid", gap: 6, maxHeight: 160, overflowY: "auto" }}>
+                      {allSessions.map((ses) => {
+                        const reqList = settings.certificateEligibilityRule?.requiredSessionIds || [];
+                        const checked = reqList.includes(ses.sessionId);
+                        return (
+                          <label key={ses.sessionId} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.78rem", color: "#e2e8f0" }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const nextList = e.target.checked
+                                  ? [...reqList, ses.sessionId]
+                                  : reqList.filter((id) => id !== ses.sessionId);
+                                update("certificateEligibilityRule", {
+                                  ...settings.certificateEligibilityRule,
+                                  requiredSessionIds: nextList,
+                                });
+                              }}
+                            />
+                            <span>D{ses.dayNumber} · <strong>{ses.title}</strong> {ses.speaker ? `(${ses.speaker})` : ""}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Feedback Gating Toggle */}
             <div
@@ -1256,6 +1414,12 @@ export default function CertificateManager() {
                         <span className={`participant-status ${person.checkedIn ? "is-eligible" : ""}`}>
                           {person.checkedIn ? "✓ Checked in" : "● Absent"}
                         </span>
+                        {(person.totalEventDays > 1 || (person.attendedSessions || []).length > 0) && (
+                          <div style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: 4 }}>
+                            Days: {(person.attendedDays || []).length}/{person.totalEventDays || 1}
+                            {(person.attendedSessions || []).length > 0 ? ` · ${(person.attendedSessions || []).length} ses.` : ""}
+                          </div>
+                        )}
                       </td>
                       <td>
                         {isEligible && (
@@ -1266,14 +1430,14 @@ export default function CertificateManager() {
                         {isPending && (
                           <span
                             style={{ color: "#f59e0b", fontWeight: 700, fontSize: "0.82rem" }}
-                            title="Attendee checked in, but has not completed the feedback survey yet."
+                            title="Attendee met attendance criteria, but has not completed the feedback survey yet."
                           >
                             ⏳ Feedback Pending
                           </span>
                         )}
-                        {isAbsent && (
-                          <span style={{ color: "#64748b", fontSize: "0.82rem" }}>
-                            Ineligible (Absent)
+                        {!isEligible && !isPending && (
+                          <span style={{ color: "#94a3b8", fontSize: "0.78rem" }} title={person.eligibilityReason || ""}>
+                            {person.eligibilityReason || "Ineligible (Absent)"}
                           </span>
                         )}
                       </td>
@@ -1804,7 +1968,9 @@ function CertificatePreview({
 
   const participantName = formatParticipantName(participant?.name, "Participant Name");
   const eventDisplayTitle = (settings.certificateEventTitle || "").trim() || event.title || "Event Name";
-  const date = event.date
+  const date = event.eventDurationType === "multi_day"
+    ? formatEventDateDisplay(event)
+    : event.date
     ? new Date(event.date).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })
     : "Event date";
   const description = (settings.certificateDescription || DEFAULT_DESCRIPTION)
@@ -1823,10 +1989,11 @@ function CertificatePreview({
   const pinnedSignatures = indexedSignatures.filter(({ signature }) => signature.x != null && signature.y != null);
   const hasCustomLogoPos = settings.certificateLogoX != null && settings.certificateLogoY != null;
   const organizationDisplay = (settings.certificateOrganization || "EVENTRA").trim();
+  const organizationTaglineDisplay = (settings.certificateOrganizationTagline || "").trim();
   const orgSize = settings.certificateOrganizationSize || "md";
   const orgAlign = settings.certificateOrganizationAlign || "center";
   const orgUppercase = settings.certificateOrganizationUppercase === true;
-  const hasTopHeader = Boolean(organizationDisplay || (settings.certificateLogoUrl && !hasCustomLogoPos));
+  const hasTopHeader = Boolean(organizationDisplay || organizationTaglineDisplay || (settings.certificateLogoUrl && !hasCustomLogoPos));
 
   const textStyles = settings.certificateTextStyles || {};
   const isTextSelected = (key) => selectedItem?.type === "text" && selectedItem.key === key;
@@ -1936,11 +2103,20 @@ function CertificatePreview({
               }}
             />
           )}
-          {organizationDisplay && !isFloatingText("organization") && renderEditableText(
-            "organization",
-            organizationDisplay,
-            "certificate-organization-name",
-            "span"
+          {(organizationDisplay || organizationTaglineDisplay) && !isFloatingText("organization") && (
+            <div className="certificate-org-stack">
+              {organizationDisplay && renderEditableText(
+                "organization",
+                organizationDisplay,
+                "certificate-organization-name",
+                "span"
+              )}
+              {organizationTaglineDisplay && (
+                <span className="certificate-organization-tagline">
+                  {organizationTaglineDisplay}
+                </span>
+              )}
+            </div>
           )}
         </header>
         <div className="certificate-art-main">
@@ -2036,7 +2212,14 @@ function CertificatePreview({
       {/* Floating custom-positioned text elements */}
       {organizationDisplay && isFloatingText("organization") && renderEditableText(
         "organization",
-        orgUppercase ? organizationDisplay.toUpperCase() : organizationDisplay,
+        organizationTaglineDisplay ? (
+          <>
+            <span>{orgUppercase ? organizationDisplay.toUpperCase() : organizationDisplay}</span>
+            <span className="certificate-organization-tagline">{organizationTaglineDisplay}</span>
+          </>
+        ) : (
+          orgUppercase ? organizationDisplay.toUpperCase() : organizationDisplay
+        ),
         "certificate-organization-name",
         "div"
       )}

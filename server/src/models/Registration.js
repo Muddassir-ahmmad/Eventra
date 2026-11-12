@@ -62,6 +62,18 @@ const registrationSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    attendedDays: {
+      type: [Number],
+      default: [],
+    },
+    attendedSessions: {
+      type: [String],
+      default: [],
+    },
+    lastCheckedInAt: {
+      type: Date,
+      default: null,
+    },
     confirmationEmailedAt: {
       type: Date,
       default: null,

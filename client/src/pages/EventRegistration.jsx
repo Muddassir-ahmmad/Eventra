@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api";
 import { getEventFontConfig } from "../utils/eventFonts";
+import { formatEventDateDisplay, getEventTotalDays, isEventPastOrCompleted } from "../utils/eventTiming";
 
 export default function EventRegistration() {
   const { slug } = useParams();
@@ -27,8 +28,7 @@ export default function EventRegistration() {
     api.get(`/events/public/${slug}`)
       .then(({ data }) => {
         setEvent(data.event);
-        const isDatePassed = data.event?.date ? new Date(data.event.date) < new Date(new Date().setHours(0, 0, 0, 0)) : false;
-        if (data.event?.status === "completed" || isDatePassed) {
+        if (isEventPastOrCompleted(data.event)) {
           setError("This event has already concluded and registration is closed.");
         } else if (data.event?.ticketTypes?.length > 0) {
           setForm((old) => ({
@@ -253,7 +253,9 @@ export default function EventRegistration() {
               {event.title}
             </h1>
             <p style={{ color: "#94a3b8", fontSize: "0.9rem", margin: 0 }}>
-              📅 {event.date ? new Date(event.date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : ""} · 📍 {event.venue}
+              📅 {formatEventDateDisplay(event)}
+              {event.eventDurationType === "multi_day" ? ` (${getEventTotalDays(event)} Days All-Access Pass)` : ""}
+              {" "}· 📍 {event.venue}
             </p>
           </div>
 

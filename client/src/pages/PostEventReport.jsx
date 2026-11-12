@@ -543,6 +543,37 @@ export default function PostEventReport() {
                     <p className="report-section-desc" style={{ marginBottom: 0 }}>
                       {ANALYTICS_SECTION_DEF.desc}
                     </p>
+
+                    {analytics?.multiDay?.isMultiDay && Array.isArray(analytics?.multiDay?.dailyBreakdown) && (
+                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+                          <strong style={{ fontSize: "0.85rem", color: "#38bdf8" }}>
+                            Multi-Day Daily Breakdown ({analytics.multiDay.totalDays} Days)
+                          </strong>
+                          <span style={{ fontSize: "0.78rem", color: "#34d399", fontWeight: 700 }}>
+                            Attended All Days: {analytics.multiDay.participantsAttendingAllDays} / {analytics.confirmedCount} ({analytics.multiDay.participantsAttendingAllDaysRate}%)
+                          </span>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
+                          {analytics.multiDay.dailyBreakdown.map((d) => (
+                            <div key={d.dayNumber} style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                              <strong style={{ display: "block", fontSize: "0.8rem", color: "#e2e8f0" }}>{d.title}</strong>
+                              <span style={{ fontSize: "0.74rem", color: "#94a3b8" }}>{d.uniqueAttendees} checked in</span>
+                              <div style={{ fontSize: "0.75rem", color: "#06b6d4", fontWeight: 700, marginTop: 2 }}>{d.attendanceRate}%</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {analytics?.certificateStats && (
+                      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 16, flexWrap: "wrap", fontSize: "0.78rem", color: "#cbd5e1" }}>
+                        <span>Certificate Rule: <strong style={{ color: "#a5b4fc" }}>{analytics.certificateStats.ruleMode?.replace(/_/g, " ")}</strong></span>
+                        <span>Eligible: <strong style={{ color: "#34d399" }}>{analytics.certificateStats.eligibleCount}</strong></span>
+                        <span>Pending Feedback: <strong style={{ color: "#f59e0b" }}>{analytics.certificateStats.feedbackPendingCount}</strong></span>
+                        <span>Issued: <strong style={{ color: "#ffffff" }}>{analytics.certificateStats.issuedCount}</strong></span>
+                      </div>
+                    )}
                   </article>
 
                   {SECTION_DEFINITIONS.map((def, idx) => {

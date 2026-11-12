@@ -231,6 +231,75 @@
   color: #94a3b8;
 }
 
+/* Multi-day attendance mode, day pills, and session selector */
+.multiday-attendance-panel {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+}
+
+.multiday-mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.multiday-day-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 10px;
+}
+
+.multiday-day-card {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #e2e8f0;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.multiday-day-card:hover {
+  border-color: rgba(129, 140, 248, 0.55);
+}
+
+.multiday-day-card.is-selected {
+  background: rgba(79, 70, 229, 0.22);
+  border-color: #818cf8;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+}
+
+.day-progress-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.day-chip {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.day-chip.yes {
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  color: #6ee7b7;
+}
+
+.day-chip.no {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #64748b;
+}
+
 /* Laser Scanner Animation & Camera Viewport Enhancements */
 @keyframes laserScan {
   0% { top: 15%; opacity: 0.8; }

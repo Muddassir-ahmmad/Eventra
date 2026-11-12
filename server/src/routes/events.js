@@ -6,6 +6,7 @@ import { randomUUID, createHash } from "node:crypto";
 import multer from "multer";
 import Event from "../models/Event.js";
 import Registration from "../models/Registration.js";
+import Attendance from "../models/Attendance.js";
 import Feedback from "../models/Feedback.js";
 import EmailLog from "../models/EmailLog.js";
 import PostEventReport from "../models/PostEventReport.js";
@@ -21,6 +22,12 @@ import {
 import { sendFeedbackEmailsForEvent } from "../utils/feedbackEmail.js";
 import { calculateReportAnalytics } from "../utils/reportAnalytics.js";
 import { isEventCompleted, getEventEndDateTime } from "../utils/eventTiming.js";
+import {
+  evaluateRegistrationCertificateEligibility,
+  getAllEventSessions,
+  normalizeCertificateEligibilityRule,
+  validateAndNormalizeMultiDaySchedule,
+} from "../utils/multiDay.js";
 import { generateGeminiPoster, generateGeminiEventCopy, isGeminiConfigured } from "../services/geminiService.js";
 
 const router = express.Router();
@@ -264,8 +271,14 @@ router.post("/", requireAuth, async (req, res) => {
       contactEmail,
       contactPhone,
       date,
+      eventDurationType,
+      startDate,
+      endDate,
       startTime,
       endTime,
+      days,
+      sessionAttendanceEnabled,
+      certificateEligibilityRule,
       venue,
       location,
       capacity,
@@ -292,6 +305,7 @@ router.post("/", requireAuth, async (req, res) => {
       signatures,
       certificateShowOrganization,
       certificateOrganization,
+      certificateOrganizationTagline,
       certificateOrganizationSize,
       certificateOrganizationAlign,
       certificateOrganizationUppercase,
@@ -304,11 +318,29 @@ router.post("/", requireAuth, async (req, res) => {
       status,
     } = req.body;
 
-    if (!title || !date || !venue || !capacity) {
+    const effectiveDateInput = date || startDate;
+    if (!title || !effectiveDateInput || !venue || !capacity) {
       return res.status(400).json({
         message: "Title, date, venue and capacity are required",
       });
     }
+
+    const scheduleCheck = validateAndNormalizeMultiDaySchedule({
+      eventDurationType,
+      date: effectiveDateInput,
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      days,
+      agenda,
+      sessionAttendanceEnabled,
+    });
+    if (scheduleCheck.error) {
+      return res.status(400).json({ message: scheduleCheck.error });
+    }
+    const schedule = scheduleCheck.value;
+    const validSessionIds = getAllEventSessions(schedule).map((s) => s.sessionId);
 
     if (ticketMode === "paid") {
       return res.status(400).json({
@@ -337,9 +369,14 @@ router.post("/", requireAuth, async (req, res) => {
       mode: mode || "offline",
       contactEmail: contactEmail || "",
       contactPhone: contactPhone || "",
-      date,
-      startTime: startTime || "",
-      endTime: endTime || "",
+      date: schedule.date,
+      eventDurationType: schedule.eventDurationType,
+      startDate: schedule.startDate,
+      endDate: schedule.endDate,
+      startTime: schedule.startTime,
+      endTime: schedule.endTime,
+      days: schedule.days,
+      sessionAttendanceEnabled: schedule.sessionAttendanceEnabled,
       venue,
       location: location || "",
       capacity,
@@ -350,7 +387,7 @@ router.post("/", requireAuth, async (req, res) => {
       theme: theme || "aurora",
       eventFont: ALLOWED_EVENT_FONTS.includes(eventFont) ? eventFont : "modern",
       speakers: Array.isArray(speakers) ? speakers : [],
-      agenda: Array.isArray(agenda) ? agenda : [],
+      agenda: schedule.agenda,
       faqs: Array.isArray(faqs) ? faqs : [],
       registrationFields: Array.isArray(registrationFields) && registrationFields.length > 0
         ? registrationFields
@@ -366,8 +403,13 @@ router.post("/", requireAuth, async (req, res) => {
       certificateDescription: certificateDescription || DEFAULT_CERTIFICATE_DESCRIPTION,
       eventType: eventType || "",
       signatures: Array.isArray(signatures) ? signatures : [],
+      certificateEligibilityRule: normalizeCertificateEligibilityRule(
+        certificateEligibilityRule,
+        validSessionIds
+      ),
       certificateShowOrganization: certificateShowOrganization === true,
       certificateOrganization: certificateOrganization || "",
+      certificateOrganizationTagline: String(certificateOrganizationTagline || "").trim().slice(0, 200),
       certificateOrganizationSize: CERTIFICATE_ORG_SIZES.includes(certificateOrganizationSize)
         ? certificateOrganizationSize
         : "md",
@@ -498,8 +540,14 @@ router.put("/:eventId", requireAuth, async (req, res) => {
       contactEmail,
       contactPhone,
       date,
+      eventDurationType,
+      startDate,
+      endDate,
       startTime,
       endTime,
+      days,
+      sessionAttendanceEnabled,
+      certificateEligibilityRule,
       venue,
       location,
       capacity,
@@ -526,6 +574,7 @@ router.put("/:eventId", requireAuth, async (req, res) => {
       signatures,
       certificateShowOrganization,
       certificateOrganization,
+      certificateOrganizationTagline,
       certificateOrganizationSize,
       certificateOrganizationAlign,
       certificateOrganizationUppercase,
@@ -546,9 +595,47 @@ router.put("/:eventId", requireAuth, async (req, res) => {
     if (mode !== undefined) event.mode = mode;
     if (contactEmail !== undefined) event.contactEmail = contactEmail;
     if (contactPhone !== undefined) event.contactPhone = contactPhone;
-    if (date !== undefined) event.date = date;
-    if (startTime !== undefined) event.startTime = startTime;
-    if (endTime !== undefined) event.endTime = endTime;
+
+    const hasScheduleUpdate = [
+      eventDurationType,
+      date,
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      days,
+      agenda,
+      sessionAttendanceEnabled,
+    ].some((val) => val !== undefined);
+
+    if (hasScheduleUpdate) {
+      const scheduleCheck = validateAndNormalizeMultiDaySchedule({
+        eventDurationType: eventDurationType !== undefined ? eventDurationType : event.eventDurationType,
+        date: date !== undefined ? date : event.date,
+        startDate: startDate !== undefined ? startDate : event.startDate,
+        endDate: endDate !== undefined ? endDate : event.endDate,
+        startTime: startTime !== undefined ? startTime : event.startTime,
+        endTime: endTime !== undefined ? endTime : event.endTime,
+        days: days !== undefined ? days : event.days,
+        agenda: agenda !== undefined ? agenda : event.agenda,
+        sessionAttendanceEnabled:
+          sessionAttendanceEnabled !== undefined ? sessionAttendanceEnabled : event.sessionAttendanceEnabled,
+      });
+      if (scheduleCheck.error) {
+        return res.status(400).json({ message: scheduleCheck.error });
+      }
+      const schedule = scheduleCheck.value;
+      event.eventDurationType = schedule.eventDurationType;
+      event.date = schedule.date;
+      event.startDate = schedule.startDate;
+      event.endDate = schedule.endDate;
+      event.startTime = schedule.startTime;
+      event.endTime = schedule.endTime;
+      event.days = schedule.days;
+      event.agenda = schedule.agenda;
+      event.sessionAttendanceEnabled = schedule.sessionAttendanceEnabled;
+    }
+
     if (venue !== undefined) event.venue = venue;
     if (location !== undefined) event.location = location;
     if (capacity !== undefined) event.capacity = capacity;
@@ -561,7 +648,6 @@ router.put("/:eventId", requireAuth, async (req, res) => {
       event.eventFont = eventFont;
     }
     if (speakers !== undefined) event.speakers = Array.isArray(speakers) ? speakers : [];
-    if (agenda !== undefined) event.agenda = Array.isArray(agenda) ? agenda : [];
     if (faqs !== undefined) event.faqs = Array.isArray(faqs) ? faqs : [];
     if (registrationFields !== undefined) event.registrationFields = registrationFields;
     if (ticketMode === "paid") {
@@ -584,6 +670,7 @@ router.put("/:eventId", requireAuth, async (req, res) => {
       signatures,
       certificateShowOrganization,
       certificateOrganization,
+      certificateOrganizationTagline,
       certificateOrganizationSize,
       certificateOrganizationAlign,
       certificateOrganizationUppercase,
@@ -597,8 +684,18 @@ router.put("/:eventId", requireAuth, async (req, res) => {
     if (certificateDescription !== undefined) event.certificateDescription = certificateDescription;
     if (eventType !== undefined) event.eventType = eventType;
     if (signatures !== undefined) event.signatures = Array.isArray(signatures) ? signatures : [];
+    if (certificateEligibilityRule !== undefined) {
+      const validSessionIds = getAllEventSessions(event).map((s) => s.sessionId);
+      event.certificateEligibilityRule = normalizeCertificateEligibilityRule(
+        certificateEligibilityRule,
+        validSessionIds
+      );
+    }
     if (certificateShowOrganization !== undefined) event.certificateShowOrganization = certificateShowOrganization;
     if (certificateOrganization !== undefined) event.certificateOrganization = certificateOrganization;
+    if (certificateOrganizationTagline !== undefined) {
+      event.certificateOrganizationTagline = String(certificateOrganizationTagline || "").trim().slice(0, 200);
+    }
     if (
       certificateOrganizationSize !== undefined &&
       CERTIFICATE_ORG_SIZES.includes(certificateOrganizationSize)
@@ -825,15 +922,23 @@ router.get("/:eventId/post-event", requireAuth, async (req, res) => {
       return res.status(404).json({ message: "Event not found." });
     }
 
-    const [registrations, feedbacks, emailLogs, report, certificates] = await Promise.all([
+    const [registrations, attendanceRecords, feedbacks, emailLogs, report, certificates] = await Promise.all([
       Registration.find({ eventId: event._id }).lean(),
+      Attendance.find({ eventId: event._id }).lean(),
       Feedback.find({ eventId: event._id }).lean(),
       EmailLog.find({ eventId: event._id, emailType: "feedback_request" }).lean(),
       PostEventReport.findOne({ eventId: event._id }).lean(),
       Certificate.find({ eventId: event._id }).lean(),
     ]);
 
-    const analytics = calculateReportAnalytics(registrations, feedbacks);
+    const attendanceByReg = new Map();
+    for (const rec of attendanceRecords) {
+      const key = String(rec.registrationId);
+      if (!attendanceByReg.has(key)) attendanceByReg.set(key, []);
+      attendanceByReg.get(key).push(rec);
+    }
+
+    const analytics = calculateReportAnalytics(registrations, feedbacks, attendanceRecords, event, certificates);
     const confirmedCount = analytics.confirmedCount;
     const sentEmailsCount = emailLogs.filter((l) => l.deliveryStatus === "sent").length;
     const failedEmailsCount = emailLogs.filter((l) => l.deliveryStatus === "failed").length;
@@ -843,10 +948,16 @@ router.get("/:eventId/post-event", requireAuth, async (req, res) => {
       ? Math.round((feedbacks.reduce((acc, f) => acc + f.ratingOverall, 0) / feedbackCount) * 10) / 10
       : 0;
 
-    const attendedRegs = registrations.filter((r) => r.status === "confirmed" && r.checkedIn === true);
-    const eligibleForCert = event.requireFeedbackForCertificate
-      ? attendedRegs.filter((r) => r.feedbackSubmitted === true).length
-      : attendedRegs.length;
+    const eligibleForCert = registrations
+      .filter((r) => r.status === "confirmed")
+      .filter((r) => {
+        const evalRes = evaluateRegistrationCertificateEligibility(
+          event,
+          r,
+          attendanceByReg.get(String(r._id)) || []
+        );
+        return evalRes.eligibilityStatus === "eligible";
+      }).length;
 
     res.json({
       event: {
