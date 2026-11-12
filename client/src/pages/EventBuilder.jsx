@@ -618,20 +618,8 @@ function Basics({ form, update }) {
         />
       </Field>
 
-      <div className="builder-font-section">
-        <div className="builder-font-header">
-          <div>
-            <strong>Participant Page Typography</strong>
-            <p className="hint-text" style={{ margin: "4px 0 0" }}>
-              Choose the font style participants see on the public event page and registration screen.
-            </p>
-          </div>
-          <span className="builder-font-badge">
-            {getEventFontConfig(form.eventFont).label}
-          </span>
-        </div>
-
-        <div className="event-font-grid" role="radiogroup" aria-label="Participant page font style">
+      <Field label="Participant Page Typography">
+        <div className="builder-font-pills" role="radiogroup" aria-label="Participant page font style">
           {EVENT_FONT_OPTIONS.map((font) => {
             const active = (form.eventFont || "modern") === font.id;
             return (
@@ -640,37 +628,21 @@ function Basics({ form, update }) {
                 type="button"
                 role="radio"
                 aria-checked={active}
-                className={`event-font-card${active ? " is-selected" : ""}`}
+                className={`builder-font-pill${active ? " is-active" : ""}`}
                 onClick={() => update("eventFont", font.id)}
+                title={font.sampleText}
               >
-                <div className="event-font-card-top">
-                  <span className="event-font-sample" style={{ fontFamily: font.headingFont }}>
-                    Aa
-                  </span>
-                  <span className="event-font-category">{font.category}</span>
-                </div>
-                <strong style={{ fontFamily: font.headingFont }}>{font.label}</strong>
-                <small style={{ fontFamily: font.bodyFont }}>{font.sampleText}</small>
+                <span className="builder-font-pill-sample" style={{ fontFamily: font.headingFont }}>
+                  Aa
+                </span>
+                <span className="builder-font-pill-name" style={{ fontFamily: font.headingFont }}>
+                  {font.label}
+                </span>
               </button>
             );
           })}
         </div>
-
-        <div
-          className="event-font-live-preview"
-          style={{ fontFamily: getEventFontConfig(form.eventFont).bodyFont }}
-        >
-          <span className="event-font-preview-label">Live Participant Page Sample</span>
-          <h4 style={{ fontFamily: getEventFontConfig(form.eventFont).headingFont }}>
-            {form.title || "Your Event Headline Will Look Like This"}
-          </h4>
-          <p>
-            {form.shortDescription ||
-              (form.description ? form.description.slice(0, 140) : "") ||
-              "This typography pairing shapes your hero headline, schedule titles, speaker bios, and event details."}
-          </p>
-        </div>
-      </div>
+      </Field>
 
       <Field label="Event Duration Format" required>
         <div className="multiday-duration-picker">

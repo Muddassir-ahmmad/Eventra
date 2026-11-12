@@ -784,131 +784,56 @@
   }
 }
 
-/* Event Font Selector & Certificate Header Style Pills */
-.builder-font-section {
-  margin-top: 6px;
-  padding: 18px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 15, 30, 0.55);
-}
-
-.builder-font-header {
+/* Event Font Selector - Clean & Compact Pills */
+.builder-font-pills {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
 }
 
-.builder-font-header strong {
-  color: #f8fafc;
-  font-size: 0.95rem;
-}
-
-.builder-font-badge {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(99, 102, 241, 0.16);
-  border: 1px solid rgba(129, 140, 248, 0.35);
-  color: #a5b4fc;
-  font-size: 0.74rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.event-font-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.event-font-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 4px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background: rgba(15, 23, 42, 0.75);
-  color: #e2e8f0;
+.builder-font-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.65);
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+  transition: all 0.18s ease;
+  line-height: 1;
 }
 
-.event-font-card:hover {
-  border-color: rgba(129, 140, 248, 0.5);
-  transform: translateY(-1px);
+.builder-font-pill:hover {
+  border-color: rgba(129, 140, 248, 0.45);
+  color: #f1f5f9;
+  background: rgba(30, 41, 59, 0.7);
 }
 
-.event-font-card.is-selected {
+.builder-font-pill.is-active {
   border-color: #6366f1;
-  background: rgba(79, 70, 229, 0.18);
+  background: rgba(99, 102, 241, 0.18);
+  color: #ffffff;
   box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.35);
 }
 
-.event-font-card-top {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.event-font-sample {
-  font-size: 1.2rem;
+.builder-font-pill-sample {
+  font-size: 0.92rem;
   font-weight: 700;
-  color: #ffffff;
-}
-
-.event-font-category {
-  font-size: 0.68rem;
-  color: #94a3b8;
-}
-
-.event-font-card strong {
-  font-size: 0.88rem;
-  color: #f8fafc;
-}
-
-.event-font-card small {
-  font-size: 0.72rem;
-  color: #94a3b8;
-  line-height: 1.35;
-}
-
-.event-font-live-preview {
-  margin-top: 14px;
-  padding: 14px 16px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 27, 75, 0.45));
-  border: 1px dashed rgba(129, 140, 248, 0.3);
-}
-
-.event-font-preview-label {
-  display: inline-block;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: #818cf8;
-  margin-bottom: 6px;
 }
 
-.event-font-live-preview h4 {
-  margin: 0 0 6px;
-  font-size: 1.25rem;
-  color: #ffffff;
-  line-height: 1.25;
+.builder-font-pill.is-active .builder-font-pill-sample {
+  color: #a5b4fc;
 }
 
-.event-font-live-preview p {
-  margin: 0;
-  color: #cbd5e1;
-  font-size: 0.88rem;
-  line-height: 1.5;
+.builder-font-pill-name {
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .builder-mini-pills {
