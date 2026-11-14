@@ -1,73 +1,125 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import api from "../api";
 
 export default function Home() {
   const token = typeof window !== "undefined" ? localStorage.getItem("eventra_token") : null;
   const [activeTab, setActiveTab] = useState("pass");
   const [activeDay, setActiveDay] = useState(1);
+  const [publicEvents, setPublicEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+
+  useEffect(() => {
+    api.get("/events/public")
+      .then((res) => {
+        const events = res.data?.events || [];
+        setPublicEvents(events.slice(0, 3));
+      })
+      .catch(() => {
+        // Fallback curated samples if server has no public events or network offline
+        setPublicEvents([
+          {
+            _id: "sample-1",
+            slug: "global-ai-summit-2026",
+            title: "Global AI & Systems Summit 2026",
+            description: "Three immersive days exploring generative intelligence, autonomous agents, and next-gen cloud architectures.",
+            venue: "Imperial Convention Centre, Hall A",
+            date: "2026-11-20",
+            category: "Technology",
+            eventDurationType: "multi_day",
+            days: [{}, {}, {}],
+            capacity: 500,
+          },
+          {
+            _id: "sample-2",
+            slug: "design-systems-symposium",
+            title: "International Design Systems Symposium",
+            description: "A premier gathering of product designers, design engineers, and creative directors.",
+            venue: "National Academy of Design, Auditorium",
+            date: "2026-11-28",
+            category: "Design",
+            eventDurationType: "single_day",
+            capacity: 350,
+          },
+          {
+            _id: "sample-3",
+            slug: "cybersecurity-defence-forum",
+            title: "Zero-Trust Cybersecurity Forum",
+            description: "Hands-on workshops, live red-team demonstrations, and defensive security protocols.",
+            venue: "Tech City Convention Complex",
+            date: "2026-12-05",
+            category: "Engineering",
+            eventDurationType: "multi_day",
+            days: [{}, {}],
+            capacity: 400,
+          },
+        ]);
+      })
+      .finally(() => setLoadingEvents(false));
+  }, []);
 
   return (
-    <main className="landing" style={{ overflowX: "hidden", position: "relative" }}>
-      {/* ThreeUI Ambient Aurora Lighting */}
-      <div
-        style={{
-          position: "absolute",
-          top: "-150px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "1200px",
-          height: "650px",
-          background:
-            "radial-gradient(ellipse 65% 50% at 50% 20%, rgba(0, 113, 227, 0.22), rgba(139, 92, 246, 0.12) 45%, transparent 70%)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-
+    <main style={{ background: "#F4F1EA", color: "#242B2B", minHeight: "100vh", overflowX: "hidden" }}>
       {/* =========================================================================
-          1. APPLE FLAGSHIP HERO SECTION
+          1. EDITORIAL HERO SECTION
           ========================================================================= */}
-      <section className="landing-hero" style={{ position: "relative", zIndex: 1, paddingTop: "60px", paddingBottom: "20px" }}>
-        <div className="hero-content" style={{ maxWidth: "960px", margin: "0 auto", padding: "0 24px" }}>
+      <section style={{ position: "relative", paddingTop: "70px", paddingBottom: "40px" }}>
+        <div style={{ maxWidth: "1080px", margin: "0 auto", padding: "0 24px", textAlign: "center" }}>
           {/* Eyebrow Badge */}
-          <div className="apple-eyebrow" style={{ marginBottom: "24px" }}>
-            <span className="pulse-dot" />
-            <span>EVENTRA 2026 · INTELLIGENT EVENT ARCHITECTURE</span>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "6px 16px",
+              borderRadius: "9999px",
+              background: "#E8E3D9",
+              border: "1px solid #DDD8CF",
+              color: "#477C73",
+              fontSize: "0.74rem",
+              fontWeight: 800,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              marginBottom: "24px",
+            }}
+          >
+            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#D98D76" }} />
+            <span>EVENTRA · PREMIER EVENT MANAGEMENT &amp; PASS SYSTEM</span>
           </div>
 
           {/* Cinematic Headline */}
           <h1
             style={{
-              fontSize: "clamp(2.8rem, 6.5vw, 5.2rem)",
+              fontSize: "clamp(2.6rem, 5.5vw, 4.8rem)",
               fontWeight: 800,
-              lineHeight: 1.04,
-              letterSpacing: "-0.045em",
-              color: "#f5f5f7",
+              lineHeight: 1.08,
+              letterSpacing: "-0.04em",
+              color: "#242B2B",
               margin: "0 0 24px",
             }}
           >
-            The new standard for events.
+            Where landmark events come to life.
             <br />
-            <span className="apple-gradient-text">Orchestrated to perfection.</span>
+            <span style={{ color: "#477C73" }}>Orchestrated with precision.</span>
           </h1>
 
           {/* Subtitle */}
           <p
             style={{
-              fontSize: "clamp(1.05rem, 2vw, 1.25rem)",
-              lineHeight: 1.6,
-              color: "#86868b",
-              maxWidth: "680px",
+              fontSize: "clamp(1.05rem, 1.8vw, 1.25rem)",
+              lineHeight: 1.65,
+              color: "#686E6B",
+              maxWidth: "720px",
               margin: "0 auto 36px",
               fontWeight: 400,
             }}
           >
-            From multi-day agendas and session-level QR attendance to anti-fraud certificates
-            and 12-section institutional reports — EVENTRA delivers a seamless, cinematic experience
+            From multi-day dynamic agendas and session-level QR attendance to anti-fraud certificates
+            and 12-section institutional reports — EVENTRA delivers a seamless, high-converting experience
             for organizers and attendees alike.
           </p>
 
-          {/* Action Pills */}
+          {/* Action CTAs */}
           <div
             style={{
               display: "flex",
@@ -83,10 +135,14 @@ export default function Home() {
                   className="button button-primary"
                   to="/create-event"
                   style={{
-                    padding: "12px 28px",
+                    padding: "13px 32px",
                     fontSize: "0.95rem",
-                    fontWeight: 600,
-                    boxShadow: "0 4px 24px rgba(0, 113, 227, 0.45)",
+                    fontWeight: 700,
+                    borderRadius: "9999px",
+                    background: "#477C73",
+                    color: "#FFFFFF",
+                    textDecoration: "none",
+                    boxShadow: "0 4px 18px rgba(71, 124, 115, 0.28)",
                   }}
                 >
                   ✦ Create New Event ↗
@@ -94,7 +150,15 @@ export default function Home() {
                 <Link
                   className="button button-ghost"
                   to="/dashboard"
-                  style={{ padding: "12px 26px", fontSize: "0.95rem" }}
+                  style={{
+                    padding: "13px 28px",
+                    fontSize: "0.95rem",
+                    borderRadius: "9999px",
+                    background: "#FFFFFF",
+                    color: "#242B2B",
+                    border: "1px solid #DDD8CF",
+                    textDecoration: "none",
+                  }}
                 >
                   Organizer Dashboard
                 </Link>
@@ -105,10 +169,14 @@ export default function Home() {
                   className="button button-primary"
                   to="/register"
                   style={{
-                    padding: "12px 30px",
+                    padding: "13px 32px",
                     fontSize: "0.95rem",
-                    fontWeight: 600,
-                    boxShadow: "0 4px 24px rgba(0, 113, 227, 0.45)",
+                    fontWeight: 700,
+                    borderRadius: "9999px",
+                    background: "#477C73",
+                    color: "#FFFFFF",
+                    textDecoration: "none",
+                    boxShadow: "0 4px 18px rgba(71, 124, 115, 0.28)",
                   }}
                 >
                   Get Started Free ↗
@@ -116,7 +184,15 @@ export default function Home() {
                 <Link
                   className="button button-ghost"
                   to="/participant/dashboard"
-                  style={{ padding: "12px 26px", fontSize: "0.95rem" }}
+                  style={{
+                    padding: "13px 28px",
+                    fontSize: "0.95rem",
+                    borderRadius: "9999px",
+                    background: "#FFFFFF",
+                    color: "#242B2B",
+                    border: "1px solid #DDD8CF",
+                    textDecoration: "none",
+                  }}
                 >
                   🎟️ Find My Ticket Pass
                 </Link>
@@ -130,10 +206,10 @@ export default function Home() {
               display: "flex",
               justifyContent: "center",
               gap: "28px",
-              marginTop: "40px",
-              color: "#6e6e73",
-              fontSize: "0.82rem",
-              fontWeight: 500,
+              marginTop: "44px",
+              color: "#686E6B",
+              fontSize: "0.85rem",
+              fontWeight: 600,
               flexWrap: "wrap",
             }}
           >
@@ -148,222 +224,200 @@ export default function Home() {
         </div>
 
         {/* =========================================================================
-            2. THREEUI INTERACTIVE PRODUCT SHOWCASE STAGE
+            2. INTERACTIVE THREEUI-INSPIRED SHOWCASE STAGE
             ========================================================================= */}
-        <div className="apple-stage-container" style={{ padding: "0 20px" }}>
-          {/* Interactive Switcher Tabs */}
-          <div className="apple-tab-bar">
+        <div style={{ maxWidth: "1140px", margin: "48px auto 0", padding: "0 20px" }}>
+          {/* Segmented Switcher Tab Bar */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "8px",
+              margin: "0 auto 28px",
+              background: "#E8E3D9",
+              padding: "6px",
+              borderRadius: "9999px",
+              width: "fit-content",
+              border: "1px solid #DDD8CF",
+              flexWrap: "wrap",
+            }}
+          >
             <button
               type="button"
-              className={`apple-tab-btn ${activeTab === "pass" ? "active" : ""}`}
               onClick={() => setActiveTab("pass")}
+              style={{
+                padding: "10px 22px",
+                borderRadius: "9999px",
+                border: "none",
+                background: activeTab === "pass" ? "#FFFFFF" : "transparent",
+                color: activeTab === "pass" ? "#242B2B" : "#686E6B",
+                fontWeight: activeTab === "pass" ? 700 : 500,
+                fontSize: "0.88rem",
+                cursor: "pointer",
+                boxShadow: activeTab === "pass" ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
+                transition: "all 0.2s ease",
+              }}
             >
-              🎫 Digital Wallet Pass
+              🎫 Digital Pass &amp; Ticket
             </button>
             <button
               type="button"
-              className={`apple-tab-btn ${activeTab === "agenda" ? "active" : ""}`}
               onClick={() => setActiveTab("agenda")}
+              style={{
+                padding: "10px 22px",
+                borderRadius: "9999px",
+                border: "none",
+                background: activeTab === "agenda" ? "#FFFFFF" : "transparent",
+                color: activeTab === "agenda" ? "#242B2B" : "#686E6B",
+                fontWeight: activeTab === "agenda" ? 700 : 500,
+                fontSize: "0.88rem",
+                cursor: "pointer",
+                boxShadow: activeTab === "agenda" ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
+                transition: "all 0.2s ease",
+              }}
             >
               🗓️ Multi-Day Keynote Agenda
             </button>
             <button
               type="button"
-              className={`apple-tab-btn ${activeTab === "scanner" ? "active" : ""}`}
               onClick={() => setActiveTab("scanner")}
+              style={{
+                padding: "10px 22px",
+                borderRadius: "9999px",
+                border: "none",
+                background: activeTab === "scanner" ? "#FFFFFF" : "transparent",
+                color: activeTab === "scanner" ? "#242B2B" : "#686E6B",
+                fontWeight: activeTab === "scanner" ? 700 : 500,
+                fontSize: "0.88rem",
+                cursor: "pointer",
+                boxShadow: activeTab === "scanner" ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
+                transition: "all 0.2s ease",
+              }}
             >
               ⚡ Sub-Second QR Scanner
             </button>
             <button
               type="button"
-              className={`apple-tab-btn ${activeTab === "cert" ? "active" : ""}`}
               onClick={() => setActiveTab("cert")}
+              style={{
+                padding: "10px 22px",
+                borderRadius: "9999px",
+                border: "none",
+                background: activeTab === "cert" ? "#FFFFFF" : "transparent",
+                color: activeTab === "cert" ? "#242B2B" : "#686E6B",
+                fontWeight: activeTab === "cert" ? 700 : 500,
+                fontSize: "0.88rem",
+                cursor: "pointer",
+                boxShadow: activeTab === "cert" ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
+                transition: "all 0.2s ease",
+              }}
             >
               🎓 Verified Certificates
             </button>
           </div>
 
-          {/* Stage Card */}
-          <div className="apple-stage-card">
-            {/* TAB 1: DIGITAL WALLET PASS */}
+          {/* Stage Surface Card */}
+          <div
+            style={{
+              background: "#FFFFFF",
+              border: "1px solid #DDD8CF",
+              borderRadius: "24px",
+              padding: "40px",
+              boxShadow: "0 10px 35px rgba(36, 43, 43, 0.05)",
+            }}
+          >
+            {/* TAB 1: DIGITAL PASS */}
             {activeTab === "pass" && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "36px",
-                  alignItems: "center",
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: "40px", alignItems: "center" }}>
                 <div>
-                  <span
-                    style={{
-                      fontSize: "0.74rem",
-                      fontWeight: 700,
-                      color: "#2997ff",
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    APPLE WALLET GRADE PASS
+                  <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                    PHYSICAL &amp; DIGITAL ADMISSION
                   </span>
-                  <h3
-                    style={{
-                      fontSize: "1.9rem",
-                      color: "#ffffff",
-                      fontWeight: 800,
-                      letterSpacing: "-0.03em",
-                      margin: "8px 0 14px",
-                    }}
-                  >
-                    One unified ticket for the entire multi-day journey.
+                  <h3 style={{ fontSize: "2rem", color: "#242B2B", fontWeight: 800, letterSpacing: "-0.03em", margin: "10px 0 16px" }}>
+                    One unified ticket for the complete multi-day journey.
                   </h3>
-                  <p style={{ color: "#86868b", fontSize: "0.95rem", lineHeight: 1.6, margin: "0 0 20px" }}>
-                    Participants register once and receive an encrypted vector digital pass.
-                    Enrolled session chips, live check-in timestamps, and anti-fraud QR tokens
-                    update in real time across days.
+                  <p style={{ color: "#686E6B", fontSize: "0.98rem", lineHeight: 1.65, margin: "0 0 24px" }}>
+                    Participants register once and receive an encrypted digital pass with enrolled session chips,
+                    real-time attendance checkpoints, and vector PDF download capability.
                   </p>
                   <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    <span
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: "9999px",
-                        background: "rgba(0, 113, 227, 0.14)",
-                        border: "1px solid rgba(0, 113, 227, 0.35)",
-                        color: "#2997ff",
-                        fontSize: "0.78rem",
-                        fontWeight: 600,
-                      }}
-                    >
+                    <span style={{ padding: "6px 14px", borderRadius: "9999px", background: "rgba(71, 124, 115, 0.12)", color: "#477C73", fontSize: "0.8rem", fontWeight: 700 }}>
                       ✓ 100% Vector PDF
                     </span>
-                    <span
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: "9999px",
-                        background: "rgba(16, 185, 129, 0.14)",
-                        border: "1px solid rgba(16, 185, 129, 0.35)",
-                        color: "#34d399",
-                        fontSize: "0.78rem",
-                        fontWeight: 600,
-                      }}
-                    >
+                    <span style={{ padding: "6px 14px", borderRadius: "9999px", background: "rgba(57, 131, 107, 0.12)", color: "#39836B", fontSize: "0.8rem", fontWeight: 700 }}>
                       ✓ Atomic Check-In
                     </span>
-                    <span
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: "9999px",
-                        background: "rgba(168, 85, 247, 0.14)",
-                        border: "1px solid rgba(168, 85, 247, 0.35)",
-                        color: "#c084fc",
-                        fontSize: "0.78rem",
-                        fontWeight: 600,
-                      }}
-                    >
-                      ✓ Cloud Verified
+                    <span style={{ padding: "6px 14px", borderRadius: "9999px", background: "#E8E3D9", color: "#242B2B", fontSize: "0.8rem", fontWeight: 700 }}>
+                      ✓ Multi-Day All-Access
                     </span>
                   </div>
                 </div>
 
-                {/* Simulated Apple Wallet Pass */}
-                <div className="apple-wallet-card">
-                  <div className="apple-wallet-holo-strip">
-                    <span style={{ fontSize: "0.72rem", fontWeight: 800, color: "#ffffff", letterSpacing: "0.14em" }}>
+                {/* Simulated Ticket Pass */}
+                <div
+                  style={{
+                    background: "#FAF8F5",
+                    border: "1px solid #DDD8CF",
+                    borderRadius: "20px",
+                    overflow: "hidden",
+                    boxShadow: "0 8px 30px rgba(0, 0, 0, 0.06)",
+                  }}
+                >
+                  <div style={{ background: "#E8E3D9", padding: "18px 22px", borderBottom: "2px dashed #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.72rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.1em", textTransform: "uppercase" }}>
                       EVENTRA ADMISSION PASS
                     </span>
-                    <span
-                      style={{
-                        fontSize: "0.68rem",
-                        fontWeight: 700,
-                        padding: "3px 8px",
-                        borderRadius: "9999px",
-                        background: "rgba(255, 255, 255, 0.2)",
-                        color: "#ffffff",
-                      }}
-                    >
-                      VIP ALL-ACCESS
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "3px 10px", borderRadius: "9999px", background: "rgba(71, 124, 115, 0.15)", color: "#477C73" }}>
+                      ALL-ACCESS PASS
                     </span>
                   </div>
-
                   <div style={{ padding: "24px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
                       <div>
-                        <h4 style={{ margin: "0 0 4px", fontSize: "1.3rem", color: "#ffffff", fontWeight: 800 }}>
+                        <h4 style={{ margin: "0 0 4px", fontSize: "1.25rem", color: "#242B2B", fontWeight: 800 }}>
                           TechSummit 2026
                         </h4>
-                        <p style={{ margin: 0, color: "#86868b", fontSize: "0.82rem" }}>
+                        <p style={{ margin: 0, color: "#686E6B", fontSize: "0.82rem" }}>
                           📅 Nov 20 - Nov 22, 2026 · Main Auditorium
                         </p>
                       </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          color: "#10b981",
-                          background: "rgba(16, 185, 129, 0.15)",
-                          padding: "4px 10px",
-                          borderRadius: "9999px",
-                        }}
-                      >
-                        CONFIRMED
+                      <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#39836B", background: "rgba(57, 131, 107, 0.12)", padding: "4px 10px", borderRadius: "9999px" }}>
+                        ● ENTRY READY
                       </span>
                     </div>
 
-                    <div
-                      style={{
-                        margin: "18px 0",
-                        padding: "14px",
-                        borderRadius: "14px",
-                        background: "rgba(255, 255, 255, 0.04)",
-                        border: "1px solid rgba(255, 255, 255, 0.08)",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
+                    <div style={{ padding: "14px", borderRadius: "12px", background: "#FFFFFF", border: "1px solid #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                       <div>
-                        <span style={{ display: "block", color: "#6e6e73", fontSize: "0.7rem", fontWeight: 600 }}>
+                        <span style={{ display: "block", color: "#686E6B", fontSize: "0.7rem", fontWeight: 700 }}>
                           ATTENDEE
                         </span>
-                        <strong style={{ color: "#ffffff", fontSize: "0.95rem" }}>Alex Morgan</strong>
-                        <span style={{ display: "block", color: "#86868b", fontSize: "0.75rem" }}>
+                        <strong style={{ color: "#242B2B", fontSize: "0.95rem" }}>Alex Morgan</strong>
+                        <span style={{ display: "block", color: "#477C73", fontSize: "0.75rem", fontWeight: 600 }}>
                           ID: #EVT-98421
                         </span>
                       </div>
-                      <div
-                        style={{
-                          width: "60px",
-                          height: "60px",
-                          background: "#ffffff",
-                          borderRadius: "10px",
-                          padding: "4px",
-                          display: "grid",
-                          placeItems: "center",
-                        }}
-                      >
+                      <div style={{ width: "56px", height: "56px", background: "#FFFFFF", borderRadius: "8px", border: "1px solid #DDD8CF", padding: "3px", display: "grid", placeItems: "center" }}>
                         <img
-                          src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=EVT-98421"
+                          src="https://api.qrserver.com/v1/create-qr-code/?size=56x56&data=EVT-98421"
                           alt="QR Demo"
                           style={{ width: "100%", height: "100%" }}
                         />
                       </div>
                     </div>
 
-                    {/* Enrolled Sessions Pills */}
                     <div>
-                      <span style={{ display: "block", color: "#6e6e73", fontSize: "0.7rem", fontWeight: 700, marginBottom: "8px" }}>
+                      <span style={{ display: "block", color: "#686E6B", fontSize: "0.7rem", fontWeight: 700, marginBottom: "8px" }}>
                         ENROLLED SESSIONS
                       </span>
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                        <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(0, 113, 227, 0.15)", color: "#7dd3fc", fontSize: "0.72rem" }}>
+                        <span style={{ padding: "4px 10px", borderRadius: "8px", background: "#E8E3D9", color: "#242B2B", fontSize: "0.72rem", fontWeight: 600 }}>
                           Day 1: AI Keynote
                         </span>
-                        <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(139, 92, 246, 0.15)", color: "#c4b5fd", fontSize: "0.72rem" }}>
-                          Day 2: Web Sprint
+                        <span style={{ padding: "4px 10px", borderRadius: "8px", background: "#E8E3D9", color: "#242B2B", fontSize: "0.72rem", fontWeight: 600 }}>
+                          Day 2: Fullstack Systems
                         </span>
-                        <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(16, 185, 129, 0.15)", color: "#6ee7b7", fontSize: "0.72rem" }}>
-                          Day 3: Cyber Workshop
+                        <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(71, 124, 115, 0.12)", color: "#477C73", fontSize: "0.72rem", fontWeight: 600 }}>
+                          Day 3: Hackathon Demo
                         </span>
                       </div>
                     </div>
@@ -375,15 +429,15 @@ export default function Home() {
             {/* TAB 2: MULTI-DAY AGENDA */}
             {activeTab === "agenda" && (
               <div>
-                <div style={{ textAlign: "center", maxWidth: "600px", margin: "0 auto 28px" }}>
-                  <span style={{ fontSize: "0.74rem", fontWeight: 700, color: "#2997ff", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                    DAY-WISE AGENDA ARCHITECTURE
+                <div style={{ textAlign: "center", maxWidth: "650px", margin: "0 auto 28px" }}>
+                  <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                    DYNAMIC MULTI-DAY ARCHITECTURE
                   </span>
-                  <h3 style={{ fontSize: "1.8rem", color: "#ffffff", fontWeight: 800, margin: "6px 0 10px" }}>
-                    Dynamic Multi-Day Schedules &amp; Track Management
+                  <h3 style={{ fontSize: "1.9rem", color: "#242B2B", fontWeight: 800, margin: "8px 0 10px" }}>
+                    Day-Wise Schedules &amp; Track Management
                   </h3>
-                  <p style={{ color: "#86868b", fontSize: "0.92rem", margin: 0 }}>
-                    Build complex conference agendas with reorderable sessions, speaker rosters, venues, and capacity guards.
+                  <p style={{ color: "#686E6B", fontSize: "0.95rem", margin: 0 }}>
+                    Build complex conferences with reorderable sessions, speaker rosters, venues, and capacity guards.
                   </p>
                 </div>
 
@@ -397,12 +451,13 @@ export default function Home() {
                       style={{
                         padding: "8px 20px",
                         borderRadius: "9999px",
-                        border: activeDay === d ? "1px solid rgba(0, 113, 227, 0.5)" : "1px solid rgba(255, 255, 255, 0.08)",
-                        background: activeDay === d ? "rgba(0, 113, 227, 0.2)" : "rgba(255, 255, 255, 0.04)",
-                        color: activeDay === d ? "#ffffff" : "#86868b",
+                        border: activeDay === d ? "1px solid #477C73" : "1px solid #DDD8CF",
+                        background: activeDay === d ? "#477C73" : "#FAF8F5",
+                        color: activeDay === d ? "#FFFFFF" : "#686E6B",
                         fontSize: "0.85rem",
-                        fontWeight: 600,
+                        fontWeight: 700,
                         cursor: "pointer",
+                        transition: "all 0.15s ease",
                       }}
                     >
                       Day {d}: {d === 1 ? "Foundations" : d === 2 ? "Deep Dive" : "Hackathon & Showcase"}
@@ -414,23 +469,23 @@ export default function Home() {
                 <div style={{ display: "grid", gap: "12px", maxWidth: "780px", margin: "0 auto" }}>
                   {activeDay === 1 && (
                     <>
-                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
-                          <span style={{ fontSize: "0.75rem", color: "#2997ff", fontWeight: 700 }}>09:00 AM – 10:30 AM · MAIN AUDITORIUM</span>
-                          <h4 style={{ margin: "4px 0 2px", color: "#ffffff", fontSize: "1.05rem" }}>Opening Keynote: Future of Autonomous AI</h4>
-                          <span style={{ color: "#86868b", fontSize: "0.82rem" }}>Speaker: Dr. Elena Vance (Lead AI Researcher)</span>
+                          <span style={{ fontSize: "0.75rem", color: "#477C73", fontWeight: 700 }}>09:00 AM – 10:30 AM · MAIN AUDITORIUM</span>
+                          <h4 style={{ margin: "4px 0 2px", color: "#242B2B", fontSize: "1.05rem", fontWeight: 700 }}>Opening Keynote: Autonomous AI Systems</h4>
+                          <span style={{ color: "#686E6B", fontSize: "0.82rem" }}>Speaker: Dr. Elena Vance (Lead AI Researcher)</span>
                         </div>
-                        <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(16, 185, 129, 0.15)", color: "#10b981", fontSize: "0.75rem", fontWeight: 700 }}>
+                        <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(57, 131, 107, 0.12)", color: "#39836B", fontSize: "0.75rem", fontWeight: 700 }}>
                           🟢 OPEN
                         </span>
                       </div>
-                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
-                          <span style={{ fontSize: "0.75rem", color: "#2997ff", fontWeight: 700 }}>11:00 AM – 01:00 PM · LAB 4</span>
-                          <h4 style={{ margin: "4px 0 2px", color: "#ffffff", fontSize: "1.05rem" }}>Hands-on Workshop: Scalable Fullstack Systems</h4>
-                          <span style={{ color: "#86868b", fontSize: "0.82rem" }}>Speaker: Marcus Chen (Principal Architect)</span>
+                          <span style={{ fontSize: "0.75rem", color: "#477C73", fontWeight: 700 }}>11:00 AM – 01:00 PM · LAB 4</span>
+                          <h4 style={{ margin: "4px 0 2px", color: "#242B2B", fontSize: "1.05rem", fontWeight: 700 }}>Hands-on Workshop: Scalable Fullstack Architectures</h4>
+                          <span style={{ color: "#686E6B", fontSize: "0.82rem" }}>Speaker: Marcus Chen (Principal Architect)</span>
                         </div>
-                        <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(0, 113, 227, 0.15)", color: "#38bdf8", fontSize: "0.75rem", fontWeight: 700 }}>
+                        <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(71, 124, 115, 0.12)", color: "#477C73", fontSize: "0.75rem", fontWeight: 700 }}>
                           ⚡ POPULAR
                         </span>
                       </div>
@@ -438,13 +493,13 @@ export default function Home() {
                   )}
                   {activeDay === 2 && (
                     <>
-                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
-                          <span style={{ fontSize: "0.75rem", color: "#2997ff", fontWeight: 700 }}>10:00 AM – 12:30 PM · SEMINAR HALL 1</span>
-                          <h4 style={{ margin: "4px 0 2px", color: "#ffffff", fontSize: "1.05rem" }}>Cybersecurity &amp; Zero-Trust Infrastructure</h4>
-                          <span style={{ color: "#86868b", fontSize: "0.82rem" }}>Speaker: Sarah Jenkins (CISO)</span>
+                          <span style={{ fontSize: "0.75rem", color: "#477C73", fontWeight: 700 }}>10:00 AM – 12:30 PM · SEMINAR HALL 1</span>
+                          <h4 style={{ margin: "4px 0 2px", color: "#242B2B", fontSize: "1.05rem", fontWeight: 700 }}>Cybersecurity &amp; Zero-Trust Infrastructure</h4>
+                          <span style={{ color: "#686E6B", fontSize: "0.82rem" }}>Speaker: Sarah Jenkins (CISO)</span>
                         </div>
-                        <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(16, 185, 129, 0.15)", color: "#10b981", fontSize: "0.75rem", fontWeight: 700 }}>
+                        <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(57, 131, 107, 0.12)", color: "#39836B", fontSize: "0.75rem", fontWeight: 700 }}>
                           🟢 OPEN
                         </span>
                       </div>
@@ -452,13 +507,13 @@ export default function Home() {
                   )}
                   {activeDay === 3 && (
                     <>
-                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
-                          <span style={{ fontSize: "0.75rem", color: "#2997ff", fontWeight: 700 }}>09:00 AM – 04:00 PM · GRAND BALLROOM</span>
-                          <h4 style={{ margin: "4px 0 2px", color: "#ffffff", fontSize: "1.05rem" }}>24-Hour Hackathon Demo &amp; Awards Gala</h4>
-                          <span style={{ color: "#86868b", fontSize: "0.82rem" }}>Judging Panel &amp; Keynote Speakers</span>
+                          <span style={{ fontSize: "0.75rem", color: "#477C73", fontWeight: 700 }}>09:00 AM – 04:00 PM · GRAND BALLROOM</span>
+                          <h4 style={{ margin: "4px 0 2px", color: "#242B2B", fontSize: "1.05rem", fontWeight: 700 }}>24-Hour Hackathon Demo &amp; Awards Gala</h4>
+                          <span style={{ color: "#686E6B", fontSize: "0.82rem" }}>Judging Panel &amp; Keynote Speakers</span>
                         </div>
-                        <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(168, 85, 247, 0.15)", color: "#c084fc", fontSize: "0.75rem", fontWeight: 700 }}>
+                        <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(217, 141, 118, 0.15)", color: "#D98D76", fontSize: "0.75rem", fontWeight: 700 }}>
                           🏆 FINALE
                         </span>
                       </div>
@@ -468,33 +523,26 @@ export default function Home() {
               </div>
             )}
 
-            {/* TAB 3: SUB-SECOND QR SCANNER */}
+            {/* TAB 3: SUB-SECOND QR CHECK-IN */}
             {activeTab === "scanner" && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "36px",
-                  alignItems: "center",
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: "40px", alignItems: "center" }}>
                 <div>
-                  <span style={{ fontSize: "0.74rem", fontWeight: 700, color: "#2997ff", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                  <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
                     ATOMIC IDEMPOTENT CHECK-IN
                   </span>
-                  <h3 style={{ fontSize: "1.9rem", color: "#ffffff", fontWeight: 800, margin: "8px 0 14px", letterSpacing: "-0.03em" }}>
+                  <h3 style={{ fontSize: "2rem", color: "#242B2B", fontWeight: 800, margin: "8px 0 14px", letterSpacing: "-0.03em" }}>
                     Sub-second verification. Zero duplicate check-ins.
                   </h3>
-                  <p style={{ color: "#86868b", fontSize: "0.95rem", lineHeight: 1.6, margin: "0 0 20px" }}>
-                    Built with camera barcode detection, encrypted ticket signatures, and atomic MongoDB updates.
-                    Organizers can scan for overall daily entry or track individual session attendance seamlessly.
+                  <p style={{ color: "#686E6B", fontSize: "0.98rem", lineHeight: 1.65, margin: "0 0 24px" }}>
+                    Built with camera barcode detection, encrypted ticket signatures, and atomic database check-ins.
+                    Scan tickets for overall daily admission or track individual session attendance seamlessly.
                   </p>
                   <div
                     style={{
                       padding: "16px 20px",
                       borderRadius: "14px",
-                      background: "rgba(16, 185, 129, 0.1)",
-                      border: "1px solid rgba(16, 185, 129, 0.25)",
+                      background: "rgba(57, 131, 107, 0.12)",
+                      border: "1px solid rgba(57, 131, 107, 0.3)",
                       display: "flex",
                       alignItems: "center",
                       gap: "14px",
@@ -502,10 +550,10 @@ export default function Home() {
                   >
                     <span style={{ fontSize: "1.8rem" }}>✅</span>
                     <div>
-                      <strong style={{ display: "block", color: "#34d399", fontSize: "0.92rem" }}>
+                      <strong style={{ display: "block", color: "#39836B", fontSize: "0.95rem" }}>
                         Verification Confirmed (0.18s)
                       </strong>
-                      <span style={{ color: "#94a3b8", fontSize: "0.78rem" }}>
+                      <span style={{ color: "#686E6B", fontSize: "0.82rem" }}>
                         Alex Morgan · Registration #EVT-98421 · Day 1 Checked In
                       </span>
                     </div>
@@ -517,26 +565,26 @@ export default function Home() {
                   style={{
                     padding: "30px",
                     borderRadius: "20px",
-                    background: "#0a0c13",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    background: "#242B2B",
+                    border: "1px solid #DDD8CF",
                     textAlign: "center",
                   }}
                 >
-                  <div className="scanner-viewfinder">
+                  <div className="scanner-viewfinder" style={{ position: "relative", width: "160px", height: "160px", margin: "0 auto", border: "2px solid #477C73", borderRadius: "14px", padding: "12px", display: "grid", placeItems: "center", overflow: "hidden" }}>
                     <img
-                      src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=EVT-98421"
+                      src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=EVT-98421"
                       alt="Scanner Target"
-                      style={{ width: "130px", height: "130px", opacity: 0.8 }}
+                      style={{ width: "100%", height: "100%", opacity: 0.9 }}
                     />
-                    <div className="scanner-laser" />
+                    <div className="scan-laser-line" />
                   </div>
                   <span
                     style={{
                       display: "inline-block",
                       marginTop: "16px",
-                      fontSize: "0.78rem",
-                      fontWeight: 600,
-                      color: "#38bdf8",
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "#A7D5CD",
                     }}
                   >
                     ● Camera Live &amp; Scanning at 60 FPS
@@ -547,30 +595,23 @@ export default function Home() {
 
             {/* TAB 4: VERIFIED CERTIFICATES */}
             {activeTab === "cert" && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "36px",
-                  alignItems: "center",
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: "40px", alignItems: "center" }}>
                 <div>
-                  <span style={{ fontSize: "0.74rem", fontWeight: 700, color: "#f59e0b", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                  <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#C58A3B", letterSpacing: "0.12em", textTransform: "uppercase" }}>
                     CRYPTOGRAPHIC CERTIFICATE STUDIO
                   </span>
-                  <h3 style={{ fontSize: "1.9rem", color: "#ffffff", fontWeight: 800, margin: "8px 0 14px", letterSpacing: "-0.03em" }}>
+                  <h3 style={{ fontSize: "2rem", color: "#242B2B", fontWeight: 800, margin: "8px 0 14px", letterSpacing: "-0.03em" }}>
                     Zero fraud. Attendance-gated credentials.
                   </h3>
-                  <p style={{ color: "#86868b", fontSize: "0.95rem", lineHeight: 1.6, margin: "0 0 20px" }}>
+                  <p style={{ color: "#686E6B", fontSize: "0.98rem", lineHeight: 1.65, margin: "0 0 24px" }}>
                     Certificates are only issued to participants whose attendance has been physically verified.
                     Choose flexible rules: All days attended, minimum days attended, or required sessions completed.
                   </p>
                   <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    <span style={{ padding: "6px 14px", borderRadius: "9999px", background: "rgba(245, 158, 11, 0.14)", border: "1px solid rgba(245, 158, 11, 0.35)", color: "#fbbf24", fontSize: "0.78rem", fontWeight: 600 }}>
+                    <span style={{ padding: "6px 14px", borderRadius: "9999px", background: "rgba(197, 138, 59, 0.12)", border: "1px solid rgba(197, 138, 59, 0.3)", color: "#C58A3B", fontSize: "0.8rem", fontWeight: 700 }}>
                       📜 8 Signature Templates
                     </span>
-                    <span style={{ padding: "6px 14px", borderRadius: "9999px", background: "rgba(16, 185, 129, 0.14)", border: "1px solid rgba(16, 185, 129, 0.35)", color: "#34d399", fontSize: "0.78rem", fontWeight: 600 }}>
+                    <span style={{ padding: "6px 14px", borderRadius: "9999px", background: "rgba(57, 131, 107, 0.12)", border: "1px solid rgba(57, 131, 107, 0.3)", color: "#39836B", fontSize: "0.8rem", fontWeight: 700 }}>
                       ⭐ Feedback Gating
                     </span>
                   </div>
@@ -581,31 +622,31 @@ export default function Home() {
                   style={{
                     padding: "28px",
                     borderRadius: "18px",
-                    background: "linear-gradient(145deg, #181926, #0e101a)",
-                    border: "2px solid rgba(245, 158, 11, 0.4)",
-                    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(245, 158, 11, 0.1)",
+                    background: "#FAF8F5",
+                    border: "2px solid #DDD8CF",
+                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.05)",
                     textAlign: "center",
                   }}
                 >
-                  <span style={{ fontSize: "0.72rem", letterSpacing: "0.18em", color: "#fbbf24", fontWeight: 800, textTransform: "uppercase" }}>
+                  <span style={{ fontSize: "0.72rem", letterSpacing: "0.18em", color: "#477C73", fontWeight: 800, textTransform: "uppercase" }}>
                     CERTIFICATE OF PARTICIPATION
                   </span>
-                  <h4 style={{ margin: "14px 0 6px", fontSize: "1.45rem", color: "#ffffff", fontFamily: "Georgia, serif" }}>
+                  <h4 style={{ margin: "14px 0 6px", fontSize: "1.5rem", color: "#242B2B", fontFamily: "Georgia, serif" }}>
                     Alex Morgan
                   </h4>
-                  <p style={{ color: "#94a3b8", fontSize: "0.78rem", margin: "0 0 16px" }}>
+                  <p style={{ color: "#686E6B", fontSize: "0.85rem", margin: "0 0 16px" }}>
                     Has successfully completed all verified requirements of
                     <br />
-                    <strong style={{ color: "#e2e8f0" }}>TechSummit 2026</strong>
+                    <strong style={{ color: "#242B2B" }}>TechSummit 2026</strong>
                   </p>
-                  <div style={{ display: "flex", justifyContent: "space-around", borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-around", borderTop: "1px solid #DDD8CF", paddingTop: "14px" }}>
                     <div>
-                      <span style={{ display: "block", fontSize: "0.68rem", color: "#6e6e73" }}>DATE</span>
-                      <strong style={{ fontSize: "0.78rem", color: "#cbd5e1" }}>Nov 22, 2026</strong>
+                      <span style={{ display: "block", fontSize: "0.68rem", color: "#686E6B", fontWeight: 700 }}>DATE</span>
+                      <strong style={{ fontSize: "0.82rem", color: "#242B2B" }}>Nov 22, 2026</strong>
                     </div>
                     <div>
-                      <span style={{ display: "block", fontSize: "0.68rem", color: "#6e6e73" }}>VERIFICATION</span>
-                      <strong style={{ fontSize: "0.78rem", color: "#10b981" }}>CR-98421-OK</strong>
+                      <span style={{ display: "block", fontSize: "0.68rem", color: "#686E6B", fontWeight: 700 }}>VERIFICATION</span>
+                      <strong style={{ fontSize: "0.82rem", color: "#39836B" }}>CR-98421-OK</strong>
                     </div>
                   </div>
                 </div>
@@ -616,15 +657,15 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
-          3. KEY METRICS RIBBON (Apple Keynote Numbers)
+          3. KEY METRICS RIBBON
           ========================================================================= */}
       <section
         style={{
-          borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-          background: "rgba(10, 11, 16, 0.6)",
+          borderTop: "1px solid #DDD8CF",
+          borderBottom: "1px solid #DDD8CF",
+          background: "#E8E3D9",
           padding: "44px 24px",
-          margin: "80px 0 20px",
+          margin: "80px 0 60px",
         }}
       >
         <div
@@ -638,34 +679,34 @@ export default function Home() {
           }}
         >
           <div>
-            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.04em" }}>
+            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#242B2B", letterSpacing: "-0.04em" }}>
               0.18s
             </strong>
-            <span style={{ color: "#86868b", fontSize: "0.85rem", fontWeight: 500 }}>
+            <span style={{ color: "#686E6B", fontSize: "0.88rem", fontWeight: 600 }}>
               Sub-second QR verification
             </span>
           </div>
           <div>
-            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.04em" }}>
+            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#242B2B", letterSpacing: "-0.04em" }}>
               100%
             </strong>
-            <span style={{ color: "#86868b", fontSize: "0.85rem", fontWeight: 500 }}>
+            <span style={{ color: "#686E6B", fontSize: "0.88rem", fontWeight: 600 }}>
               Anti-fraud certificate gating
             </span>
           </div>
           <div>
-            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.04em" }}>
+            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#242B2B", letterSpacing: "-0.04em" }}>
               12
             </strong>
-            <span style={{ color: "#86868b", fontSize: "0.85rem", fontWeight: 500 }}>
+            <span style={{ color: "#686E6B", fontSize: "0.88rem", fontWeight: 600 }}>
               Section institutional reports
             </span>
           </div>
           <div>
-            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.04em" }}>
+            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#242B2B", letterSpacing: "-0.04em" }}>
               Single
             </strong>
-            <span style={{ color: "#86868b", fontSize: "0.85rem", fontWeight: 500 }}>
+            <span style={{ color: "#686E6B", fontSize: "0.88rem", fontWeight: 600 }}>
               Pass for multi-day events
             </span>
           </div>
@@ -673,118 +714,218 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
-          4. APPLE BENTO BOX FEATURE GRID
+          4. FEATURED EVENTS DISCOVERY STRIP
           ========================================================================= */}
-      <section style={{ maxWidth: "1140px", margin: "60px auto 0", padding: "0 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: "40px" }}>
-          <div className="apple-eyebrow" style={{ marginBottom: "14px" }}>
-            <span>THE EVENTRA PLATFORM</span>
+      <section style={{ maxWidth: "1140px", margin: "0 auto 80px", padding: "0 24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "32px", flexWrap: "wrap", gap: "16px" }}>
+          <div>
+            <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              FEATURED PLATFORM EVENTS
+            </span>
+            <h2 style={{ fontSize: "2.2rem", fontWeight: 800, color: "#242B2B", letterSpacing: "-0.03em", margin: "6px 0 0" }}>
+              Explore Landmark Gatherings
+            </h2>
           </div>
-          <h2 style={{ fontSize: "clamp(2rem, 4vw, 3.2rem)", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.035em", margin: "0 0 14px" }}>
+          <Link
+            to="/participant/dashboard"
+            style={{
+              fontSize: "0.92rem",
+              fontWeight: 700,
+              color: "#477C73",
+              textDecoration: "none",
+            }}
+          >
+            Find Registered Tickets →
+          </Link>
+        </div>
+
+        {loadingEvents ? (
+          <div style={{ textAlign: "center", padding: "40px", color: "#686E6B" }}>
+            <div className="spinner" style={{ margin: "0 auto 12px" }} />
+            <p>Loading events...</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px" }}>
+            {publicEvents.map((evt) => (
+              <article
+                key={evt._id}
+                style={{
+                  background: "#FFFFFF",
+                  border: "1px solid #DDD8CF",
+                  borderRadius: "20px",
+                  overflow: "hidden",
+                  boxShadow: "0 4px 18px rgba(0, 0, 0, 0.04)",
+                  display: "flex",
+                  flexDirection: "column",
+                  transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                }}
+              >
+                <div style={{ height: "160px", background: "#E8E3D9", position: "relative", overflow: "hidden", padding: "20px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                  <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                    {evt.category || "General Event"}
+                  </span>
+                  <strong style={{ fontSize: "1.25rem", color: "#242B2B", fontWeight: 800, margin: "4px 0 0", lineHeight: 1.25 }}>
+                    {evt.title}
+                  </strong>
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "14px",
+                      right: "14px",
+                      padding: "4px 10px",
+                      borderRadius: "9999px",
+                      background: "#FFFFFF",
+                      border: "1px solid #DDD8CF",
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#39836B",
+                    }}
+                  >
+                    {evt.eventDurationType === "multi_day" ? "Multi-Day" : "Single-Day"}
+                  </span>
+                </div>
+
+                <div style={{ padding: "22px", flex: 1, display: "flex", flexDirection: "column" }}>
+                  <p style={{ margin: "0 0 14px", color: "#686E6B", fontSize: "0.88rem", lineHeight: 1.55 }}>
+                    {evt.description ? evt.description.slice(0, 110) + "…" : "Join this event on EVENTRA."}
+                  </p>
+
+                  <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "6px", fontSize: "0.82rem", color: "#686E6B", marginBottom: "18px" }}>
+                    <span>📅 {evt.date ? new Date(evt.date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "TBD"}</span>
+                    <span>📍 {evt.venue || "Campus Venue"}</span>
+                  </div>
+
+                  <Link
+                    to={`/events/${evt.slug}`}
+                    className="button button-primary"
+                    style={{
+                      width: "100%",
+                      textAlign: "center",
+                      padding: "10px",
+                      borderRadius: "10px",
+                      background: "#477C73",
+                      color: "#FFFFFF",
+                      textDecoration: "none",
+                      fontWeight: 700,
+                      fontSize: "0.88rem",
+                    }}
+                  >
+                    View Event &amp; Register →
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* =========================================================================
+          5. BENTO BOX FEATURE GRID
+          ========================================================================= */}
+      <section style={{ maxWidth: "1140px", margin: "0 auto 80px", padding: "0 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+          <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+            THE EVENTRA ECOSYSTEM
+          </span>
+          <h2 style={{ fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 800, color: "#242B2B", letterSpacing: "-0.035em", margin: "8px 0 14px" }}>
             Engineered for performance.
             <br />
-            <span className="apple-gradient-text">Designed with elegance.</span>
+            <span style={{ color: "#477C73" }}>Designed with restraint.</span>
           </h2>
-          <p style={{ color: "#86868b", fontSize: "1.05rem", maxWidth: "600px", margin: "0 auto" }}>
+          <p style={{ color: "#686E6B", fontSize: "1.05rem", maxWidth: "600px", margin: "0 auto" }}>
             Every touchpoint — from participant registration to the final audited executive report — is seamlessly connected.
           </p>
         </div>
 
-        <div className="apple-bento-grid" style={{ margin: 0, padding: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
           {/* Bento 1: Multi-day Studio (Wide) */}
-          <div className="apple-bento-card wide">
-            <div>
-              <div className="bento-icon">🗓️</div>
-              <h3>Smart Multi-Day Studio</h3>
-              <p>
-                Manage conferences spanning single or multiple dates with individual day schedules,
-                dynamic session builders, speaker profiles, room designations, and capacity controls.
-                Never duplicate event records again.
-              </p>
-            </div>
+          <div style={{ gridColumn: "span 2", background: "#FFFFFF", border: "1px solid #DDD8CF", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+            <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>🗓️</div>
+            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#242B2B", margin: "0 0 10px" }}>
+              Smart Multi-Day Studio
+            </h3>
+            <p style={{ color: "#686E6B", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+              Manage conferences spanning single or multiple dates with individual day schedules,
+              dynamic session builders, speaker profiles, room designations, and capacity controls.
+              Never duplicate event records again.
+            </p>
             <div style={{ marginTop: "24px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.06)", color: "#cbd5e1", fontSize: "0.78rem" }}>
+              <span style={{ padding: "5px 12px", borderRadius: "8px", background: "#E8E3D9", color: "#242B2B", fontSize: "0.8rem", fontWeight: 600 }}>
                 Auto Day Numbering
               </span>
-              <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.06)", color: "#cbd5e1", fontSize: "0.78rem" }}>
+              <span style={{ padding: "5px 12px", borderRadius: "8px", background: "#E8E3D9", color: "#242B2B", fontSize: "0.8rem", fontWeight: 600 }}>
                 Session Capacities
               </span>
-              <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.06)", color: "#cbd5e1", fontSize: "0.78rem" }}>
+              <span style={{ padding: "5px 12px", borderRadius: "8px", background: "rgba(71, 124, 115, 0.12)", color: "#477C73", fontSize: "0.8rem", fontWeight: 600 }}>
                 Instant Slug Publishing
               </span>
             </div>
           </div>
 
           {/* Bento 2: Sub-Second Scanner */}
-          <div className="apple-bento-card">
-            <div>
-              <div className="bento-icon">⚡</div>
-              <h3>Fast QR Check-In</h3>
-              <p>
-                Sub-second camera scanning powered by atomic database operations and unique indexes
-                to eliminate duplicate check-ins even under heavy network traffic.
-              </p>
-            </div>
+          <div style={{ background: "#FFFFFF", border: "1px solid #DDD8CF", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+            <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>⚡</div>
+            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#242B2B", margin: "0 0 10px" }}>
+              Fast QR Check-In
+            </h3>
+            <p style={{ color: "#686E6B", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+              Sub-second camera scanning powered by atomic database operations and unique indexes
+              to eliminate duplicate check-ins even under heavy gate traffic.
+            </p>
             <div style={{ marginTop: "24px" }}>
-              <span style={{ color: "#34d399", fontSize: "0.82rem", fontWeight: 600 }}>
+              <span style={{ color: "#39836B", fontSize: "0.82rem", fontWeight: 700 }}>
                 ✓ Daily &amp; Session Modes
               </span>
             </div>
           </div>
 
           {/* Bento 3: Digital Wallet Passes */}
-          <div className="apple-bento-card">
-            <div>
-              <div className="bento-icon">🎫</div>
-              <h3>Digital Passes</h3>
-              <p>
-                Cryptographic vector PDF passes generated instantly and dispatched to attendee inboxes,
-                complete with live enrolled sessions and barcode tokens.
-              </p>
-            </div>
+          <div style={{ background: "#FFFFFF", border: "1px solid #DDD8CF", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+            <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>🎫</div>
+            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#242B2B", margin: "0 0 10px" }}>
+              Digital Passes
+            </h3>
+            <p style={{ color: "#686E6B", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+              Cryptographic vector PDF passes generated instantly and dispatched to attendee inboxes,
+              complete with live enrolled sessions and barcode tokens.
+            </p>
             <div style={{ marginTop: "24px" }}>
-              <span style={{ color: "#2997ff", fontSize: "0.82rem", fontWeight: 600 }}>
-                ✓ Apple Wallet Inspired
+              <span style={{ color: "#477C73", fontSize: "0.82rem", fontWeight: 700 }}>
+                ✓ Apple Wallet Grade Aesthetics
               </span>
             </div>
           </div>
 
           {/* Bento 4: Attendance-Gated Certificates */}
-          <div className="apple-bento-card">
-            <div>
-              <div className="bento-icon">🎓</div>
-              <h3>Verified Certificates</h3>
-              <p>
-                Issue tamper-proof certificates governed by attendance threshold rules:
-                all days attended, minimum days attended, or required sessions completed.
-              </p>
-            </div>
+          <div style={{ background: "#FFFFFF", border: "1px solid #DDD8CF", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+            <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>🎓</div>
+            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#242B2B", margin: "0 0 10px" }}>
+              Verified Certificates
+            </h3>
+            <p style={{ color: "#686E6B", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+              Issue tamper-proof certificates governed by attendance threshold rules:
+              all days attended, minimum days attended, or required sessions completed.
+            </p>
             <div style={{ marginTop: "24px" }}>
-              <span style={{ color: "#fbbf24", fontSize: "0.82rem", fontWeight: 600 }}>
+              <span style={{ color: "#C58A3B", fontSize: "0.82rem", fontWeight: 700 }}>
                 ✓ 8 Signature Layouts
               </span>
             </div>
           </div>
 
-          {/* Bento 5: Executive Post-Event Reports (Wide) */}
-          <div className="apple-bento-card wide">
-            <div>
-              <div className="bento-icon">📄</div>
-              <h3>12-Section Institutional Reports</h3>
-              <p>
-                Generate multi-page vector PDF reports with running headers, footers, attendance charts,
-                session participation breakdown, and feedback sentiment computed directly from real MongoDB records.
-              </p>
-            </div>
-            <div style={{ marginTop: "24px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.06)", color: "#cbd5e1", fontSize: "0.78rem" }}>
-                Day-by-Day Turnout
-              </span>
-              <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.06)", color: "#cbd5e1", fontSize: "0.78rem" }}>
-                Session Drop-off Rates
-              </span>
-              <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.06)", color: "#cbd5e1", fontSize: "0.78rem" }}>
-                Audited Executive Summary
+          {/* Bento 5: Executive Post-Event Reports */}
+          <div style={{ background: "#FFFFFF", border: "1px solid #DDD8CF", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+            <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>📄</div>
+            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#242B2B", margin: "0 0 10px" }}>
+              12-Section Reports
+            </h3>
+            <p style={{ color: "#686E6B", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+              Generate audited executive vector PDF reports with running headers, attendance charts,
+              session participation breakdown, and sentiment analysis directly from live records.
+            </p>
+            <div style={{ marginTop: "24px" }}>
+              <span style={{ color: "#477C73", fontSize: "0.82rem", fontWeight: 700 }}>
+                ✓ Executive Ready
               </span>
             </div>
           </div>
@@ -792,14 +933,14 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
-          5. APPLE COMPARISON SECTION (Why Organizers Switch)
+          6. COMPARISON MATRIX
           ========================================================================= */}
-      <section style={{ maxWidth: "980px", margin: "100px auto 40px", padding: "0 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: "40px" }}>
-          <span style={{ fontSize: "0.74rem", fontWeight: 700, color: "#2997ff", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-            WHY EVENTRA
+      <section style={{ maxWidth: "980px", margin: "0 auto 100px", padding: "0 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: "36px" }}>
+          <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+            WHY ORGANIZERS CHOOSE EVENTRA
           </span>
-          <h2 style={{ fontSize: "2.4rem", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.03em", margin: "8px 0" }}>
+          <h2 style={{ fontSize: "2.3rem", fontWeight: 800, color: "#242B2B", letterSpacing: "-0.03em", margin: "8px 0" }}>
             Engineered without compromise.
           </h2>
         </div>
@@ -807,10 +948,10 @@ export default function Home() {
         <div
           style={{
             borderRadius: "20px",
-            background: "rgba(18, 19, 28, 0.7)",
-            border: "1px solid rgba(255, 255, 255, 0.09)",
+            background: "#FFFFFF",
+            border: "1px solid #DDD8CF",
             overflow: "hidden",
-            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+            boxShadow: "0 6px 25px rgba(0, 0, 0, 0.04)",
           }}
         >
           <div
@@ -818,53 +959,52 @@ export default function Home() {
               display: "grid",
               gridTemplateColumns: "1.2fr 1fr 1fr",
               padding: "18px 24px",
-              background: "rgba(255, 255, 255, 0.03)",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-              fontWeight: 700,
+              background: "#FAF8F5",
+              borderBottom: "1px solid #DDD8CF",
+              fontWeight: 800,
               fontSize: "0.85rem",
-              color: "#86868b",
+              color: "#686E6B",
             }}
           >
             <span>CAPABILITY</span>
-            <span style={{ color: "#2997ff" }}>EVENTRA</span>
+            <span style={{ color: "#477C73" }}>EVENTRA</span>
             <span>LEGACY PLATFORMS</span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid rgba(255, 255, 255, 0.05)", fontSize: "0.88rem" }}>
-            <span style={{ color: "#ffffff", fontWeight: 600 }}>Multi-Day Architecture</span>
-            <span style={{ color: "#34d399", fontWeight: 600 }}>✓ Unified Event, Single Pass</span>
-            <span style={{ color: "#6e6e73" }}>Separate events per day</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid #DDD8CF", fontSize: "0.9rem" }}>
+            <span style={{ color: "#242B2B", fontWeight: 700 }}>Multi-Day Architecture</span>
+            <span style={{ color: "#39836B", fontWeight: 700 }}>✓ Unified Event, Single Pass</span>
+            <span style={{ color: "#686E6B" }}>Separate events per day</span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid rgba(255, 255, 255, 0.05)", fontSize: "0.88rem" }}>
-            <span style={{ color: "#ffffff", fontWeight: 600 }}>QR Attendance Scanning</span>
-            <span style={{ color: "#34d399", fontWeight: 600 }}>✓ Sub-second atomic verification</span>
-            <span style={{ color: "#6e6e73" }}>Slow manual paper check-ins</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid #DDD8CF", fontSize: "0.9rem" }}>
+            <span style={{ color: "#242B2B", fontWeight: 700 }}>QR Attendance Scanning</span>
+            <span style={{ color: "#39836B", fontWeight: 700 }}>✓ Sub-second atomic verification</span>
+            <span style={{ color: "#686E6B" }}>Slow manual paper check-ins</span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid rgba(255, 255, 255, 0.05)", fontSize: "0.88rem" }}>
-            <span style={{ color: "#ffffff", fontWeight: 600 }}>Certificate Issuance</span>
-            <span style={{ color: "#34d399", fontWeight: 600 }}>✓ Attendance &amp; feedback gated</span>
-            <span style={{ color: "#6e6e73" }}>Unverified mass emailing</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid #DDD8CF", fontSize: "0.9rem" }}>
+            <span style={{ color: "#242B2B", fontWeight: 700 }}>Certificate Issuance</span>
+            <span style={{ color: "#39836B", fontWeight: 700 }}>✓ Attendance &amp; feedback gated</span>
+            <span style={{ color: "#686E6B" }}>Unverified mass emailing</span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", fontSize: "0.88rem" }}>
-            <span style={{ color: "#ffffff", fontWeight: 600 }}>Post-Event Reporting</span>
-            <span style={{ color: "#34d399", fontWeight: 600 }}>✓ 12-section vector PDF studio</span>
-            <span style={{ color: "#6e6e73" }}>Basic CSV spreadsheet dumps</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", fontSize: "0.9rem" }}>
+            <span style={{ color: "#242B2B", fontWeight: 700 }}>Post-Event Reporting</span>
+            <span style={{ color: "#39836B", fontWeight: 700 }}>✓ 12-section vector PDF studio</span>
+            <span style={{ color: "#686E6B" }}>Basic CSV spreadsheet dumps</span>
           </div>
         </div>
       </section>
 
       {/* =========================================================================
-          6. APPLE STRUCTURED DIRECTORY FOOTER
+          7. STRUCTURED DIRECTORY FOOTER
           ========================================================================= */}
       <footer
         style={{
-          borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-          background: "#050608",
+          borderTop: "1px solid #DDD8CF",
+          background: "#E8E3D9",
           padding: "60px 24px 40px",
-          marginTop: "100px",
         }}
       >
         <div
@@ -872,59 +1012,59 @@ export default function Home() {
             maxWidth: "1140px",
             margin: "0 auto",
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: "36px",
             marginBottom: "48px",
           }}
         >
           {/* Col 1 */}
           <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
+            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#242B2B", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
               Product
             </span>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.84rem", color: "#86868b" }}>
-              <li><Link to="/create-event" style={{ color: "inherit" }}>Smart Event Studio</Link></li>
-              <li><Link to="/dashboard" style={{ color: "inherit" }}>Multi-Day Agendas</Link></li>
-              <li><Link to="/dashboard" style={{ color: "inherit" }}>Fast QR Scanner</Link></li>
-              <li><Link to="/dashboard" style={{ color: "inherit" }}>Certificate Manager</Link></li>
-              <li><Link to="/dashboard" style={{ color: "inherit" }}>Post-Event Reports</Link></li>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#686E6B" }}>
+              <li><Link to="/create-event" style={{ color: "inherit", textDecoration: "none" }}>Smart Event Studio</Link></li>
+              <li><Link to="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Multi-Day Agendas</Link></li>
+              <li><Link to="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Fast QR Scanner</Link></li>
+              <li><Link to="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Certificate Manager</Link></li>
+              <li><Link to="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Post-Event Reports</Link></li>
             </ul>
           </div>
 
           {/* Col 2 */}
           <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
+            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#242B2B", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
               Participants
             </span>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.84rem", color: "#86868b" }}>
-              <li><Link to="/participant/dashboard" style={{ color: "inherit" }}>Find My Ticket Pass</Link></li>
-              <li><Link to="/participant/dashboard" style={{ color: "inherit" }}>Download Certificate</Link></li>
-              <li><Link to="/terms" style={{ color: "inherit" }}>Participant Guide</Link></li>
-              <li><Link to="/support" style={{ color: "inherit" }}>Organizer Support</Link></li>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#686E6B" }}>
+              <li><Link to="/participant/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Find My Ticket Pass</Link></li>
+              <li><Link to="/participant/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Download Certificate</Link></li>
+              <li><Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Participant Guide</Link></li>
+              <li><Link to="/support" style={{ color: "inherit", textDecoration: "none" }}>Organizer Support</Link></li>
             </ul>
           </div>
 
           {/* Col 3 */}
           <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
+            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#242B2B", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
               Platform &amp; Legal
             </span>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.84rem", color: "#86868b" }}>
-              <li><Link to="/terms" style={{ color: "inherit" }}>Terms &amp; Conditions</Link></li>
-              <li><Link to="/terms" style={{ color: "inherit" }}>Privacy &amp; Data Security</Link></li>
-              <li><Link to="/admin/login" style={{ color: "inherit" }}>Super Admin Console</Link></li>
-              <li><span style={{ color: "#34d399" }}>● System Operational</span></li>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#686E6B" }}>
+              <li><Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Terms &amp; Conditions</Link></li>
+              <li><Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Privacy &amp; Data Security</Link></li>
+              <li><Link to="/admin/login" style={{ color: "inherit", textDecoration: "none" }}>Super Admin Console</Link></li>
+              <li><span style={{ color: "#39836B", fontWeight: 700 }}>● System Operational</span></li>
             </ul>
           </div>
 
           {/* Col 4 */}
           <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
+            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#242B2B", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
               EVENTRA Engine
             </span>
-            <p style={{ color: "#86868b", fontSize: "0.82rem", lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: "#686E6B", fontSize: "0.85rem", lineHeight: 1.6, margin: 0 }}>
               The all-in-one platform for modern conferences, symposiums, and college fests.
-              Built with React, Node.js, and MongoDB.
+              Built with React, Vite, Node.js, and MongoDB.
             </p>
           </div>
         </div>
@@ -934,27 +1074,27 @@ export default function Home() {
           style={{
             maxWidth: "1140px",
             margin: "0 auto",
-            borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+            borderTop: "1px solid #DDD8CF",
             paddingTop: "24px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             flexWrap: "wrap",
             gap: "14px",
-            fontSize: "0.8rem",
-            color: "#6e6e73",
+            fontSize: "0.82rem",
+            color: "#686E6B",
           }}
         >
           <div>
             Copyright © 2026{" "}
-            <strong style={{ color: "#ffffff" }}>EVENTRA</strong> Inc. All rights reserved.
+            <strong style={{ color: "#242B2B" }}>EVENTRA</strong> Inc. All rights reserved.
           </div>
           <div style={{ display: "flex", gap: "16px" }}>
-            <Link to="/terms" style={{ color: "inherit" }}>Terms of Use</Link>
+            <Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Terms of Use</Link>
             <span>·</span>
-            <Link to="/terms" style={{ color: "inherit" }}>Privacy Policy</Link>
+            <Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Privacy Policy</Link>
             <span>·</span>
-            <Link to="/admin/login" style={{ color: "inherit" }}>Executive Login</Link>
+            <Link to="/admin/login" style={{ color: "inherit", textDecoration: "none" }}>Executive Login</Link>
           </div>
         </div>
       </footer>

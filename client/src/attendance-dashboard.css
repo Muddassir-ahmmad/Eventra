@@ -1,12 +1,12 @@
 /* =========================================================================
    EVENTRA - ATTENDANCE DASHBOARD STYLES
-   Theme: Midnight Luxe & Electric Aurora (Modern, Attractive, High-Converting)
+   Theme: Warm Neutrals, Charcoal, Muted Teal & Restrained Coral
    ========================================================================= */
 
 .attendance-page-root {
   min-height: 100vh;
-  background: var(--bg-canvas, #090d16);
-  color: var(--text-main, #cbd5e1);
+  background: var(--bg-canvas, #F4F1EA);
+  color: var(--text-primary, #242B2B);
   padding: 36px 4% 80px;
 }
 
@@ -28,7 +28,7 @@
   font-size: 2.1rem;
   font-weight: 800;
   margin: 4px 0 0;
-  color: #ffffff;
+  color: var(--text-primary, #242B2B);
   letter-spacing: -0.04em;
 }
 
@@ -42,29 +42,28 @@
 .attendance-stat-card {
   padding: 20px;
   border-radius: 14px;
-  background: rgba(14, 20, 36, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(14px);
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #DDD8CF);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   transition: all 0.2s ease;
 }
 
 .attendance-stat-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  border-color: var(--primary, #477C73);
+  box-shadow: 0 8px 24px rgba(71, 124, 115, 0.1);
 }
 
 .attendance-stat-card.highlight {
-  border-color: rgba(16, 185, 129, 0.4);
-  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--color-success-border, rgba(57, 131, 107, 0.4));
+  background: var(--color-success-bg, rgba(57, 131, 107, 0.08));
 }
 
 .attendance-stat-card span {
   font-size: 0.76rem;
-  color: #94a3b8;
+  color: var(--text-secondary, #686E6B);
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -75,23 +74,22 @@
 .attendance-stat-card strong {
   font-size: 2.2rem;
   font-weight: 900;
-  color: #ffffff;
+  color: var(--text-primary, #242B2B);
   letter-spacing: -0.03em;
 }
 
 .attendance-stat-card.highlight strong {
-  color: #34d399;
+  color: var(--color-success, #39836B);
 }
 
 /* Scanner & Fast Check-In Area */
 .scanner-checkin-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(14, 20, 36, 0.72);
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  background: var(--bg-surface, #FFFFFF);
   border-radius: 18px;
   padding: 28px;
   margin-bottom: 30px;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 .scan-input-row {
@@ -105,16 +103,16 @@
   flex: 1;
   padding: 13px 18px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(14, 20, 36, 0.85);
-  color: #ffffff;
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #242B2B);
   font-size: 0.95rem;
 }
 
 .scan-input-row input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  border-color: var(--primary, #477C73);
+  box-shadow: 0 0 0 3px rgba(71, 124, 115, 0.2);
 }
 
 .scan-feedback-banner {
@@ -128,36 +126,36 @@
 }
 
 .scan-feedback-banner.success {
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  color: #a7f3d0;
+  background: var(--color-success-bg, rgba(57, 131, 107, 0.12));
+  border: 1px solid var(--color-success-border, rgba(57, 131, 107, 0.35));
+  color: var(--color-success, #39836B);
 }
 
 .scan-feedback-banner.warning {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: #fde68a;
+  background: var(--color-warning-bg, rgba(197, 138, 59, 0.12));
+  border: 1px solid var(--color-warning-border, rgba(197, 138, 59, 0.35));
+  color: var(--color-warning, #C58A3B);
 }
 
 .scan-feedback-banner.error {
-  background: rgba(244, 63, 94, 0.15);
-  border: 1px solid rgba(244, 63, 94, 0.4);
-  color: #fecaca;
+  background: var(--color-danger-bg, rgba(198, 93, 85, 0.12));
+  border: 1px solid var(--color-danger-border, rgba(198, 93, 85, 0.35));
+  color: var(--color-danger, #C65D55);
 }
 
 /* Attendee Directory Table */
 .attendee-table-wrap {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(14, 20, 36, 0.72);
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  background: var(--bg-surface, #FFFFFF);
   border-radius: 16px;
   overflow: hidden;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 .attendee-toolbar {
   padding: 18px 22px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle, #DDD8CF);
+  background: var(--bg-surface-alt, #FAF8F5);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -168,17 +166,17 @@
 .attendee-search-input {
   padding: 10px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(14, 20, 36, 0.85);
-  color: #ffffff;
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #242B2B);
   font-size: 0.88rem;
   width: 280px;
 }
 
 .attendee-search-input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  border-color: var(--primary, #477C73);
+  box-shadow: 0 0 0 3px rgba(71, 124, 115, 0.2);
 }
 
 .filter-pills {
@@ -189,24 +187,25 @@
 .filter-pill {
   padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #cbd5e1;
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #242B2B);
   font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .filter-pill:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  background: var(--bg-card-hover, #FAF8F5);
+  color: var(--primary, #477C73);
 }
 
 .filter-pill.active {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: var(--primary, #477C73);
   color: #ffffff;
-  border-color: #818cf8;
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4);
+  border-color: var(--primary-hover, #35665D);
+  box-shadow: 0 2px 8px rgba(71, 124, 115, 0.25);
 }
 
 .status-badge {
@@ -220,21 +219,21 @@
 }
 
 .status-badge.present {
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  color: #34d399;
+  background: var(--color-success-bg, rgba(57, 131, 107, 0.12));
+  border: 1px solid var(--color-success-border, rgba(57, 131, 107, 0.35));
+  color: var(--color-success, #39836B);
 }
 
 .status-badge.absent {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #94a3b8;
+  background: var(--bg-secondary, #E8E3D9);
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  color: var(--text-secondary, #686E6B);
 }
 
 /* Multi-day attendance mode, day pills, and session selector */
 .multiday-attendance-panel {
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: var(--bg-surface-alt, #FAF8F5);
+  border: 1px solid var(--border-subtle, #DDD8CF);
   border-radius: 14px;
   padding: 16px 18px;
   margin-bottom: 20px;
@@ -256,22 +255,23 @@
 .multiday-day-card {
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  color: #e2e8f0;
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #242B2B);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .multiday-day-card:hover {
-  border-color: rgba(129, 140, 248, 0.55);
+  border-color: var(--primary, #477C73);
 }
 
 .multiday-day-card.is-selected {
-  background: rgba(79, 70, 229, 0.22);
-  border-color: #818cf8;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+  background: var(--primary, #477C73);
+  border-color: var(--primary-hover, #35665D);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(71, 124, 115, 0.25);
 }
 
 .day-progress-chips {
@@ -289,18 +289,18 @@
 }
 
 .day-chip.yes {
-  background: rgba(16, 185, 129, 0.18);
-  border: 1px solid rgba(52, 211, 153, 0.45);
-  color: #6ee7b7;
+  background: var(--color-success-bg, rgba(57, 131, 107, 0.15));
+  border: 1px solid var(--color-success-border, rgba(57, 131, 107, 0.4));
+  color: var(--color-success, #39836B);
 }
 
 .day-chip.no {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #64748b;
+  background: var(--bg-secondary, #E8E3D9);
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  color: var(--text-muted, #686E6B);
 }
 
-/* Laser Scanner Animation & Camera Viewport Enhancements */
+/* Laser Scanner Animation & Camera Viewport */
 @keyframes laserScan {
   0% { top: 15%; opacity: 0.8; }
   50% { top: 85%; opacity: 1; }
@@ -312,8 +312,8 @@
   left: 15%;
   width: 70%;
   height: 3px;
-  background: linear-gradient(90deg, transparent, #059669, #10b981, transparent);
-  box-shadow: 0 0 15px #10b981;
+  background: linear-gradient(90deg, transparent, #35665D, #477C73, transparent);
+  box-shadow: 0 0 15px #477C73;
   border-radius: 999px;
   animation: laserScan 2s ease-in-out infinite;
   pointer-events: none;
@@ -330,9 +330,9 @@
   position: relative;
   border-radius: 18px;
   overflow: hidden;
-  border: 2px solid #059669;
-  box-shadow: 0 0 30px rgba(5, 150, 105, 0.25);
-  background: #0f172a;
+  border: 2px solid var(--primary, #477C73);
+  box-shadow: 0 0 25px rgba(71, 124, 115, 0.2);
+  background: #1a2020;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -347,6 +347,6 @@
 }
 
 .camera-scan-viewport.scanned {
-  border-color: #10b981;
-  box-shadow: 0 0 45px rgba(16, 185, 129, 0.6);
+  border-color: var(--color-success, #39836B);
+  box-shadow: 0 0 35px rgba(57, 131, 107, 0.5);
 }

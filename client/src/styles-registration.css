@@ -1,32 +1,31 @@
 /* =========================================================================
-   EVENTRA - REGISTRATION STYLES
-   Theme: Midnight Luxe & Electric Aurora (Modern, Attractive, High-Converting)
+   EVENTRA - REGISTRATION & ATTENDEE DIRECTORY STYLES
+   Theme: Warm Neutrals, Charcoal, Muted Teal & Restrained Coral
    ========================================================================= */
 
 .registration-result {
   display: flex;
   justify-content: space-between;
   gap: 20px;
-  padding: 15px;
-  margin: 10px 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  background: rgba(14, 20, 36, 0.72);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
-  color: #ffffff;
+  padding: 16px 20px;
+  margin: 12px 0;
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  border-radius: 12px;
+  background: var(--bg-surface, #FFFFFF);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  color: var(--text-primary, #242B2B);
 }
 
 .registration-result span {
-  color: #94a3b8;
+  color: var(--text-secondary, #686E6B);
 }
 
 .registration-table-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(14, 20, 36, 0.72);
-  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  background: var(--bg-surface, #FFFFFF);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 .table-wrap {
@@ -44,23 +43,23 @@
 .registration-table td {
   text-align: left;
   padding: 15px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-subtle, #DDD8CF);
   vertical-align: middle;
 }
 
 .registration-table th {
-  background: rgba(9, 13, 22, 0.78);
-  color: #94a3b8;
+  background: var(--bg-surface-alt, #FAF8F5);
+  color: var(--text-secondary, #686E6B);
   font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  border-bottom: 1px solid var(--border-subtle, #DDD8CF);
   white-space: nowrap;
 }
 
 .registration-table td {
-  color: #cbd5e1;
+  color: var(--text-primary, #242B2B);
   font-size: 0.88rem;
   line-height: 1.45;
 }
@@ -70,7 +69,7 @@
 }
 
 .registration-table tbody tr:hover {
-  background: rgba(99, 102, 241, 0.06);
+  background: var(--bg-canvas, #F4F1EA);
 }
 
 .registration-table tbody tr:last-child td {
@@ -106,7 +105,7 @@
 .registrations-header h1 {
   font-size: clamp(1.9rem, 3.4vw, 2.75rem);
   letter-spacing: -0.04em;
-  color: #ffffff;
+  color: var(--text-primary, #242B2B);
   font-weight: 800;
   margin: 0;
 }
@@ -117,7 +116,7 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 10px;
-  color: #94a3b8;
+  color: var(--text-secondary, #686E6B);
   font-size: 0.9rem;
 }
 
@@ -133,8 +132,9 @@
 }
 
 .registrations-toolbar {
-  padding: 18px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle, #DDD8CF);
+  background: var(--bg-surface-alt, #FAF8F5);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -146,16 +146,16 @@
   width: min(340px, 100%);
   padding: 10px 14px;
   border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(9, 13, 22, 0.72);
-  color: #ffffff;
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #242B2B);
   font-size: 0.88rem;
 }
 
 .registrations-search:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22);
+  border-color: var(--primary, #477C73);
+  box-shadow: 0 0 0 3px rgba(71, 124, 115, 0.18);
 }
 
 .registrations-filters {
@@ -168,9 +168,9 @@
 .reg-filter-pill {
   padding: 7px 13px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #cbd5e1;
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #242B2B);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -178,24 +178,24 @@
 }
 
 .reg-filter-pill:hover {
-  background: rgba(255, 255, 255, 0.09);
-  color: #ffffff;
+  background: var(--bg-card-hover, #FAF8F5);
+  color: var(--primary, #477C73);
 }
 
 .reg-filter-pill.active {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: var(--primary, #477C73);
   color: #ffffff;
-  border-color: #818cf8;
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+  border-color: var(--primary-hover, #35665D);
+  box-shadow: 0 2px 8px rgba(71, 124, 115, 0.25);
 }
 
 .reg-code-badge {
   display: inline-block;
   padding: 4px 9px;
   border-radius: 6px;
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.22);
-  color: #38bdf8;
+  background: rgba(71, 124, 115, 0.1);
+  border: 1px solid rgba(71, 124, 115, 0.25);
+  color: var(--primary, #477C73);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.78rem;
   font-weight: 700;
@@ -205,21 +205,21 @@
 .reg-tier-label {
   display: block;
   margin-top: 5px;
-  color: #94a3b8;
+  color: var(--text-secondary, #686E6B);
   font-size: 0.75rem;
   font-weight: 600;
 }
 
 .reg-primary-text {
   display: block;
-  color: #ffffff;
+  color: var(--text-primary, #242B2B);
   font-weight: 600;
 }
 
 .reg-sub-text {
   display: block;
   margin-top: 3px;
-  color: #64748b;
+  color: var(--text-secondary, #686E6B);
   font-size: 0.78rem;
 }
 
@@ -236,9 +236,9 @@
   gap: 4px;
   padding: 2px 7px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  color: #cbd5e1;
+  background: var(--bg-secondary, #E8E3D9);
+  border: 1px solid var(--border-subtle, #DDD8CF);
+  color: var(--text-primary, #242B2B);
   font-size: 0.72rem;
 }
 
@@ -263,27 +263,27 @@
 }
 
 .reg-badge.confirmed {
-  background: rgba(99, 102, 241, 0.14);
-  border: 1px solid rgba(99, 102, 241, 0.35);
-  color: #a5b4fc;
+  background: rgba(71, 124, 115, 0.12);
+  border: 1px solid rgba(71, 124, 115, 0.3);
+  color: var(--primary, #477C73);
 }
 
 .reg-badge.cancelled {
-  background: rgba(244, 63, 94, 0.14);
-  border: 1px solid rgba(244, 63, 94, 0.35);
-  color: #fda4af;
+  background: var(--color-danger-bg, rgba(198, 93, 85, 0.12));
+  border: 1px solid var(--color-danger-border, rgba(198, 93, 85, 0.3));
+  color: var(--color-danger, #C65D55);
 }
 
 .reg-badge.checked-in {
-  background: rgba(16, 185, 129, 0.14);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  color: #34d399;
+  background: var(--color-success-bg, rgba(57, 131, 107, 0.12));
+  border: 1px solid var(--color-success-border, rgba(57, 131, 107, 0.3));
+  color: var(--color-success, #39836B);
 }
 
 .reg-badge.pending {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #94a3b8;
+  background: var(--color-warning-bg, rgba(197, 138, 59, 0.12));
+  border: 1px solid var(--color-warning-border, rgba(197, 138, 59, 0.3));
+  color: var(--color-warning, #C58A3B);
 }
 
 .reg-row-actions {
@@ -296,9 +296,9 @@
 .reg-delete-btn {
   padding: 7px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(244, 63, 94, 0.35);
-  background: rgba(244, 63, 94, 0.1);
-  color: #fb7185;
+  border: 1px solid var(--color-danger-border, rgba(198, 93, 85, 0.35));
+  background: var(--color-danger-bg, rgba(198, 93, 85, 0.1));
+  color: var(--color-danger, #C65D55);
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
@@ -306,9 +306,8 @@
 }
 
 .reg-delete-btn:hover:not(:disabled) {
-  background: rgba(244, 63, 94, 0.2);
-  border-color: rgba(244, 63, 94, 0.55);
-  color: #fecdd3;
+  background: rgba(198, 93, 85, 0.2);
+  border-color: rgba(198, 93, 85, 0.55);
 }
 
 .reg-delete-btn:disabled {
@@ -319,9 +318,9 @@
 .reg-notice {
   padding: 12px 16px;
   border-radius: 9px;
-  border: 1px solid rgba(16, 185, 129, 0.38);
-  background: rgba(16, 185, 129, 0.14);
-  color: #a7f3d0;
+  border: 1px solid var(--color-success-border, rgba(57, 131, 107, 0.38));
+  background: var(--color-success-bg, rgba(57, 131, 107, 0.14));
+  color: var(--color-success, #39836B);
   font-size: 0.88rem;
   margin-bottom: 18px;
 }
@@ -329,7 +328,7 @@
 .reg-empty-filter {
   text-align: center;
   padding: 44px 20px;
-  color: #94a3b8;
+  color: var(--text-secondary, #686E6B);
 }
 
 @media (max-width: 768px) {
@@ -351,7 +350,7 @@
 }
 
 .card-actions a {
-  color: #818cf8;
+  color: var(--primary, #477C73);
   font-weight: 600;
   text-decoration: none;
 }

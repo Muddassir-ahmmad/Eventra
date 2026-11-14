@@ -5,11 +5,11 @@ import api, { setToken } from "../api";
 const DISMISSED_NOTIFICATIONS_KEY = "eventra_dismissed_platform_notifications";
 
 const NOTIFICATION_TYPE_META = {
-  SECURITY_ALERT: { label: "Security Alert", accent: "#ef4444", bg: "rgba(239, 68, 68, 0.1)" },
-  MAINTENANCE: { label: "Maintenance", accent: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" },
-  BILLING_REMINDER: { label: "Billing Reminder", accent: "#38bdf8", bg: "rgba(56, 189, 248, 0.1)" },
-  POLICY_UPDATE: { label: "Policy Update", accent: "#a855f7", bg: "rgba(168, 85, 247, 0.1)" },
-  ANNOUNCEMENT: { label: "Announcement", accent: "#10b981", bg: "rgba(16, 185, 129, 0.1)" },
+  SECURITY_ALERT: { label: "Security Alert", accent: "#C65D55", bg: "rgba(198, 93, 85, 0.1)" },
+  MAINTENANCE: { label: "Maintenance", accent: "#C58A3B", bg: "rgba(197, 138, 59, 0.1)" },
+  BILLING_REMINDER: { label: "Billing Reminder", accent: "#477C73", bg: "rgba(71, 124, 115, 0.1)" },
+  POLICY_UPDATE: { label: "Policy Update", accent: "#D98D76", bg: "rgba(217, 141, 118, 0.1)" },
+  ANNOUNCEMENT: { label: "Announcement", accent: "#39836B", bg: "rgba(57, 131, 107, 0.1)" },
 };
 
 function readDismissedNotifications() {
@@ -97,9 +97,9 @@ export default function Dashboard() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
-                color: "#6366f1",
-                borderColor: "rgba(99, 102, 241, 0.4)",
-                background: "rgba(99, 102, 241, 0.06)",
+                color: "#477C73",
+                borderColor: "#DDD8CF",
+                background: "#FFFFFF",
                 fontWeight: 600,
               }}
             >
@@ -156,14 +156,14 @@ export default function Dashboard() {
                       >
                         {meta.label}
                       </span>
-                      <strong style={{ color: "#f8fafc", fontSize: "0.95rem" }}>{item.title}</strong>
+                      <strong style={{ color: "#242B2B", fontSize: "0.95rem" }}>{item.title}</strong>
                       {item.createdAt && (
-                        <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+                        <span style={{ fontSize: "0.75rem", color: "#686E6B" }}>
                           · {new Date(item.createdAt).toLocaleDateString()}
                         </span>
                       )}
                     </div>
-                    <p style={{ margin: 0, color: "#cbd5e1", fontSize: "0.86rem", lineHeight: 1.45 }}>
+                    <p style={{ margin: 0, color: "#242B2B", fontSize: "0.86rem", lineHeight: 1.45 }}>
                       {item.message}
                     </p>
                   </div>
@@ -175,7 +175,7 @@ export default function Dashboard() {
                     style={{
                       background: "transparent",
                       border: "none",
-                      color: "#94a3b8",
+                      color: "#686E6B",
                       cursor: "pointer",
                       fontSize: "1.1rem",
                       lineHeight: 1,
