@@ -8,67 +8,72 @@
 }
 
 :root {
-  /* Font Family & Hierarchy */
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Font Family & Hierarchy - Apple SF Pro & Inter aesthetic */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Standard Color Palette - Midnight Luxe & Electric Aurora */
-  --bg-canvas: #090d16;
-  --bg-surface: #0e1424;
-  --bg-surface-elevated: #151d32;
-  --bg-card: rgba(14, 20, 36, 0.72);
-  --bg-card-hover: rgba(22, 31, 54, 0.88);
-  --bg-glass: rgba(9, 13, 22, 0.88);
+  /* Apple Obsidian & Atmospheric Glass Palette */
+  --bg-canvas: #000000;
+  --bg-surface: #0a0b10;
+  --bg-surface-elevated: #11131c;
+  --bg-card: rgba(18, 19, 28, 0.72);
+  --bg-card-hover: rgba(26, 28, 40, 0.88);
+  --bg-glass: rgba(0, 0, 0, 0.75);
 
-  /* Hairline Borders */
+  /* Hairline Borders & Specular Edges */
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-medium: rgba(255, 255, 255, 0.14);
-  --border-accent: rgba(99, 102, 241, 0.35);
+  --border-accent: rgba(0, 113, 227, 0.4);
+  --border-specular: rgba(255, 255, 255, 0.16);
 
-  /* Brand Primary: Electric Indigo & Royal Purple */
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --primary-light: #818cf8;
-  --primary-tint: rgba(99, 102, 241, 0.14);
-  --primary-glow: 0 4px 20px rgba(99, 102, 241, 0.4);
+  /* Apple Signature Blue & Ambient Spectrum */
+  --primary: #0071e3;
+  --primary-hover: #0077ed;
+  --primary-light: #2997ff;
+  --primary-tint: rgba(0, 113, 227, 0.12);
+  --primary-glow: 0 4px 24px rgba(0, 113, 227, 0.45);
   --accent: #8b5cf6;
+  --accent-glow: 0 4px 24px rgba(139, 92, 246, 0.4);
 
   /* Typography Contrast Tokens */
-  --text-white: #ffffff;
-  --text-main: #cbd5e1;
-  --text-muted: #94a3b8;
-  --text-faint: #64748b;
+  --text-white: #f5f5f7;
+  --text-main: #d1d5db;
+  --text-muted: #86868b;
+  --text-faint: #6e6e73;
 
   /* Standard Semantic Statuses */
   --color-success: #10b981;
-  --color-success-bg: rgba(16, 185, 129, 0.14);
-  --color-success-border: rgba(16, 185, 129, 0.3);
+  --color-success-bg: rgba(16, 185, 129, 0.12);
+  --color-success-border: rgba(16, 185, 129, 0.28);
 
   --color-warning: #f59e0b;
-  --color-warning-bg: rgba(245, 158, 11, 0.14);
-  --color-warning-border: rgba(245, 158, 11, 0.3);
+  --color-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-warning-border: rgba(245, 158, 11, 0.28);
 
   --color-danger: #f43f5e;
-  --color-danger-bg: rgba(244, 63, 94, 0.14);
-  --color-danger-border: rgba(244, 63, 94, 0.3);
+  --color-danger-bg: rgba(244, 63, 94, 0.12);
+  --color-danger-border: rgba(244, 63, 94, 0.28);
 
   --color-info: #38bdf8;
-  --color-info-bg: rgba(56, 189, 248, 0.14);
-  --color-info-border: rgba(56, 189, 248, 0.3);
+  --color-info-bg: rgba(56, 189, 248, 0.12);
+  --color-info-border: rgba(56, 189, 248, 0.28);
 
-  /* Radii */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  /* Apple Radii */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
-  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-popover: 0 16px 40px rgba(0, 0, 0, 0.65);
+  /* ThreeUI & Apple Spatial Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 12px 32px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-popover: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  --shadow-glow: 0 0 40px -10px rgba(0, 113, 227, 0.35);
 
   color: var(--text-main);
   background-color: var(--bg-canvas);
@@ -80,8 +85,9 @@ body {
   min-height: 100vh;
   background-color: var(--bg-canvas);
   background-image: 
-    radial-gradient(ellipse 70% 35% at 50% -5%, rgba(99, 102, 241, 0.18), transparent 60%),
-    radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.12), transparent 25rem);
+    radial-gradient(circle at 50% -12%, rgba(0, 113, 227, 0.18), transparent 55%),
+    radial-gradient(circle at 88% 12%, rgba(139, 92, 246, 0.12), transparent 42%),
+    radial-gradient(circle at 12% 45%, rgba(56, 189, 248, 0.08), transparent 36%);
   background-attachment: fixed;
   color: var(--text-main);
 }
@@ -98,19 +104,19 @@ button, input, textarea, select {
 }
 
 /* =========================================================================
-   TOP NAVIGATION BAR
+   TOP NAVIGATION BAR (Apple Glass Style)
    ========================================================================= */
 
 .app-header, .topbar {
-  height: 74px;
+  height: 64px;
   border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   position: sticky;
   top: 0;
   z-index: 50;
-  transition: border-color 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .header-inner {
@@ -138,17 +144,18 @@ button, input, textarea, select {
 }
 
 .brand {
-  font-size: 1.45rem;
-  font-weight: 900;
-  letter-spacing: -0.045em;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
   color: var(--text-white);
   display: flex;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
+  text-decoration: none;
 }
 
 .brand span {
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  background: linear-gradient(135deg, #2997ff 0%, #a855f7 50%, #ec4899 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -156,35 +163,44 @@ button, input, textarea, select {
 .main-nav {
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 24px;
   margin-left: auto;
 }
 
 .main-nav a {
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 500;
-  transition: color 0.15s ease;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .main-nav a:hover {
   color: var(--text-white);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .header-cta, .nav-button {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+  background: var(--primary) !important;
   color: #ffffff !important;
-  padding: 9px 18px !important;
-  border-radius: var(--radius-sm) !important;
+  padding: 8px 18px !important;
+  border-radius: var(--radius-full) !important;
   font-weight: 600 !important;
-  font-size: 0.88rem !important;
-  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.4);
-  transition: all 0.2s ease !important;
+  font-size: 0.86rem !important;
+  box-shadow: 0 2px 14px rgba(0, 113, 227, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .header-cta:hover, .nav-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.6);
+  background: var(--primary-hover) !important;
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(0, 113, 227, 0.6);
+}
+
+.header-cta:active, .nav-button:active {
+  transform: scale(0.98);
 }
 
 /* Profile Menu */
@@ -195,34 +211,36 @@ button, input, textarea, select {
 
 .profile-button {
   border: 1px solid var(--border-medium);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
   color: var(--text-white);
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
+  padding: 5px 14px 5px 8px;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: var(--shadow-sm);
 }
 
 .profile-button:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--primary-light);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.01);
 }
 
 .avatar {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #0071e3, #8b5cf6);
   color: #ffffff;
-  font-weight: 800;
-  font-size: 0.8rem;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+  font-weight: 700;
+  font-size: 0.78rem;
+  box-shadow: 0 0 10px rgba(0, 113, 227, 0.4);
 }
 
 .profile-name {
@@ -297,64 +315,66 @@ button, input, textarea, select {
 }
 
 /* =========================================================================
-   BUTTON SYSTEM
+   BUTTON SYSTEM (Apple Precision Pill Design)
    ========================================================================= */
 
 .button, .primary, .secondary {
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  padding: 12px 20px;
+  border-radius: var(--radius-full);
+  padding: 10px 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-weight: 600;
-  font-size: 0.88rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   text-decoration: none;
   line-height: 1.25;
 }
 
 .button:hover, .primary:hover, .secondary:hover {
-  transform: translateY(-1px);
+  transform: scale(1.02);
 }
 
 .button:active, .primary:active, .secondary:active {
-  transform: translateY(0);
+  transform: scale(0.98);
 }
 
-/* Primary Button */
+/* Primary Button (Apple Electric Blue) */
 .button-primary, .primary {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: var(--primary);
   color: #ffffff;
-  border-color: #6366f1;
-  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 18px rgba(0, 113, 227, 0.35);
 }
 
 .button-primary:hover, .primary:hover {
-  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
-  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.6);
+  background: var(--primary-hover);
+  box-shadow: 0 6px 24px rgba(0, 113, 227, 0.55);
 }
 
-/* Ghost / Secondary Button */
+/* Ghost / Secondary Button (Apple Translucent Dark Glass) */
 .button-ghost, .secondary {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-main);
-  border-color: var(--border-medium);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  color: var(--text-white);
+  border-color: rgba(255, 255, 255, 0.12);
   box-shadow: var(--shadow-sm);
 }
 
 .button-ghost:hover, .secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--border-accent);
-  color: var(--text-white);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
 }
 
 .button.small {
-  padding: 8px 14px;
-  font-size: 0.8rem;
-  border-radius: var(--radius-sm);
+  padding: 7px 16px;
+  font-size: 0.82rem;
+  border-radius: var(--radius-full);
 }
 
 .full {
@@ -533,32 +553,35 @@ button, input, textarea, select {
 
 .stat-card {
   border: 1px solid var(--border-subtle);
-  background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  border-radius: var(--radius-md);
-  padding: 20px;
+  background: rgba(18, 19, 28, 0.7);
+  backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
   display: flex;
   align-items: center;
   gap: 16px;
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .stat-card:hover {
-  border-color: var(--border-medium);
-  background: var(--bg-card-hover);
-  transform: translateY(-2px);
+  border-color: rgba(0, 113, 227, 0.4);
+  background: rgba(24, 26, 38, 0.85);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 113, 227, 0.2);
 }
 
 .stat-icon {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
-  border-radius: var(--radius-sm);
-  background: var(--primary-tint);
-  color: var(--accent);
-  font-size: 1.25rem;
-  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-md);
+  background: rgba(0, 113, 227, 0.12);
+  color: #2997ff;
+  font-size: 1.3rem;
+  border: 1px solid rgba(0, 113, 227, 0.3);
+  box-shadow: 0 2px 10px rgba(0, 113, 227, 0.2);
 }
 
 .stat-card span {
@@ -567,26 +590,26 @@ button, input, textarea, select {
   font-size: 0.78rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .stat-card strong {
   display: block;
-  font-size: 1.65rem;
+  font-size: 1.75rem;
   font-weight: 800;
   color: var(--text-white);
   margin-top: 3px;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
 }
 
 /* Events Grid Section */
 .events-section-head {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .events-section-head h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 800;
   color: var(--text-white);
   letter-spacing: -0.03em;
@@ -595,30 +618,32 @@ button, input, textarea, select {
 .events-section-head p {
   color: var(--text-muted);
   margin: 6px 0 0;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
 }
 
 .event-dashboard-grid, .event-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 22px;
 }
 
 .dashboard-event-card, .event-card {
   border: 1px solid var(--border-subtle);
-  background: var(--bg-card);
+  background: rgba(18, 19, 28, 0.7);
+  backdrop-filter: blur(20px);
   border-radius: var(--radius-lg);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: all 0.22s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .dashboard-event-card:hover, .event-card:hover {
-  border-color: var(--border-accent);
-  background: var(--bg-card-hover);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card);
+  border-color: rgba(0, 113, 227, 0.45);
+  background: rgba(24, 26, 38, 0.85);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 113, 227, 0.2);
 }
 
 .event-cover {
@@ -1402,5 +1427,318 @@ input:focus, textarea:focus, select:focus {
   }
   .hero-content h1, .hero h1 {
     font-size: 3rem;
+  }
+}
+
+/* =========================================================================
+   APPLE DESIGN SYSTEM & THREEUI 3D/SPATIAL COMPONENTS
+   ========================================================================= */
+
+/* Typography & Gradient Tokens */
+.apple-gradient-text {
+  background: linear-gradient(180deg, #ffffff 15%, #a1a1a6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.apple-gradient-blue {
+  background: linear-gradient(135deg, #2997ff 0%, #a855f7 60%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.apple-gradient-gold {
+  background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+/* Apple Eyebrow Pill Badge */
+.apple-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f5f5f7;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.25s ease;
+}
+
+.apple-eyebrow .pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2997ff;
+  box-shadow: 0 0 8px #2997ff;
+  animation: pulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* Apple Frosted Glass Panel */
+.apple-glass-panel {
+  background: rgba(18, 19, 28, 0.7);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius-lg);
+  box-shadow: 
+    0 20px 50px -10px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.apple-glass-panel:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 
+    0 24px 60px -8px rgba(0, 0, 0, 0.8),
+    0 0 30px -5px rgba(0, 113, 227, 0.25),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+/* ThreeUI Interactive Product Stage */
+.apple-stage-container {
+  max-width: 1080px;
+  margin: 40px auto 0;
+  perspective: 1200px;
+  position: relative;
+}
+
+.apple-stage-card {
+  border-radius: var(--radius-xl);
+  background: linear-gradient(145deg, rgba(22, 24, 35, 0.82), rgba(12, 13, 18, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    0 30px 80px -15px rgba(0, 0, 0, 0.85),
+    0 0 50px -10px rgba(0, 113, 227, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(24px);
+  padding: 32px;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+  animation: appleFloat 6s ease-in-out infinite;
+}
+
+@keyframes appleFloat {
+  0%, 100% { transform: translateY(0px) rotateX(0deg); }
+  50% { transform: translateY(-8px) rotateX(0.5deg); }
+}
+
+/* Segmented Tab Bar */
+.apple-tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 5px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  width: fit-content;
+  margin: 0 auto 28px;
+  flex-wrap: wrap;
+}
+
+.apple-tab-btn {
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.apple-tab-btn:hover {
+  color: var(--text-white);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.apple-tab-btn.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Apple Bento Box Grid */
+.apple-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 1140px;
+  margin: 60px auto 0;
+  padding: 0 24px;
+}
+
+.apple-bento-card {
+  background: rgba(18, 19, 28, 0.65);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.apple-bento-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.apple-bento-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(24, 26, 38, 0.85);
+  box-shadow: 
+    0 20px 40px -10px rgba(0, 0, 0, 0.7),
+    0 0 30px -8px rgba(0, 113, 227, 0.2);
+}
+
+.apple-bento-card:hover::before {
+  opacity: 1;
+}
+
+.apple-bento-card.wide {
+  grid-column: span 2;
+}
+
+.apple-bento-card .bento-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.apple-bento-card h3 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-white);
+  letter-spacing: -0.025em;
+  margin: 0 0 10px;
+}
+
+.apple-bento-card p {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Apple Wallet Pass Card Styling */
+.apple-wallet-card {
+  max-width: 460px;
+  margin: 0 auto;
+  border-radius: 22px;
+  background: #090a0f;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 
+    0 30px 70px -12px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  position: relative;
+}
+
+.apple-wallet-holo-strip {
+  height: 48px;
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #0071e3 70%, #8b5cf6 100%);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.apple-wallet-holo-strip::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: holoSheen 4s ease-in-out infinite;
+}
+
+@keyframes holoSheen {
+  0% { transform: translateX(0); }
+  50%, 100% { transform: translateX(100%); }
+}
+
+/* Scanner Laser Animation */
+.scanner-viewfinder {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+  border: 2px solid rgba(0, 113, 227, 0.4);
+  border-radius: 16px;
+  background: rgba(0, 113, 227, 0.04);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.scanner-laser {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #38bdf8;
+  box-shadow: 0 0 12px #38bdf8, 0 0 20px #0071e3;
+  animation: laserSweep 2s ease-in-out infinite alternate;
+}
+
+@keyframes laserSweep {
+  0% { top: 5%; }
+  100% { top: 95%; }
+}
+
+/* Responsive Bento Breakpoints */
+@media (max-width: 900px) {
+  .apple-bento-grid {
+    grid-template-columns: 1fr;
+  }
+  .apple-bento-card.wide {
+    grid-column: span 1;
   }
 }

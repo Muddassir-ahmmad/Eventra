@@ -26,6 +26,7 @@ import ParticipantDashboard from "./pages/ParticipantDashboard";
 import Terms from "./pages/Terms";
 import ProfileSettings from "./pages/ProfileSettings";
 import OrganizerSupport from "./pages/OrganizerSupport";
+import Home from "./pages/Home";
 
 // Super Admin Console Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -265,6 +266,7 @@ function OrganizerHeader() {
           </>
         ) : (
           <nav className="main-nav">
+            <Link to="/participant/dashboard">Find My Ticket</Link>
             <Link to="/login">Organizer Login</Link>
             <Link className="header-cta" to="/register">
               Get Started
@@ -273,111 +275,5 @@ function OrganizerHeader() {
         )}
       </div>
     </header>
-  );
-}
-
-function Home() {
-  const token = typeof window !== "undefined" ? localStorage.getItem("eventra_token") : null;
-
-  const features = [
-    {
-      step: "01",
-      title: "Smart Event Studio",
-      desc: "Comprehensive 9-step builder with AI & vector poster generator, custom fields, ticket tiers, and instant slug publishing.",
-    },
-    {
-      step: "02",
-      title: "Digital Pass & QR Tickets",
-      desc: "Automated vector PDF tickets with encrypted QR tokens delivered directly to participant inboxes and instant print passes.",
-    },
-    {
-      step: "03",
-      title: "Fast Attendance Scanner",
-      desc: "Live camera barcode scanning, multi-field search, manual check-in toggle, and real-time attendance analytics.",
-    },
-    {
-      step: "04",
-      title: "Feedback-Gated Certificates",
-      desc: "Anti-fraud certificate generation gated by attendance verification and feedback survey completion with direct PDF export.",
-    },
-    {
-      step: "05",
-      title: "Closure & Feedback Automation",
-      desc: "One-click event closure triggers automated cryptographic feedback request emails and real-time rating dashboards.",
-    },
-    {
-      step: "06",
-      title: "Executive Post-Event Reports",
-      desc: "12-section multi-page vector PDF reports with running headers, footers, KPI metrics, and attendance analysis.",
-    },
-  ];
-
-  return (
-    <main className="landing">
-      <section className="landing-hero">
-        <div className="hero-content">
-          <div className="hero-badge">✦ SMART EVENT MANAGEMENT PLATFORM</div>
-          <h1>
-            Your event.
-            <br />
-            <span>One powerful platform.</span>
-          </h1>
-          <p>
-            Create, publish and manage end-to-end events with registration, digital tickets,
-            QR entry, feedback surveys, automated certificates, and comprehensive post-event reporting.
-          </p>
-          <div className="hero-actions">
-            {token ? (
-              <>
-                <Link className="button button-primary" to="/create-event">
-                  ✦ Create New Event
-                </Link>
-                <Link className="button button-ghost" to="/dashboard">
-                  Organizer Dashboard
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link className="button button-primary" to="/register">
-                  Get Started Free
-                </Link>
-                <Link className="button button-ghost" to="/login">
-                  Organizer Login
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="landing-features">
-        {features.map((f) => (
-          <div key={f.step} className="landing-feature">
-            <span>STEP {f.step}</span>
-            <h3>{f.title}</h3>
-            <p>{f.desc}</p>
-          </div>
-        ))}
-      </section>
-
-      <footer style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", padding: "28px 24px", textAlign: "center", fontSize: "0.82rem", color: "#94a3b8", background: "rgba(9, 13, 22, 0.9)" }}>
-        <p style={{ margin: 0 }}>
-          © 2026{" "}
-          <Link
-            to="/admin/login"
-            style={{
-              color: "inherit",
-              textDecoration: "none",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-            title=""
-          >
-            EVENTRA
-          </Link>{" "}
-          Smart Event Management Platform · <Link to="/terms" style={{ color: "#818cf8", textDecoration: "underline" }}>Terms &amp; Conditions</Link>
-        </p>
-      </footer>
-    </main>
   );
 }

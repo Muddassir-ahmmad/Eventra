@@ -99,45 +99,55 @@ export default function TicketPass() {
   const certificateEligible = isAttended && (!requireFeedback || feedbackSubmitted);
 
   return (
-    <main className="public-page-root" style={{ padding: "40px 20px 80px" }}>
-      <div style={{ maxWidth: 640, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+    <main className="public-page-root" style={{ padding: "40px 20px 80px", position: "relative" }}>
+      {/* Ambient Lighting */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "100%",
+          maxWidth: "800px",
+          height: "400px",
+          background: "radial-gradient(circle at 50% 10%, rgba(0, 113, 227, 0.18), transparent 70%)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
+      <div style={{ maxWidth: 660, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        {/* Navigation Bar */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <Link to="/participant/dashboard" className="public-nav-brand">
             EVENT<span>RA</span>
           </Link>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Link
               to="/participant/dashboard"
-              className="btn-hero-secondary"
-              style={{ padding: "8px 16px", fontSize: "0.85rem", textDecoration: "none" }}
+              className="button button-ghost small"
+              style={{ textDecoration: "none" }}
             >
-              👤 Participant Dashboard
+              👤 Participant Portal
             </Link>
             <button
               type="button"
               onClick={downloadTicketPdf}
               disabled={isExpired || downloading}
-              className="btn-hero-secondary"
+              className="button button-ghost small"
               style={{
-                padding: "8px 16px",
-                fontSize: "0.85rem",
-                display: "inline-flex",
-                alignItems: "center",
                 cursor: isExpired ? "not-allowed" : "pointer",
                 opacity: isExpired ? 0.5 : 1,
                 color: isExpired ? "#fca5a5" : "inherit",
-                borderColor: isExpired ? "rgba(244, 63, 94, 0.3)" : undefined,
               }}
               title={isExpired ? "Ticket pass expired as event admission has ended." : "Download ticket PDF"}
             >
-              {isExpired ? "🛑 Ticket Expired" : downloading ? "Generating…" : "📥 Download PDF"}
+              {isExpired ? "🛑 Expired" : downloading ? "Generating…" : "📥 Download PDF"}
             </button>
             <button
               type="button"
-              className="btn-hero-secondary"
+              className="button button-ghost small"
               style={{
-                padding: "8px 16px",
-                fontSize: "0.85rem",
                 cursor: isExpired ? "not-allowed" : "pointer",
                 opacity: isExpired ? 0.5 : 1,
               }}
@@ -147,28 +157,31 @@ export default function TicketPass() {
               disabled={isExpired}
               title={isExpired ? "Printing disabled: Event date has passed." : "Print Pass"}
             >
-              {isExpired ? "🛑 Pass Expired" : "🖨️ Print Pass"}
+              🖨️ Print Pass
             </button>
           </div>
         </div>
 
-        {/* Digital Admission Ticket Card */}
+        {/* Digital Admission Ticket Card (Apple Wallet Pass Aesthetic) */}
         <div
           style={{
-            background: "#0c101d",
-            borderRadius: 20,
-            border: "1px solid rgba(255, 255, 255, 0.12)",
+            background: "#08090f",
+            borderRadius: 24,
+            border: "1px solid rgba(255, 255, 255, 0.14)",
             overflow: "hidden",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
+            boxShadow: "0 30px 80px -15px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.18)",
           }}
         >
-          {/* Header Banner */}
+          {/* Holographic Header Banner */}
           <div
+            className="apple-wallet-holo-strip"
             style={{
-              padding: "28px 28px 24px",
-              background: "linear-gradient(135deg, #1e1b4b, #312e81)",
-              borderBottom: "1px dashed rgba(255, 255, 255, 0.15)",
-              position: "relative",
+              height: "auto",
+              padding: "26px 28px",
+              flexDirection: "column",
+              alignItems: "stretch",
+              gap: 12,
+              borderBottom: "1px dashed rgba(255, 255, 255, 0.16)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
@@ -177,41 +190,42 @@ export default function TicketPass() {
                   style={{
                     fontSize: "0.72rem",
                     fontWeight: 800,
-                    letterSpacing: "0.12em",
-                    color: "#a5b4fc",
+                    letterSpacing: "0.14em",
+                    color: "rgba(255, 255, 255, 0.8)",
                     textTransform: "uppercase",
                   }}
                 >
-                  OFFICIAL ADMISSION PASS
+                  OFFICIAL ADMISSION PASS · EVENTRA
                 </span>
-                <h1 style={{ fontSize: "1.6rem", fontWeight: 800, margin: "6px 0 0", color: "#ffffff" }}>
+                <h1 style={{ fontSize: "1.7rem", fontWeight: 800, margin: "6px 0 0", color: "#ffffff", letterSpacing: "-0.03em" }}>
                   {event.title}
                 </h1>
-                <p style={{ margin: "4px 0 0", color: "#c7d2fe", fontSize: "0.85rem" }}>
+                <p style={{ margin: "4px 0 0", color: "rgba(255, 255, 255, 0.85)", fontSize: "0.85rem" }}>
                   📅 {formatEventDateDisplay(event)}
                   {event.eventDurationType === "multi_day" ? ` · ${getEventTotalDays(event)} Days All-Access Pass` : ""}
                 </p>
               </div>
               <span
                 style={{
-                  padding: "6px 12px",
-                  borderRadius: 20,
+                  padding: "6px 14px",
+                  borderRadius: 9999,
                   background: registration.checkedIn
-                    ? "rgba(16, 185, 129, 0.2)"
+                    ? "rgba(16, 185, 129, 0.25)"
                     : isExpired
-                    ? "rgba(244, 63, 94, 0.2)"
-                    : "rgba(99, 102, 241, 0.18)",
+                    ? "rgba(244, 63, 94, 0.25)"
+                    : "rgba(0, 113, 227, 0.25)",
                   border: `1px solid ${
-                    registration.checkedIn ? "#10b981" : isExpired ? "rgba(244, 63, 94, 0.5)" : "#6366f1"
+                    registration.checkedIn ? "#10b981" : isExpired ? "rgba(244, 63, 94, 0.5)" : "#2997ff"
                   }`,
                   color: registration.checkedIn
                     ? "#6ee7b7"
                     : isExpired
                     ? "#fca5a5"
-                    : "#a5b4fc",
-                  fontSize: "0.75rem",
+                    : "#ffffff",
+                  fontSize: "0.76rem",
                   fontWeight: 700,
                   whiteSpace: "nowrap",
+                  backdropFilter: "blur(8px)",
                 }}
               >
                 {registration.checkedIn
@@ -224,33 +238,33 @@ export default function TicketPass() {
           </div>
 
           {/* Ticket Body */}
-          <div style={{ padding: 28, display: "grid", gap: 24 }}>
+          <div style={{ padding: "30px 28px", display: "grid", gap: 24 }}>
             {/* Participant Details & QR */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 140px", gap: 20, alignItems: "center" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 150px", gap: 24, alignItems: "center" }}>
               <div>
-                <span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <span style={{ fontSize: "0.72rem", color: "#86868b", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
                   TICKET HOLDER
                 </span>
-                <h2 style={{ fontSize: "1.35rem", fontWeight: 700, margin: "4px 0 2px", color: "#ffffff" }}>
+                <h2 style={{ fontSize: "1.45rem", fontWeight: 800, margin: "4px 0 2px", color: "#ffffff", letterSpacing: "-0.02em" }}>
                   {registration.name}
                 </h2>
-                <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.88rem" }}>
+                <p style={{ margin: 0, color: "#86868b", fontSize: "0.88rem" }}>
                   {registration.college} {registration.department ? `· ${registration.department}` : ""}
                 </p>
 
                 <div style={{ marginTop: 16 }}>
-                  <span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  <span style={{ fontSize: "0.72rem", color: "#86868b", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
                     ADMISSION TIER
                   </span>
-                  <p style={{ margin: "2px 0 0", color: "#a855f7", fontWeight: 700, fontSize: "0.95rem" }}>
+                  <p style={{ margin: "2px 0 0", color: "#2997ff", fontWeight: 700, fontSize: "0.95rem" }}>
                     {registration.ticketType || "General Admission"}
                   </p>
                 </div>
 
                 {event.eventDurationType === "multi_day" && Array.isArray(event.days) && event.days.length > 0 && (
                   <div style={{ marginTop: 14 }}>
-                    <span style={{ fontSize: "0.72rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
-                      DAILY CHECK-IN PROGRESS ({(registration.attendedDays || []).length}/{event.days.length})
+                    <span style={{ fontSize: "0.7rem", color: "#86868b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 6, fontWeight: 700 }}>
+                      DAILY CHECK-IN STATUS ({(registration.attendedDays || []).length}/{event.days.length})
                     </span>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {event.days.map((d) => {
@@ -260,12 +274,12 @@ export default function TicketPass() {
                             key={d.dayNumber}
                             style={{
                               padding: "4px 10px",
-                              borderRadius: 999,
+                              borderRadius: 9999,
                               fontSize: "0.72rem",
                               fontWeight: 700,
-                              background: checked ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.06)",
-                              border: `1px solid ${checked ? "#10b981" : "rgba(255, 255, 255, 0.14)"}`,
-                              color: checked ? "#6ee7b7" : "#94a3b8",
+                              background: checked ? "rgba(16, 185, 129, 0.18)" : "rgba(255, 255, 255, 0.05)",
+                              border: `1px solid ${checked ? "#10b981" : "rgba(255, 255, 255, 0.1)"}`,
+                              color: checked ? "#6ee7b7" : "#86868b",
                             }}
                           >
                             {checked ? "✓ " : ""}{d.title || `Day ${d.dayNumber}`}
@@ -278,7 +292,7 @@ export default function TicketPass() {
 
                 {Array.isArray(registration.selectedSessions) && registration.selectedSessions.length > 0 && (
                   <div style={{ marginTop: 14 }}>
-                    <span style={{ fontSize: "0.72rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
+                    <span style={{ fontSize: "0.7rem", color: "#86868b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 6, fontWeight: 700 }}>
                       ENROLLED SESSIONS ({(registration.attendedSessions || []).length}/{registration.selectedSessions.length})
                     </span>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -291,12 +305,12 @@ export default function TicketPass() {
                             key={sesId}
                             style={{
                               padding: "4px 10px",
-                              borderRadius: 999,
+                              borderRadius: 9999,
                               fontSize: "0.72rem",
                               fontWeight: 700,
-                              background: checked ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.06)",
-                              border: `1px solid ${checked ? "#10b981" : "rgba(255, 255, 255, 0.14)"}`,
-                              color: checked ? "#6ee7b7" : "#94a3b8",
+                              background: checked ? "rgba(16, 185, 129, 0.18)" : "rgba(255, 255, 255, 0.05)",
+                              border: `1px solid ${checked ? "#10b981" : "rgba(255, 255, 255, 0.1)"}`,
+                              color: checked ? "#6ee7b7" : "#86868b",
                             }}
                           >
                             {checked ? "✓ " : ""}{ses ? ses.title : `Session ${sesId}`}
@@ -315,7 +329,7 @@ export default function TicketPass() {
                     background: "rgba(244, 63, 94, 0.08)",
                     border: "1px dashed rgba(244, 63, 94, 0.4)",
                     padding: "16px 10px",
-                    borderRadius: 12,
+                    borderRadius: 16,
                     textAlign: "center",
                     minHeight: 140,
                     display: "flex",
@@ -329,7 +343,7 @@ export default function TicketPass() {
                   <strong style={{ fontSize: "0.78rem", color: "#fb7185", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                     QR Pass Expired
                   </strong>
-                  <span style={{ fontSize: "0.68rem", color: "#94a3b8", lineHeight: 1.3 }}>
+                  <span style={{ fontSize: "0.68rem", color: "#86868b", lineHeight: 1.3 }}>
                     Event has ended. Gate scan is closed.
                   </span>
                 </div>
@@ -337,10 +351,10 @@ export default function TicketPass() {
                 <div
                   style={{
                     background: "#ffffff",
-                    padding: 10,
-                    borderRadius: 12,
+                    padding: 12,
+                    borderRadius: 16,
                     textAlign: "center",
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
                   }}
                 >
                   <img
@@ -348,7 +362,7 @@ export default function TicketPass() {
                     alt={`QR Code for ${registration.registrationId}`}
                     style={{ width: "100%", height: "auto", display: "block" }}
                   />
-                  <span style={{ fontSize: "0.62rem", color: "#000000", fontWeight: 700, display: "block", marginTop: 4 }}>
+                  <span style={{ fontSize: "0.65rem", color: "#000000", fontWeight: 700, display: "block", marginTop: 6, letterSpacing: "0.05em" }}>
                     SCAN FOR ENTRY
                   </span>
                 </div>
@@ -360,24 +374,24 @@ export default function TicketPass() {
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
-                gap: 14,
-                padding: "16px 20px",
+                gap: 16,
+                padding: "18px 20px",
                 background: "rgba(255, 255, 255, 0.03)",
-                borderRadius: 12,
+                borderRadius: 14,
                 border: "1px solid rgba(255, 255, 255, 0.06)",
               }}
             >
               <div>
-                <span style={{ fontSize: "0.72rem", color: "#94a3b8", textTransform: "uppercase" }}>DATE &amp; TIME</span>
-                <strong style={{ display: "block", fontSize: "0.92rem", color: "#ffffff", marginTop: 2 }}>
+                <span style={{ fontSize: "0.7rem", color: "#86868b", textTransform: "uppercase", fontWeight: 600 }}>DATE &amp; TIME</span>
+                <strong style={{ display: "block", fontSize: "0.95rem", color: "#ffffff", marginTop: 2 }}>
                   {event.date ? new Date(event.date).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : "TBD"}
                 </strong>
-                <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>{event.startTime || "Schedule TBD"}</span>
+                <span style={{ fontSize: "0.82rem", color: "#86868b" }}>{event.startTime || "Schedule TBD"}</span>
               </div>
 
               <div>
-                <span style={{ fontSize: "0.72rem", color: "#94a3b8", textTransform: "uppercase" }}>VENUE</span>
-                <strong style={{ display: "block", fontSize: "0.92rem", color: "#ffffff", marginTop: 2 }}>
+                <span style={{ fontSize: "0.7rem", color: "#86868b", textTransform: "uppercase", fontWeight: 600 }}>VENUE</span>
+                <strong style={{ display: "block", fontSize: "0.95rem", color: "#ffffff", marginTop: 2 }}>
                   {event.venue}
                 </strong>
                 {event.location && /^https?:\/\//i.test(event.location.trim()) ? (
@@ -387,7 +401,7 @@ export default function TicketPass() {
                     rel="noreferrer"
                     style={{
                       fontSize: "0.82rem",
-                      color: "#818cf8",
+                      color: "#2997ff",
                       textDecoration: "none",
                       display: "inline-flex",
                       alignItems: "center",
@@ -399,7 +413,7 @@ export default function TicketPass() {
                     {event.mode === "online" ? "🌐 Join Platform Link ↗" : "🗺️ View Venue on Map ↗"}
                   </a>
                 ) : (
-                  <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>
+                  <span style={{ fontSize: "0.82rem", color: "#86868b" }}>
                     {event.location || (event.mode === "online" ? "Virtual Meeting" : "Main Campus")}
                   </span>
                 )}
@@ -412,14 +426,14 @@ export default function TicketPass() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                padding: "12px 16px",
-                borderRadius: 8,
-                background: "rgba(0, 0, 0, 0.3)",
-                border: "1px solid rgba(255, 255, 255, 0.06)",
+                padding: "14px 18px",
+                borderRadius: 12,
+                background: "rgba(0, 0, 0, 0.4)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
               }}
             >
               <div>
-                <span style={{ fontSize: "0.82rem", color: "#94a3b8" }}>Registration Code</span>
+                <span style={{ fontSize: "0.82rem", color: "#86868b" }}>Registration ID</span>
                 {isExpired && (
                   <span style={{ display: "block", fontSize: "0.68rem", color: "#f87171", fontWeight: 700, marginTop: 2 }}>
                     ● Pass Expired (Event Ended)
@@ -428,8 +442,8 @@ export default function TicketPass() {
               </div>
               <strong
                 style={{
-                  fontSize: "1rem",
-                  color: isExpired ? "#94a3b8" : "#38bdf8",
+                  fontSize: "1.05rem",
+                  color: isExpired ? "#86868b" : "#2997ff",
                   textDecoration: isExpired ? "line-through" : "none",
                   letterSpacing: "0.08em",
                 }}
@@ -442,8 +456,8 @@ export default function TicketPass() {
             {isAttended && (
               <div
                 style={{
-                  padding: "18px 20px",
-                  borderRadius: 12,
+                  padding: "20px 22px",
+                  borderRadius: 16,
                   background: certificateEligible
                     ? "linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 95, 70, 0.2))"
                     : "linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(180, 83, 9, 0.2))",
@@ -468,7 +482,7 @@ export default function TicketPass() {
                         ? "Your official certificate is issued and ready."
                         : "Complete the survey to claim your certificate."}
                     </h3>
-                    <p style={{ margin: 0, fontSize: "0.82rem", color: "#94a3b8" }}>
+                    <p style={{ margin: 0, fontSize: "0.82rem", color: "#86868b" }}>
                       {certificateEligible
                         ? "Verified attendance certificate with digital authorization."
                         : "Your feedback helps the organizers improve future events."}
@@ -480,16 +494,16 @@ export default function TicketPass() {
                       type="button"
                       onClick={downloadCertificatePdf}
                       disabled={downloading}
-                      className="btn-hero-primary"
-                      style={{ padding: "10px 20px", fontSize: "0.85rem", border: 0, cursor: "pointer" }}
+                      className="button button-primary small"
+                      style={{ border: 0, cursor: "pointer" }}
                     >
                       {downloading ? "Downloading…" : "📥 Download Certificate PDF"}
                     </button>
                   ) : (
                     <Link
                       to={registration.feedbackToken ? `/feedback/${registration.feedbackToken}` : `/events/${event._id}/feedback`}
-                      className="btn-hero-primary"
-                      style={{ padding: "10px 20px", fontSize: "0.85rem", textDecoration: "none", background: "#f59e0b" }}
+                      className="button button-primary small"
+                      style={{ textDecoration: "none", background: "#f59e0b" }}
                     >
                       Complete Feedback Survey →
                     </Link>
@@ -499,7 +513,7 @@ export default function TicketPass() {
             )}
 
             {/* Important Instructions */}
-            <div style={{ fontSize: "0.78rem", color: "#64748b", lineHeight: 1.5 }}>
+            <div style={{ fontSize: "0.78rem", color: "#6e6e73", lineHeight: 1.5 }}>
               <p style={{ margin: "0 0 4px 0" }}>
                 • Present this digital ticket or printed pass at the event registration desk.
               </p>

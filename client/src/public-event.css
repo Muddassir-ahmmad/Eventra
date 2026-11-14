@@ -25,32 +25,36 @@
   z-index: 0;
 }
 
-/* Public Header */
+/* Public Header (Apple Glass Topbar) */
 .public-nav-bar {
   position: sticky;
   top: 0;
   z-index: 50;
-  height: 72px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 6%;
-  background: rgba(9, 13, 22, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.25s ease;
 }
 
 .public-nav-brand {
-  font-size: 1.45rem;
-  font-weight: 900;
+  font-size: 1.35rem;
+  font-weight: 800;
   letter-spacing: -0.04em;
   color: #ffffff;
   text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .public-nav-brand span {
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  background: linear-gradient(135deg, #2997ff 0%, #a855f7 50%, #ec4899 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -58,7 +62,7 @@
 .public-nav-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 /* Hero Section */
@@ -232,46 +236,57 @@
 }
 
 .btn-hero-primary {
-  padding: 16px 36px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  padding: 12px 28px;
+  border-radius: 9999px;
+  background: #0071e3;
   color: #ffffff !important;
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 0.95rem;
+  font-weight: 600;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  border: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  box-shadow: 0 4px 22px rgba(99, 102, 241, 0.45);
-  transition: all 0.25s ease;
+  box-shadow: 0 4px 20px rgba(0, 113, 227, 0.4);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-hero-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.65);
+  background: #0077ed;
+  transform: scale(1.02);
+  box-shadow: 0 6px 28px rgba(0, 113, 227, 0.6);
+}
+
+.btn-hero-primary:active {
+  transform: scale(0.98);
 }
 
 .btn-hero-secondary {
-  padding: 16px 24px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 12px 24px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: #ffffff;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-hero-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: #818cf8;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.02);
+}
+
+.btn-hero-secondary:active {
+  transform: scale(0.98);
 }
 
 /* Poster Frame */
