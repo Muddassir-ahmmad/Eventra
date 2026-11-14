@@ -1866,3 +1866,153 @@ input:focus, textarea:focus, select:focus {
     grid-column: span 1;
   }
 }
+
+/* =========================================================================
+   HOME & LANDING PAGE MOTION & ANIMATIONS
+   ========================================================================= */
+
+@keyframes heroFadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes ambientPulse {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.08) translate(15px, -10px);
+    opacity: 0.7;
+  }
+}
+
+@keyframes livePulseDot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(213, 140, 117, 0.7);
+  }
+  70% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 8px rgba(213, 140, 117, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(213, 140, 117, 0);
+  }
+}
+
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* Home Animation Utility Classes */
+.animate-hero-eyebrow {
+  animation: heroFadeDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-hero-headline {
+  animation: heroFadeUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+}
+
+.animate-hero-subtitle {
+  animation: heroFadeUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
+}
+
+.animate-hero-ctas {
+  animation: heroFadeUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.32s both;
+}
+
+.animate-hero-proof {
+  animation: heroFadeUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.42s both;
+}
+
+.animate-hero-stage {
+  animation: heroScaleIn 0.95s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+}
+
+.ambient-glow-circle {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: ambientPulse 10s ease-in-out infinite alternate;
+}
+
+.live-pulse-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #D58C75;
+  animation: livePulseDot 2.2s infinite;
+}
+
+.float-badge {
+  animation: floatGentle 4s ease-in-out infinite;
+}
+
+/* Interactive Card & Button Hover Transitions */
+.home-interactive-card {
+  transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.26s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.26s ease;
+}
+
+.home-interactive-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 32px rgba(32, 43, 54, 0.08);
+  border-color: #C8C5BC !important;
+}
+
+.home-cta-button {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.home-cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(71, 124, 115, 0.32) !important;
+}
+
+.home-ghost-button {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.home-ghost-button:hover {
+  transform: translateY(-2px);
+  background-color: #ECE9E2 !important;
+  border-color: #C8C5BC !important;
+}
+

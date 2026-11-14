@@ -64,9 +64,33 @@ export default function Home() {
           1. EDITORIAL HERO SECTION
           ========================================================================= */}
       <section style={{ position: "relative", paddingTop: "70px", paddingBottom: "40px" }}>
-        <div style={{ maxWidth: "1080px", margin: "0 auto", padding: "0 24px", textAlign: "center" }}>
+        {/* Soft Ambient Floating Glow Orbs */}
+        <div
+          className="ambient-glow-circle"
+          style={{
+            top: "-40px",
+            left: "15%",
+            width: "500px",
+            height: "500px",
+            background: "radial-gradient(circle, rgba(71, 124, 115, 0.14) 0%, transparent 70%)",
+          }}
+        />
+        <div
+          className="ambient-glow-circle"
+          style={{
+            top: "80px",
+            right: "12%",
+            width: "440px",
+            height: "440px",
+            background: "radial-gradient(circle, rgba(213, 140, 117, 0.12) 0%, transparent 70%)",
+            animationDelay: "-5s",
+          }}
+        />
+
+        <div style={{ maxWidth: "1080px", margin: "0 auto", padding: "0 24px", textAlign: "center", position: "relative", zIndex: 1 }}>
           {/* Eyebrow Badge */}
           <div
+            className="animate-hero-eyebrow"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -83,12 +107,13 @@ export default function Home() {
               marginBottom: "24px",
             }}
           >
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#D98D76" }} />
+            <span className="live-pulse-indicator" />
             <span>EVENTRA · PREMIER EVENT MANAGEMENT &amp; PASS SYSTEM</span>
           </div>
 
           {/* Cinematic Headline */}
           <h1
+            className="animate-hero-headline"
             style={{
               fontSize: "clamp(2.6rem, 5.5vw, 4.8rem)",
               fontWeight: 800,
@@ -105,6 +130,7 @@ export default function Home() {
 
           {/* Subtitle */}
           <p
+            className="animate-hero-subtitle"
             style={{
               fontSize: "clamp(1.05rem, 1.8vw, 1.25rem)",
               lineHeight: 1.65,
@@ -121,6 +147,7 @@ export default function Home() {
 
           {/* Action CTAs */}
           <div
+            className="animate-hero-ctas"
             style={{
               display: "flex",
               justifyContent: "center",
@@ -132,7 +159,7 @@ export default function Home() {
             {token ? (
               <>
                 <Link
-                  className="button button-primary"
+                  className="button button-primary home-cta-button"
                   to="/create-event"
                   style={{
                     padding: "13px 32px",
@@ -148,7 +175,7 @@ export default function Home() {
                   ✦ Create New Event ↗
                 </Link>
                 <Link
-                  className="button button-ghost"
+                  className="button button-ghost home-ghost-button"
                   to="/dashboard"
                   style={{
                     padding: "13px 28px",
@@ -166,7 +193,7 @@ export default function Home() {
             ) : (
               <>
                 <Link
-                  className="button button-primary"
+                  className="button button-primary home-cta-button"
                   to="/register"
                   style={{
                     padding: "13px 32px",
@@ -182,7 +209,7 @@ export default function Home() {
                   Get Started Free ↗
                 </Link>
                 <Link
-                  className="button button-ghost"
+                  className="button button-ghost home-ghost-button"
                   to="/participant/dashboard"
                   style={{
                     padding: "13px 28px",
@@ -202,6 +229,7 @@ export default function Home() {
 
           {/* Trust Highlights Strip */}
           <div
+            className="animate-hero-proof"
             style={{
               display: "flex",
               justifyContent: "center",
@@ -226,7 +254,7 @@ export default function Home() {
         {/* =========================================================================
             2. INTERACTIVE THREEUI-INSPIRED SHOWCASE STAGE
             ========================================================================= */}
-        <div style={{ maxWidth: "1140px", margin: "48px auto 0", padding: "0 20px" }}>
+        <div className="animate-hero-stage" style={{ maxWidth: "1140px", margin: "48px auto 0", padding: "0 20px" }}>
           {/* Segmented Switcher Tab Bar */}
           <div
             style={{
@@ -749,6 +777,7 @@ export default function Home() {
             {publicEvents.map((evt) => (
               <article
                 key={evt._id}
+                className="home-interactive-card"
                 style={{
                   background: "#FFFFFF",
                   border: "1px solid #DEDCD5",
@@ -757,7 +786,7 @@ export default function Home() {
                   boxShadow: "0 4px 18px rgba(0, 0, 0, 0.04)",
                   display: "flex",
                   flexDirection: "column",
-                  transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                  cursor: "pointer",
                 }}
               >
                 <div style={{ height: "160px", background: "#ECE9E2", position: "relative", overflow: "hidden", padding: "20px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
@@ -839,7 +868,7 @@ export default function Home() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
           {/* Bento 1: Multi-day Studio (Wide) */}
-          <div style={{ gridColumn: "span 2", background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+          <div className="home-interactive-card" style={{ gridColumn: "span 2", background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
             <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>🗓️</div>
             <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#202B36", margin: "0 0 10px" }}>
               Smart Multi-Day Studio
@@ -863,7 +892,7 @@ export default function Home() {
           </div>
 
           {/* Bento 2: Sub-Second Scanner */}
-          <div style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+          <div className="home-interactive-card" style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
             <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>⚡</div>
             <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#202B36", margin: "0 0 10px" }}>
               Fast QR Check-In
@@ -880,7 +909,7 @@ export default function Home() {
           </div>
 
           {/* Bento 3: Digital Wallet Passes */}
-          <div style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+          <div className="home-interactive-card" style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
             <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>🎫</div>
             <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#202B36", margin: "0 0 10px" }}>
               Digital Passes
@@ -897,7 +926,7 @@ export default function Home() {
           </div>
 
           {/* Bento 4: Attendance-Gated Certificates */}
-          <div style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+          <div className="home-interactive-card" style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
             <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>🎓</div>
             <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#202B36", margin: "0 0 10px" }}>
               Verified Certificates
@@ -914,7 +943,7 @@ export default function Home() {
           </div>
 
           {/* Bento 5: Executive Post-Event Reports */}
-          <div style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+          <div className="home-interactive-card" style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
             <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>📄</div>
             <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#202B36", margin: "0 0 10px" }}>
               12-Section Reports
@@ -998,104 +1027,36 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
-          7. STRUCTURED DIRECTORY FOOTER
+          7. MINIMAL FOOTER
           ========================================================================= */}
       <footer
         style={{
           borderTop: "1px solid #DEDCD5",
           background: "#ECE9E2",
-          padding: "60px 24px 40px",
+          padding: "26px 24px",
+          textAlign: "center",
+          fontSize: "0.85rem",
+          color: "#65717D",
+          fontFamily: "var(--font-body, 'Inter', sans-serif)",
         }}
       >
-        <div
-          style={{
-            maxWidth: "1140px",
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "36px",
-            marginBottom: "48px",
-          }}
-        >
-          {/* Col 1 */}
-          <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#202B36", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
-              Product
-            </span>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#65717D" }}>
-              <li><Link to="/create-event" style={{ color: "inherit", textDecoration: "none" }}>Smart Event Studio</Link></li>
-              <li><Link to="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Multi-Day Agendas</Link></li>
-              <li><Link to="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Fast QR Scanner</Link></li>
-              <li><Link to="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Certificate Manager</Link></li>
-              <li><Link to="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Post-Event Reports</Link></li>
-            </ul>
-          </div>
-
-          {/* Col 2 */}
-          <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#202B36", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
-              Participants
-            </span>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#65717D" }}>
-              <li><Link to="/participant/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Find My Ticket Pass</Link></li>
-              <li><Link to="/participant/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Download Certificate</Link></li>
-              <li><Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Participant Guide</Link></li>
-              <li><Link to="/support" style={{ color: "inherit", textDecoration: "none" }}>Organizer Support</Link></li>
-            </ul>
-          </div>
-
-          {/* Col 3 */}
-          <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#202B36", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
-              Platform &amp; Legal
-            </span>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#65717D" }}>
-              <li><Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Terms &amp; Conditions</Link></li>
-              <li><Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Privacy &amp; Data Security</Link></li>
-              <li><Link to="/admin/login" style={{ color: "inherit", textDecoration: "none" }}>Super Admin Console</Link></li>
-              <li><span style={{ color: "#39836B", fontWeight: 700 }}>● System Operational</span></li>
-            </ul>
-          </div>
-
-          {/* Col 4 */}
-          <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#202B36", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
-              EVENTRA Engine
-            </span>
-            <p style={{ color: "#65717D", fontSize: "0.85rem", lineHeight: 1.6, margin: 0 }}>
-              The all-in-one platform for modern conferences, symposiums, and college fests.
-              Built with React, Vite, Node.js, and MongoDB.
-            </p>
-          </div>
-        </div>
-
-        {/* Bottom Copyright & Badge Bar */}
-        <div
-          style={{
-            maxWidth: "1140px",
-            margin: "0 auto",
-            borderTop: "1px solid #DEDCD5",
-            paddingTop: "24px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "14px",
-            fontSize: "0.82rem",
-            color: "#65717D",
-          }}
-        >
-          <div>
-            Copyright © 2026{" "}
-            <strong style={{ color: "#202B36" }}>EVENTRA</strong> Inc. All rights reserved.
-          </div>
-          <div style={{ display: "flex", gap: "16px" }}>
-            <Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Terms of Use</Link>
-            <span>·</span>
-            <Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Privacy Policy</Link>
-            <span>·</span>
-            <Link to="/admin/login" style={{ color: "inherit", textDecoration: "none" }}>Executive Login</Link>
-          </div>
+        <div>
+          Copyright © 2026{" "}
+          <Link
+            to={token && localStorage.getItem("eventra_user_role") === "SUPER_ADMIN" ? "/admin" : "/admin/login"}
+            style={{
+              color: "#202B36",
+              fontWeight: 700,
+              textDecoration: "none",
+              transition: "color 0.16s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#477C73")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#202B36")}
+            title="EVENTRA Admin"
+          >
+            EVENTRA
+          </Link>{" "}
+          Inc. All rights reserved.
         </div>
       </footer>
     </main>
