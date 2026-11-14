@@ -8,7 +8,12 @@ import emailService from "../services/emailService.js";
 import { generateTicketPdf } from "../services/ticketPdfService.js";
 import { isAttendanceEntryLocked, isEventCompleted } from "../utils/eventTiming.js";
 import { formatParticipantName } from "../utils/participantName.js";
-import { getEventDaysNormalized, resolveCheckInTarget } from "../utils/multiDay.js";
+import {
+  calculateSessionRegistrationAnalytics,
+  getAllEventSessions,
+  getEventDaysNormalized,
+  resolveCheckInTarget,
+} from "../utils/multiDay.js";
 
 const router = express.Router();
 
@@ -78,7 +83,7 @@ function rejectIfAttendanceLocked(event, res) {
 // Public registration for an event
 router.post("/public/:slug", async (req, res) => {
   try {
-    const { name, email, phone, college, department, customAnswers, ticketType } = req.body;
+    const { name, email, phone, college, department, customAnswers, ticketType, selectedSessions } = req.body;
 
     // 1. Mandatory pass holder identity validation
     if (!name || typeof name !== "string" || !name.trim() ||
@@ -192,6 +197,63 @@ router.post("/public/:slug", async (req, res) => {
       });
     }
 
+    // 3. Session Selection & Capacity Validation
+    const allEventSessions = getAllEventSessions(event);
+    const hasEventSessions = allEventSessions.length > 0;
+    let sanitizedSelectedSessions = [];
+
+    if (Array.isArray(selectedSessions)) {
+      sanitizedSelectedSessions = [
+        ...new Set(selectedSessions.map((s) => String(s || "").trim()).filter(Boolean)),
+      ];
+    }
+
+    if (hasEventSessions && (event.sessionAttendanceEnabled || sanitizedSelectedSessions.length > 0)) {
+      if (sanitizedSelectedSessions.length === 0) {
+        return res.status(400).json({
+          message: "Please select at least one session to attend.",
+        });
+      }
+
+      const validSessionMap = new Map();
+      for (const ses of allEventSessions) {
+        validSessionMap.set(String(ses.sessionId), ses);
+        if (ses._id) validSessionMap.set(String(ses._id), ses);
+      }
+
+      for (const sid of sanitizedSelectedSessions) {
+        const ses = validSessionMap.get(sid);
+        if (!ses) {
+          return res.status(400).json({
+            message: `Selected session "${sid}" does not belong to this event.`,
+          });
+        }
+        if (ses.status === "CANCELLED" || ses.status === "cancelled") {
+          return res.status(400).json({
+            message: `Session "${ses.title}" has been cancelled and cannot be selected.`,
+          });
+        }
+        if (ses.registrationAvailable === false) {
+          return res.status(400).json({
+            message: `Registration for session "${ses.title}" is currently closed.`,
+          });
+        }
+
+        if (ses.capacity > 0) {
+          const enrolledCount = await Registration.countDocuments({
+            eventId: event._id,
+            status: "confirmed",
+            selectedSessions: ses.sessionId,
+          });
+          if (enrolledCount >= ses.capacity) {
+            return res.status(409).json({
+              message: `Session "${ses.title}" has reached its maximum capacity (${ses.capacity}).`,
+            });
+          }
+        }
+      }
+    }
+
     let registrationId = makeRegistrationId();
 
     while (await Registration.exists({ registrationId })) {
@@ -207,7 +269,9 @@ router.post("/public/:slug", async (req, res) => {
       department: (department || "").trim(),
       ticketType: ticketType || "General Admission",
       customAnswers: customAnswers || {},
+      selectedSessions: sanitizedSelectedSessions,
       registrationId,
+      qrToken: registrationId,
     });
 
     // Asynchronously dispatch confirmation & ticket emails in background
@@ -358,19 +422,34 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
       const dayPct = confirmedCount > 0 ? Math.round((dayAttendedCount / confirmedCount) * 1000) / 10 : 0;
 
       const sessionStats = (day.sessions || []).map((ses) => {
+        const sesId = String(ses.sessionId);
+        const enrolled = confirmedEnriched.filter((r) => {
+          if (Array.isArray(r.selectedSessions) && r.selectedSessions.length > 0) {
+            return r.selectedSessions.includes(sesId);
+          }
+          return false;
+        });
+        const enrolledCount = enrolled.length;
         const sesAttendedCount = confirmedEnriched.filter((reg) =>
-          reg.attendedSessions.includes(String(ses.sessionId))
+          reg.attendedSessions.includes(sesId)
         ).length;
-        const sesPct = confirmedCount > 0 ? Math.round((sesAttendedCount / confirmedCount) * 1000) / 10 : 0;
+        const effectiveRegistered = Math.max(enrolledCount, sesAttendedCount);
+        const sesAbsentCount = Math.max(0, effectiveRegistered - sesAttendedCount);
+        const sesPct = effectiveRegistered > 0 ? Math.round((sesAttendedCount / effectiveRegistered) * 1000) / 10 : 0;
         return {
           sessionId: ses.sessionId,
           title: ses.title,
-          startTime: ses.startTime,
-          endTime: ses.endTime,
-          speaker: ses.speaker,
-          venue: ses.venue,
+          description: ses.description || "",
+          startTime: ses.startTime || "",
+          endTime: ses.endTime || "",
+          speaker: ses.speaker || "",
+          venue: ses.venue || "",
           capacity: ses.capacity ?? null,
+          status: ses.status || "UPCOMING",
+          registrationAvailable: ses.registrationAvailable !== false,
+          registeredCount: effectiveRegistered,
           attendedCount: sesAttendedCount,
+          absentCount: sesAbsentCount,
           attendancePercentage: sesPct,
         };
       });
@@ -450,6 +529,7 @@ router.get("/event/:eventId", requireAuth, async (req, res) => {
         participantsMissingSomeDaysCount,
         days: daysAnalytics,
       },
+      sessionAnalytics: calculateSessionRegistrationAnalytics(event, confirmedEnriched, attendanceRecords),
       count: confirmed.length,
       attendedCount: attended.length,
       registrations: returnedRegistrations,
@@ -529,6 +609,27 @@ router.post("/event/:eventId/checkin", requireAuth, async (req, res) => {
       });
     }
 
+    if (target.attendanceType === "session") {
+      if (target.session?.status === "CANCELLED" || target.session?.status === "cancelled") {
+        return res.status(400).json({
+          message: `This session ("${target.session.title}") has been cancelled.`,
+          registration,
+        });
+      }
+
+      if (Array.isArray(registration.selectedSessions) && registration.selectedSessions.length > 0) {
+        const isEnrolled =
+          registration.selectedSessions.includes(target.session.sessionId) ||
+          (target.session._id && registration.selectedSessions.includes(String(target.session._id)));
+        if (!isEnrolled) {
+          return res.status(400).json({
+            message: "Participant is not registered for this session.",
+            registration,
+          });
+        }
+      }
+    }
+
     // Legacy compatibility: if a single-day registration was manually reset via DB update without touching Attendance
     if (
       event.eventDurationType !== "multi_day" &&
@@ -570,13 +671,17 @@ router.post("/event/:eventId/checkin", requireAuth, async (req, res) => {
           : event.eventDurationType === "multi_day"
           ? `for ${target.day.title}`
           : "";
+      const dupMsg =
+        target.attendanceType === "session"
+          ? "Attendance already marked for this session."
+          : `Already checked in ${scopeLabel} at ${timeLabel}`.replace(/\s+/g, " ").trim();
       return res.status(200).json({
         alreadyCheckedIn: true,
         attendanceType: target.attendanceType,
         dayNumber: target.day.dayNumber,
         sessionId: target.session?.sessionId || null,
         attendanceRecord: existingRecord,
-        message: `Already checked in ${scopeLabel} at ${timeLabel}`.replace(/\s+/g, " ").trim(),
+        message: dupMsg,
         registration: synced || registration,
       });
     }
@@ -626,7 +731,9 @@ router.post("/event/:eventId/checkin", requireAuth, async (req, res) => {
           dayNumber: target.day.dayNumber,
           sessionId: target.session?.sessionId || null,
           attendanceRecord: racedRecord,
-          message: `Already checked in ${scopeLabel}`.trim(),
+          message: target.attendanceType === "session"
+            ? "Attendance already marked for this session."
+            : `Already checked in ${scopeLabel}`.trim(),
           registration: synced || registration,
         });
       }
@@ -748,6 +855,20 @@ router.post("/event/:eventId/registrations/:registrationId/toggle-attendance", r
 
     const existing = await Attendance.findOne(filter);
     const shouldCheckIn = typeof present === "boolean" ? present : !existing;
+
+    if (shouldCheckIn && target.attendanceType === "session") {
+      if (target.session?.status === "CANCELLED" || target.session?.status === "cancelled") {
+        return res.status(400).json({ message: `Session "${target.session.title}" has been cancelled.` });
+      }
+      if (Array.isArray(registration.selectedSessions) && registration.selectedSessions.length > 0) {
+        const isEnrolled =
+          registration.selectedSessions.includes(target.session.sessionId) ||
+          (target.session._id && registration.selectedSessions.includes(String(target.session._id)));
+        if (!isEnrolled) {
+          return res.status(400).json({ message: "Participant is not registered for this session." });
+        }
+      }
+    }
 
     if (shouldCheckIn && !existing) {
       if (target.attendanceType === "session" && target.session?.capacity > 0) {

@@ -7,6 +7,7 @@ import {
   resolveCheckInTarget,
   normalizeCertificateEligibilityRule,
   evaluateRegistrationCertificateEligibility,
+  calculateSessionRegistrationAnalytics,
   formatEventDateRangeLabel,
 } from "../src/utils/multiDay.js";
 import { calculateReportAnalytics } from "../src/utils/reportAnalytics.js";
@@ -454,4 +455,167 @@ test("Multi-day digital ticket PDF and post-event report PDF generate successful
   const reportPdf = await generateReportPdf(multiEvent, organizer, reportData, analytics);
   assert.ok(reportPdf instanceof Buffer);
   assert.ok(reportPdf.length > 5000);
+});
+
+// =========================================================================
+// UNIT TESTS: SESSION-BASED REGISTRATION, ATTENDANCE & CERTIFICATES
+// =========================================================================
+
+test("Session normalization validates status, availability, and venue collision", () => {
+  const overlappingInput = {
+    eventDurationType: "multi_day",
+    startDate: "2026-11-20",
+    endDate: "2026-11-21",
+    days: [
+      {
+        dayNumber: 1,
+        date: "2026-11-20",
+        title: "Day 1",
+        sessions: [
+          {
+            title: "Session A",
+            startTime: "10:00 AM",
+            endTime: "11:30 AM",
+            venue: "Seminar Hall 1",
+            status: "UPCOMING",
+            registrationAvailable: true,
+          },
+          {
+            title: "Session B (Collision)",
+            startTime: "11:00 AM",
+            endTime: "12:00 PM",
+            venue: "Seminar Hall 1", // Same venue, overlapping time
+          },
+        ],
+      },
+    ],
+  };
+
+  const collisionRes = validateAndNormalizeMultiDaySchedule(overlappingInput);
+  assert.ok(collisionRes.error, "Expected venue collision error");
+  assert.ok(collisionRes.error.includes("overlapping time slots"));
+
+  const validSessions = {
+    ...overlappingInput,
+    days: [
+      {
+        ...overlappingInput.days[0],
+        sessions: [
+          overlappingInput.days[0].sessions[0],
+          {
+            ...overlappingInput.days[0].sessions[1],
+            venue: "Seminar Hall 2", // Different venue
+            status: "CANCELLED",
+            registrationAvailable: false,
+          },
+        ],
+      },
+    ],
+  };
+
+  const validRes = validateAndNormalizeMultiDaySchedule(validSessions);
+  assert.ok(!validRes.error);
+  assert.equal(validRes.value.days[0].sessions[1].status, "CANCELLED");
+  assert.equal(validRes.value.days[0].sessions[1].registrationAvailable, false);
+});
+
+test("Session-based certificate eligibility rules evaluate actual attendance correctly", () => {
+  const event = {
+    _id: "67323b7e7c81d8031e6e0010",
+    requireFeedbackForCertificate: false,
+    certificateEligibilityRule: {
+      mode: "at_least_one_session",
+    },
+  };
+
+  // 1. at_least_one_session
+  const regNoAtt = { _id: "reg1", status: "confirmed", selectedSessions: ["s1", "s2"], attendedSessions: [] };
+  const eval1 = evaluateRegistrationCertificateEligibility(event, regNoAtt, []);
+  assert.equal(eval1.eligibleByAttendance, false);
+
+  const regAttOne = { _id: "reg2", status: "confirmed", selectedSessions: ["s1", "s2"], attendedSessions: ["s1"] };
+  const eval2 = evaluateRegistrationCertificateEligibility(event, regAttOne, []);
+  assert.equal(eval2.eligibleByAttendance, true);
+
+  // 2. all_selected_sessions
+  event.certificateEligibilityRule = { mode: "all_selected_sessions" };
+  const eval3 = evaluateRegistrationCertificateEligibility(event, regAttOne, []);
+  assert.equal(eval3.eligibleByAttendance, false); // attended only 1 of 2
+
+  const regAttAll = { _id: "reg3", status: "confirmed", selectedSessions: ["s1", "s2"], attendedSessions: ["s1", "s2"] };
+  const eval4 = evaluateRegistrationCertificateEligibility(event, regAttAll, []);
+  assert.equal(eval4.eligibleByAttendance, true); // attended both
+
+  // 3. min_sessions
+  event.certificateEligibilityRule = { mode: "min_sessions", minSessions: 2 };
+  const eval5 = evaluateRegistrationCertificateEligibility(event, regAttOne, []);
+  assert.equal(eval5.eligibleByAttendance, false); // attended 1, minimum required is 2
+
+  const eval6 = evaluateRegistrationCertificateEligibility(event, regAttAll, []);
+  assert.equal(eval6.eligibleByAttendance, true); // attended 2 >= 2
+});
+
+test("calculateReportAnalytics computes session-level attendance analytics and limits", async () => {
+  const event = {
+    _id: "67323b7e7c81d8031e6e0020",
+    eventDurationType: "multi_day",
+    startDate: new Date("2026-11-20T00:00:00Z"),
+    endDate: new Date("2026-11-21T00:00:00Z"),
+    days: [
+      {
+        dayNumber: 1,
+        date: new Date("2026-11-20T00:00:00Z"),
+        sessions: [
+          { sessionId: "ses_workshop", title: "AI Workshop", capacity: 10, status: "UPCOMING" },
+          { sessionId: "ses_demo", title: "Project Demo", capacity: 50, status: "UPCOMING" },
+        ],
+      },
+    ],
+  };
+
+  const registrations = [
+    {
+      _id: "reg101",
+      registrationId: "EVT-REG-101",
+      name: "Alice",
+      status: "confirmed",
+      selectedSessions: ["ses_workshop", "ses_demo"],
+      attendedSessions: ["ses_workshop"],
+      checkedIn: true,
+    },
+    {
+      _id: "reg102",
+      registrationId: "EVT-REG-102",
+      name: "Bob",
+      status: "confirmed",
+      selectedSessions: ["ses_workshop"],
+      attendedSessions: [],
+      checkedIn: false,
+    },
+  ];
+
+  const attendanceRecords = [
+    { registrationId: "reg101", attendanceType: "session", sessionId: "ses_workshop" },
+  ];
+
+  const sessionAnalytics = calculateSessionRegistrationAnalytics(event, registrations, attendanceRecords);
+  assert.equal(sessionAnalytics.totalSessions, 2);
+
+  const workshopStat = sessionAnalytics.sessions.find((s) => s.sessionId === "ses_workshop");
+  assert.ok(workshopStat);
+  assert.equal(workshopStat.registeredCount, 2);
+  assert.equal(workshopStat.attendedCount, 1);
+  assert.equal(workshopStat.absentCount, 1);
+  assert.equal(workshopStat.attendancePercentage, 50);
+  assert.equal(workshopStat.remainingCapacity, 8); // 10 - 2
+
+  const demoStat = sessionAnalytics.sessions.find((s) => s.sessionId === "ses_demo");
+  assert.ok(demoStat);
+  assert.equal(demoStat.registeredCount, 1);
+  assert.equal(demoStat.attendedCount, 0);
+  assert.equal(demoStat.attendancePercentage, 0);
+
+  const analytics = calculateReportAnalytics(registrations, [], attendanceRecords, event, []);
+  assert.ok(analytics.multiDay?.sessionParticipation);
+  assert.equal(analytics.multiDay.sessionParticipation.length, 2);
 });

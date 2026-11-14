@@ -275,6 +275,37 @@ export default function TicketPass() {
                     </div>
                   </div>
                 )}
+
+                {Array.isArray(registration.selectedSessions) && registration.selectedSessions.length > 0 && (
+                  <div style={{ marginTop: 14 }}>
+                    <span style={{ fontSize: "0.72rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
+                      ENROLLED SESSIONS ({(registration.attendedSessions || []).length}/{registration.selectedSessions.length})
+                    </span>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {registration.selectedSessions.map((sesId) => {
+                        const allS = (event.days || []).flatMap((d) => d.sessions || []);
+                        const ses = allS.find((s) => String(s.sessionId) === String(sesId));
+                        const checked = (registration.attendedSessions || []).includes(String(sesId));
+                        return (
+                          <span
+                            key={sesId}
+                            style={{
+                              padding: "4px 10px",
+                              borderRadius: 999,
+                              fontSize: "0.72rem",
+                              fontWeight: 700,
+                              background: checked ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.06)",
+                              border: `1px solid ${checked ? "#10b981" : "rgba(255, 255, 255, 0.14)"}`,
+                              color: checked ? "#6ee7b7" : "#94a3b8",
+                            }}
+                          >
+                            {checked ? "✓ " : ""}{ses ? ses.title : `Session ${sesId}`}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Dynamic QR Code or Expired State */}

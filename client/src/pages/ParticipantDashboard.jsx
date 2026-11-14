@@ -328,6 +328,60 @@ export default function ParticipantDashboard() {
                         </div>
                       </div>
 
+                      {/* Enrolled Sessions Breakdown */}
+                      {Array.isArray(reg.selectedSessions) && reg.selectedSessions.length > 0 && (
+                        <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(255, 255, 255, 0.03)", borderRadius: 8, border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                            <span style={{ fontSize: "0.72rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>
+                              Selected Sessions ({reg.selectedSessions.length})
+                            </span>
+                            <span style={{ fontSize: "0.72rem", color: "#38bdf8", fontWeight: 700 }}>
+                              {(reg.attendedSessions || []).length}/{reg.selectedSessions.length} Attended
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            {reg.selectedSessions.map((sid) => {
+                              const allS = (event.days || []).flatMap((d) => d.sessions || []);
+                              const ses = allS.find((s) => String(s.sessionId) === String(sid));
+                              const isAttended = (reg.attendedSessions || []).includes(String(sid));
+                              const isCancelled = ses?.status === "CANCELLED";
+                              return (
+                                <div key={sid} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.8rem", padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                                  <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>
+                                    <strong style={{ color: "#ffffff" }}>{ses ? ses.title : `Session #${sid}`}</strong>
+                                    {ses?.startTime && <span style={{ color: "#94a3b8", marginLeft: 6, fontSize: "0.74rem" }}>({ses.startTime}{ses.endTime ? ` - ${ses.endTime}` : ""})</span>}
+                                  </div>
+                                  <span
+                                    style={{
+                                      fontSize: "0.7rem",
+                                      fontWeight: 700,
+                                      padding: "2px 8px",
+                                      borderRadius: 4,
+                                      whiteSpace: "nowrap",
+                                      background: isAttended
+                                        ? "rgba(16, 185, 129, 0.16)"
+                                        : isCancelled
+                                        ? "rgba(239, 68, 68, 0.16)"
+                                        : "rgba(148, 163, 184, 0.12)",
+                                      border: `1px solid ${
+                                        isAttended
+                                          ? "rgba(16, 185, 129, 0.3)"
+                                          : isCancelled
+                                          ? "rgba(239, 68, 68, 0.3)"
+                                          : "rgba(148, 163, 184, 0.2)"
+                                      }`,
+                                      color: isAttended ? "#6ee7b7" : isCancelled ? "#fca5a5" : "#94a3b8",
+                                    }}
+                                  >
+                                    {isAttended ? "✓ Present" : isCancelled ? "Cancelled" : "Pending"}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Action Links */}
                       <div className="participant-card-actions">
                         <Link

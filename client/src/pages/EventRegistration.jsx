@@ -23,6 +23,8 @@ export default function EventRegistration() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [selectedSessions, setSelectedSessions] = useState([]);
+  const [liveSessions, setLiveSessions] = useState([]);
 
   useEffect(() => {
     api.get(`/events/public/${slug}`)
@@ -36,6 +38,19 @@ export default function EventRegistration() {
             ticketType: data.event.ticketTypes[0].name,
           }));
         }
+
+        // Fetch live session availability and capacities
+        api.get(`/events/public/${slug}/sessions`)
+          .then((res) => {
+            const sessionsData = res.data?.sessions || [];
+            setLiveSessions(sessionsData);
+            // Default select available sessions
+            const available = sessionsData
+              .filter((s) => s.status !== "CANCELLED" && s.registrationAvailable !== false && !s.isFull)
+              .map((s) => s.sessionId);
+            setSelectedSessions(available);
+          })
+          .catch(() => {});
       })
       .catch((err) => {
         setError(err.response?.data?.message || "Could not load event");
@@ -62,6 +77,23 @@ export default function EventRegistration() {
     }));
   }
 
+  function toggleSession(sessionId) {
+    setSelectedSessions((curr) =>
+      curr.includes(sessionId) ? curr.filter((id) => id !== sessionId) : [...curr, sessionId]
+    );
+  }
+
+  function selectAllAvailableSessions() {
+    const available = liveSessions
+      .filter((s) => s.status !== "CANCELLED" && s.registrationAvailable !== false && !s.isFull)
+      .map((s) => s.sessionId);
+    setSelectedSessions(available);
+  }
+
+  function clearSessionSelection() {
+    setSelectedSessions([]);
+  }
+
   async function submit(e) {
     e.preventDefault();
     setError("");
@@ -71,10 +103,21 @@ export default function EventRegistration() {
       return;
     }
 
+    if (liveSessions.length > 0 && (event?.sessionAttendanceEnabled || selectedSessions.length > 0)) {
+      if (selectedSessions.length === 0) {
+        setError("Please select at least one session to attend.");
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
-      const { data } = await api.post(`/registrations/public/${slug}`, form);
+      const payload = {
+        ...form,
+        selectedSessions,
+      };
+      const { data } = await api.post(`/registrations/public/${slug}`, payload);
       setSuccess(data.registration);
       if (data.registration?.email) {
         localStorage.setItem("eventra_participant_email", data.registration.email);
@@ -174,6 +217,24 @@ export default function EventRegistration() {
               <small style={{ color: "#64748b", display: "block", marginTop: 4 }}>
                 Tier: {success.ticketType || "General Admission"}
               </small>
+
+              {Array.isArray(success.selectedSessions) && success.selectedSessions.length > 0 && (
+                <div style={{ marginTop: 12, textAlign: "left", background: "rgba(99, 102, 241, 0.08)", border: "1px solid rgba(99, 102, 241, 0.2)", borderRadius: 8, padding: "10px 12px" }}>
+                  <span style={{ fontSize: "0.72rem", color: "#a5b4fc", fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                    Enrolled Sessions ({success.selectedSessions.length})
+                  </span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {success.selectedSessions.map((sid) => {
+                      const matched = liveSessions.find((s) => s.sessionId === sid);
+                      return (
+                        <span key={sid} style={{ fontSize: "0.76rem", padding: "3px 8px", background: "rgba(255, 255, 255, 0.08)", borderRadius: 6, color: "#f8fafc" }}>
+                          ✓ {matched?.title || sid}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ display: "grid", gap: 10 }}>
@@ -459,6 +520,144 @@ export default function EventRegistration() {
                 />
               </div>
             ))}
+
+            {/* Session Selection Section */}
+            {liveSessions.length > 0 && (
+              <div style={{ marginTop: 20, textAlign: "left" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, color: "#f8fafc", margin: 0 }}>
+                      Select Sessions to Attend *
+                    </label>
+                    <small style={{ color: "#94a3b8", fontSize: "0.76rem" }}>
+                      Choose which tracks, workshops, or competitions you will participate in.
+                    </small>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={selectAllAvailableSessions}
+                      style={{
+                        padding: "3px 8px",
+                        fontSize: "0.72rem",
+                        background: "rgba(99, 102, 241, 0.15)",
+                        border: "1px solid rgba(129, 140, 248, 0.4)",
+                        color: "#c4b5fd",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Select All Available
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearSessionSelection}
+                      style={{
+                        padding: "3px 8px",
+                        fontSize: "0.72rem",
+                        background: "rgba(255, 255, 255, 0.05)",
+                        border: "1px solid rgba(255, 255, 255, 0.12)",
+                        color: "#94a3b8",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  {liveSessions.map((ses) => {
+                    const isCancelled = ses.status === "CANCELLED";
+                    const isClosed = ses.registrationAvailable === false;
+                    const isFull = ses.isFull;
+                    const isUnavailable = isCancelled || isClosed || isFull;
+                    const isSelected = selectedSessions.includes(ses.sessionId);
+
+                    return (
+                      <label
+                        key={ses.sessionId}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 12,
+                          padding: "12px 14px",
+                          borderRadius: 10,
+                          border: isSelected
+                            ? "1px solid #6366f1"
+                            : "1px solid rgba(255, 255, 255, 0.09)",
+                          background: isSelected
+                            ? "rgba(99, 102, 241, 0.12)"
+                            : isUnavailable
+                            ? "rgba(15, 23, 42, 0.4)"
+                            : "rgba(15, 23, 42, 0.75)",
+                          opacity: isUnavailable ? 0.6 : 1,
+                          cursor: isUnavailable ? "not-allowed" : "pointer",
+                          transition: "all 0.18s ease",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          disabled={isUnavailable}
+                          checked={isSelected}
+                          onChange={() => !isUnavailable && toggleSession(ses.sessionId)}
+                          style={{
+                            width: 18,
+                            height: 18,
+                            marginTop: 2,
+                            accentColor: "#6366f1",
+                            cursor: isUnavailable ? "not-allowed" : "pointer",
+                            flexShrink: 0,
+                          }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <strong style={{ fontSize: "0.92rem", color: isUnavailable ? "#94a3b8" : "#f8fafc" }}>
+                              {ses.title}
+                            </strong>
+                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                              {isCancelled ? (
+                                <span style={{ fontSize: "0.7rem", color: "#f87171", background: "rgba(239, 68, 68, 0.15)", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>
+                                  Cancelled
+                                </span>
+                              ) : isClosed ? (
+                                <span style={{ fontSize: "0.7rem", color: "#fbbf24", background: "rgba(245, 158, 11, 0.15)", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>
+                                  Closed
+                                </span>
+                              ) : isFull ? (
+                                <span style={{ fontSize: "0.7rem", color: "#c084fc", background: "rgba(192, 132, 252, 0.15)", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>
+                                  Full
+                                </span>
+                              ) : ses.capacity > 0 ? (
+                                <span style={{ fontSize: "0.7rem", color: "#38bdf8", background: "rgba(56, 189, 248, 0.12)", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>
+                                  {ses.remainingCapacity !== null ? `${ses.remainingCapacity} seats left` : `Cap: ${ses.capacity}`}
+                                </span>
+                              ) : null}
+                              <span style={{ fontSize: "0.72rem", color: "#a5b4fc", background: "rgba(99, 102, 241, 0.1)", padding: "2px 6px", borderRadius: 4 }}>
+                                {ses.dayTitle || `Day ${ses.dayNumber}`}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ fontSize: "0.78rem", color: "#94a3b8", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                            {ses.startTime && <span>⏱ {ses.startTime}{ses.endTime ? ` - ${ses.endTime}` : ""}</span>}
+                            {ses.venue && <span>📍 {ses.venue}</span>}
+                            {ses.speaker && <span>👤 {ses.speaker}</span>}
+                          </div>
+
+                          {ses.description && (
+                            <p style={{ margin: "4px 0 0", fontSize: "0.78rem", color: "#cbd5e1", lineHeight: 1.4 }}>
+                              {ses.description}
+                            </p>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div style={{ display: "flex", alignItems: "flex-start", gap: 10, margin: "16px 0 8px", textAlign: "left" }}>
               <input

@@ -66,9 +66,18 @@ const registrationSchema = new mongoose.Schema(
       type: [Number],
       default: [],
     },
+    selectedSessions: {
+      type: [String],
+      default: [],
+    },
     attendedSessions: {
       type: [String],
       default: [],
+    },
+    qrToken: {
+      type: String,
+      default: null,
+      index: true,
     },
     lastCheckedInAt: {
       type: Date,

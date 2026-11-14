@@ -23,6 +23,7 @@ import { sendFeedbackEmailsForEvent } from "../utils/feedbackEmail.js";
 import { calculateReportAnalytics } from "../utils/reportAnalytics.js";
 import { isEventCompleted, getEventEndDateTime } from "../utils/eventTiming.js";
 import {
+  calculateSessionRegistrationAnalytics,
   evaluateRegistrationCertificateEligibility,
   getAllEventSessions,
   normalizeCertificateEligibilityRule,
@@ -1039,6 +1040,414 @@ router.post("/:eventId/finalize-report", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("Finalize report error:", err);
     res.status(500).json({ message: "Could not finalize post-event report." });
+  }
+});
+
+/*
+  =============================================================================
+  SESSION-BASED EVENT MANAGEMENT APIS (ORGANIZER & ATTENDANCE)
+  =============================================================================
+*/
+
+// GET /api/events/:eventId/sessions - Retrieve all sessions with registration and attendance counts
+router.get("/:eventId/sessions", requireAuth, async (req, res) => {
+  try {
+    const event = await Event.findOne({
+      _id: req.params.eventId,
+      organizerId: req.userId,
+    });
+    if (!event) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    const [registrations, attendanceRecords] = await Promise.all([
+      Registration.find({ eventId: event._id }).lean(),
+      Attendance.find({ eventId: event._id }).lean(),
+    ]);
+
+    const analytics = calculateSessionRegistrationAnalytics(event, registrations, attendanceRecords);
+
+    res.json({
+      eventId: event._id,
+      eventTitle: event.title,
+      totalSessions: analytics.totalSessions,
+      sessions: analytics.sessions,
+    });
+  } catch (err) {
+    console.error("Get sessions error:", err);
+    res.status(500).json({ message: "Could not load event sessions." });
+  }
+});
+
+// POST /api/events/:eventId/days/:dayNumber/sessions - Add a session to an event day
+router.post("/:eventId/days/:dayNumber/sessions", requireAuth, async (req, res) => {
+  try {
+    const event = await Event.findOne({
+      _id: req.params.eventId,
+      organizerId: req.userId,
+    });
+    if (!event) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    if (isEventCompleted(event)) {
+      return res.status(400).json({ message: "Cannot modify sessions of a concluded event." });
+    }
+
+    const targetDayNumber = Number(req.params.dayNumber);
+    let targetDay = (event.days || []).find((d) => d.dayNumber === targetDayNumber);
+
+    // If single day without days array, initialize day 1
+    if (!targetDay && (!event.days || event.days.length === 0) && targetDayNumber === 1) {
+      event.days = [
+        {
+          dayNumber: 1,
+          date: event.date || new Date(),
+          title: "Day 1",
+          startTime: event.startTime || "",
+          endTime: event.endTime || "",
+          sessions: [],
+        },
+      ];
+      targetDay = event.days[0];
+    }
+
+    if (!targetDay) {
+      return res.status(404).json({ message: `Day ${targetDayNumber} not found in this event schedule.` });
+    }
+
+    const {
+      title,
+      description,
+      startTime,
+      endTime,
+      speaker,
+      venue,
+      capacity,
+      registrationAvailable,
+      status,
+    } = req.body || {};
+
+    if (!title || !String(title).trim()) {
+      return res.status(400).json({ message: "Session title is required." });
+    }
+
+    let parsedCap = null;
+    if (capacity !== null && capacity !== undefined && capacity !== "") {
+      const num = Number(capacity);
+      if (!Number.isFinite(num) || num < 1) {
+        return res.status(400).json({ message: "Session capacity must be at least 1." });
+      }
+      parsedCap = Math.floor(num);
+    }
+
+    const rawStatus = String(status || "UPCOMING").toUpperCase().trim();
+    const validStatus = ["UPCOMING", "ONGOING", "COMPLETED", "CANCELLED"].includes(rawStatus)
+      ? rawStatus
+      : "UPCOMING";
+
+    const newSession = {
+      sessionId: `ses_${randomUUID().slice(0, 12)}`,
+      title: String(title).trim().slice(0, 140),
+      description: String(description || "").trim().slice(0, 1000),
+      startTime: String(startTime || "").trim().slice(0, 30),
+      endTime: String(endTime || "").trim().slice(0, 30),
+      speaker: String(speaker || "").trim().slice(0, 120),
+      venue: String(venue || "").trim().slice(0, 120),
+      capacity: parsedCap,
+      registrationAvailable: registrationAvailable !== false,
+      status: validStatus,
+      order: (targetDay.sessions || []).length,
+    };
+
+    targetDay.sessions = targetDay.sessions || [];
+    targetDay.sessions.push(newSession);
+
+    // Ensure session attendance is enabled on event
+    event.sessionAttendanceEnabled = true;
+    event.markModified("days");
+    await event.save();
+
+    res.status(201).json({
+      message: `Session "${newSession.title}" added to Day ${targetDayNumber}.`,
+      session: newSession,
+      event,
+    });
+  } catch (err) {
+    console.error("Add session error:", err);
+    res.status(500).json({ message: "Could not add session." });
+  }
+});
+
+// PUT /api/events/:eventId/sessions/:sessionId - Update an existing session
+router.put("/:eventId/sessions/:sessionId", requireAuth, async (req, res) => {
+  try {
+    const event = await Event.findOne({
+      _id: req.params.eventId,
+      organizerId: req.userId,
+    });
+    if (!event) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    if (isEventCompleted(event)) {
+      return res.status(400).json({ message: "Cannot modify sessions of a concluded event." });
+    }
+
+    const targetSessionId = String(req.params.sessionId);
+    let matchedSession = null;
+    let matchedDay = null;
+
+    for (const day of event.days || []) {
+      for (const ses of day.sessions || []) {
+        if (ses.sessionId === targetSessionId || (ses._id && String(ses._id) === targetSessionId)) {
+          matchedSession = ses;
+          matchedDay = day;
+          break;
+        }
+      }
+      if (matchedSession) break;
+    }
+
+    if (!matchedSession) {
+      return res.status(404).json({ message: "Session not found." });
+    }
+
+    const {
+      title,
+      description,
+      startTime,
+      endTime,
+      speaker,
+      venue,
+      capacity,
+      registrationAvailable,
+      status,
+    } = req.body || {};
+
+    if (title !== undefined) {
+      if (!String(title).trim()) return res.status(400).json({ message: "Session title cannot be empty." });
+      matchedSession.title = String(title).trim().slice(0, 140);
+    }
+    if (description !== undefined) matchedSession.description = String(description).trim().slice(0, 1000);
+    if (startTime !== undefined) matchedSession.startTime = String(startTime).trim().slice(0, 30);
+    if (endTime !== undefined) matchedSession.endTime = String(endTime).trim().slice(0, 30);
+    if (speaker !== undefined) matchedSession.speaker = String(speaker).trim().slice(0, 120);
+    if (venue !== undefined) matchedSession.venue = String(venue).trim().slice(0, 120);
+    if (registrationAvailable !== undefined) matchedSession.registrationAvailable = registrationAvailable !== false;
+
+    if (capacity !== undefined) {
+      if (capacity === null || capacity === "") {
+        matchedSession.capacity = null;
+      } else {
+        const num = Number(capacity);
+        if (!Number.isFinite(num) || num < 1) {
+          return res.status(400).json({ message: "Session capacity must be at least 1." });
+        }
+        matchedSession.capacity = Math.floor(num);
+      }
+    }
+
+    if (status !== undefined) {
+      const rawStatus = String(status).toUpperCase().trim();
+      matchedSession.status = ["UPCOMING", "ONGOING", "COMPLETED", "CANCELLED"].includes(rawStatus)
+        ? rawStatus
+        : matchedSession.status;
+    }
+
+    event.markModified("days");
+    await event.save();
+
+    res.json({
+      message: `Session "${matchedSession.title}" updated successfully.`,
+      session: matchedSession,
+      dayNumber: matchedDay?.dayNumber,
+      event,
+    });
+  } catch (err) {
+    console.error("Update session error:", err);
+    res.status(500).json({ message: "Could not update session." });
+  }
+});
+
+// DELETE /api/events/:eventId/sessions/:sessionId - Remove a session from an event
+router.delete("/:eventId/sessions/:sessionId", requireAuth, async (req, res) => {
+  try {
+    const event = await Event.findOne({
+      _id: req.params.eventId,
+      organizerId: req.userId,
+    });
+    if (!event) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    if (isEventCompleted(event)) {
+      return res.status(400).json({ message: "Cannot modify sessions of a concluded event." });
+    }
+
+    const targetSessionId = String(req.params.sessionId);
+    let removed = false;
+
+    for (const day of event.days || []) {
+      const initialCount = (day.sessions || []).length;
+      day.sessions = (day.sessions || []).filter(
+        (ses) => ses.sessionId !== targetSessionId && (!ses._id || String(ses._id) !== targetSessionId)
+      );
+      if (day.sessions.length < initialCount) {
+        removed = true;
+      }
+    }
+
+    if (!removed) {
+      return res.status(404).json({ message: "Session not found." });
+    }
+
+    event.markModified("days");
+    await event.save();
+
+    res.json({
+      message: "Session removed successfully.",
+      event,
+    });
+  } catch (err) {
+    console.error("Delete session error:", err);
+    res.status(500).json({ message: "Could not delete session." });
+  }
+});
+
+// GET /api/events/:eventId/sessions/:sessionId/registrations - View participants registered for a session
+router.get("/:eventId/sessions/:sessionId/registrations", requireAuth, async (req, res) => {
+  try {
+    const event = await Event.findOne({
+      _id: req.params.eventId,
+      organizerId: req.userId,
+    });
+    if (!event) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    const targetSessionId = String(req.params.sessionId);
+    const allSessions = getAllEventSessions(event);
+    const session = allSessions.find(
+      (s) => s.sessionId === targetSessionId || (s._id && String(s._id) === targetSessionId)
+    );
+    if (!session) {
+      return res.status(404).json({ message: "Session not found." });
+    }
+
+    const [enrolledRegs, attendanceRecords] = await Promise.all([
+      Registration.find({
+        eventId: event._id,
+        status: "confirmed",
+        selectedSessions: session.sessionId,
+      }).lean(),
+      Attendance.find({
+        eventId: event._id,
+        attendanceType: "session",
+        sessionId: session.sessionId,
+      }).lean(),
+    ]);
+
+    const attendedRegMap = new Map();
+    for (const rec of attendanceRecords) {
+      attendedRegMap.set(String(rec.registrationId), rec);
+    }
+
+    const enriched = enrolledRegs.map((reg) => {
+      const attendanceRec = attendedRegMap.get(String(reg._id));
+      const isPresent = Boolean(attendanceRec || (reg.attendedSessions || []).includes(session.sessionId));
+      return {
+        _id: reg._id,
+        registrationId: reg.registrationId,
+        name: reg.name,
+        email: reg.email,
+        phone: reg.phone,
+        college: reg.college,
+        department: reg.department,
+        ticketType: reg.ticketType,
+        attendanceStatus: isPresent ? "PRESENT" : "ABSENT",
+        checkedInAt: attendanceRec?.checkedInAt || null,
+        checkInMethod: attendanceRec?.checkInMethod || null,
+      };
+    });
+
+    const attendedCount = enriched.filter((r) => r.attendanceStatus === "PRESENT").length;
+    const absentCount = enriched.length - attendedCount;
+    const attendancePercentage = enriched.length > 0 ? Math.round((attendedCount / enriched.length) * 1000) / 10 : 0;
+
+    res.json({
+      session,
+      totalRegistered: enriched.length,
+      attendedCount,
+      absentCount,
+      attendancePercentage,
+      registrations: enriched,
+    });
+  } catch (err) {
+    console.error("Get session registrations error:", err);
+    res.status(500).json({ message: "Could not load session participants." });
+  }
+});
+
+// GET /api/events/:eventId/sessions/:sessionId/attendance - View attendance records for a session
+router.get("/:eventId/sessions/:sessionId/attendance", requireAuth, async (req, res) => {
+  try {
+    const event = await Event.findOne({
+      _id: req.params.eventId,
+      organizerId: req.userId,
+    });
+    if (!event) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    const targetSessionId = String(req.params.sessionId);
+    const records = await Attendance.find({
+      eventId: event._id,
+      attendanceType: "session",
+      sessionId: targetSessionId,
+    })
+      .populate("registrationId", "name email phone registrationId")
+      .sort({ checkedInAt: -1 })
+      .lean();
+
+    res.json({
+      sessionId: targetSessionId,
+      totalCheckedIn: records.length,
+      records,
+    });
+  } catch (err) {
+    console.error("Get session attendance error:", err);
+    res.status(500).json({ message: "Could not load session attendance records." });
+  }
+});
+
+// GET /api/events/public/:slug/sessions - Public endpoint to retrieve available sessions and remaining capacity
+router.get("/public/:slug/sessions", async (req, res) => {
+  try {
+    const event = await Event.findOne({ slug: req.params.slug });
+    if (!event) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    const confirmedRegs = await Registration.find({ eventId: event._id, status: "confirmed" })
+      .select("selectedSessions")
+      .lean();
+
+    const analytics = calculateSessionRegistrationAnalytics(event, confirmedRegs, []);
+
+    res.json({
+      event: {
+        id: event._id,
+        title: event.title,
+        slug: event.slug,
+        sessionAttendanceEnabled: event.sessionAttendanceEnabled === true,
+      },
+      totalSessions: analytics.totalSessions,
+      sessions: analytics.sessions,
+    });
+  } catch (err) {
+    console.error("Get public sessions error:", err);
+    res.status(500).json({ message: "Could not load available event sessions." });
   }
 });
 

@@ -824,7 +824,10 @@ export default function CertificateManager() {
                   { id: "any_day", label: "At least one day attended", desc: "Participants verified on at least 1 event day qualify." },
                   { id: "all_days", label: "All event days attended", desc: "Participants must attend every scheduled event day." },
                   { id: "min_days", label: "Minimum number of days attended", desc: "Require a minimum day count across the event." },
-                  { id: "required_sessions", label: "Required sessions attended", desc: "Require check-ins for specific mandatory agenda sessions." },
+                  { id: "at_least_one_session", label: "At least one session attended", desc: "Qualify if attendee checked into at least 1 session." },
+                  { id: "all_selected_sessions", label: "All selected sessions attended", desc: "Participant must attend all sessions they enrolled in during registration." },
+                  { id: "min_sessions", label: "Minimum number of sessions attended", desc: "Require attendee to check into a specific minimum count of sessions." },
+                  { id: "required_sessions", label: "Required specific sessions attended", desc: "Require check-ins for specific mandatory agenda sessions." },
                 ].map((rule) => {
                   const currentMode = settings.certificateEligibilityRule?.mode || "any_day";
                   const isSel = currentMode === rule.id;
@@ -894,6 +897,37 @@ export default function CertificateManager() {
                       }}
                     />
                     <small style={{ color: "#94a3b8" }}>of {eventDays.length || 1} total days</small>
+                  </label>
+                </div>
+              )}
+
+              {settings.certificateEligibilityRule?.mode === "min_sessions" && (
+                <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(0,0,0,0.25)", borderRadius: 8 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "0.82rem", color: "#cbd5e1" }}>
+                    <span>Minimum sessions required:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={allSessions.length || 20}
+                      value={settings.certificateEligibilityRule?.minSessions || 1}
+                      onChange={(e) => {
+                        const val = Math.max(1, Number(e.target.value) || 1);
+                        update("certificateEligibilityRule", {
+                          ...settings.certificateEligibilityRule,
+                          minSessions: val,
+                        });
+                      }}
+                      style={{
+                        width: 70,
+                        padding: "4px 8px",
+                        background: "#0f172a",
+                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                        color: "#ffffff",
+                        borderRadius: 6,
+                        textAlign: "center",
+                      }}
+                    />
+                    <small style={{ color: "#94a3b8" }}>of {allSessions.length || 1} total sessions</small>
                   </label>
                 </div>
               )}

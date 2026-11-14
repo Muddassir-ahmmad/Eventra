@@ -5,6 +5,9 @@ export const CERTIFICATE_ELIGIBILITY_MODES = [
   "any_day",
   "all_days",
   "min_days",
+  "at_least_one_session",
+  "all_selected_sessions",
+  "min_sessions",
   "required_sessions",
 ];
 export const MAX_MULTI_DAY_SPAN = 60;
@@ -140,13 +143,18 @@ export function formatEventDateRangeLabel(event) {
 }
 
 function normalizeSession(rawSession, index) {
-  const sessionId = String(rawSession?.sessionId || "").trim() || `ses_${randomUUID().slice(0, 12)}`;
+  const sessionId = String(rawSession?.sessionId || rawSession?._id || "").trim() || `ses_${randomUUID().slice(0, 12)}`;
   const title = String(rawSession?.title || "").trim().slice(0, 140);
   const description = String(rawSession?.description || "").trim().slice(0, 1000);
   const startTime = String(rawSession?.startTime || "").trim().slice(0, 30);
   const endTime = String(rawSession?.endTime || "").trim().slice(0, 30);
   const speaker = String(rawSession?.speaker || "").trim().slice(0, 120);
   const venue = String(rawSession?.venue || "").trim().slice(0, 120);
+  const registrationAvailable = rawSession?.registrationAvailable !== false;
+  const rawStatus = String(rawSession?.status || "UPCOMING").toUpperCase().trim();
+  const status = ["UPCOMING", "ONGOING", "COMPLETED", "CANCELLED"].includes(rawStatus)
+    ? rawStatus
+    : "UPCOMING";
 
   let capacity = null;
   if (rawSession?.capacity !== null && rawSession?.capacity !== undefined && rawSession?.capacity !== "") {
@@ -173,6 +181,8 @@ function normalizeSession(rawSession, index) {
       speaker,
       venue,
       capacity,
+      registrationAvailable,
+      status,
       order: Number.isFinite(Number(rawSession?.order)) ? Number(rawSession.order) : index,
     },
   };
@@ -289,6 +299,28 @@ export function validateAndNormalizeMultiDaySchedule(input = {}) {
     normalizedSessions.forEach((s, idx) => {
       s.order = idx;
     });
+
+    for (let aIdx = 0; aIdx < normalizedSessions.length; aIdx += 1) {
+      const sA = normalizedSessions[aIdx];
+      const sAStart = parseTimeToMinutes(sA.startTime);
+      const sAEnd = parseTimeToMinutes(sA.endTime);
+      if (sAStart === null || sAEnd === null || !sA.venue || sA.status === "CANCELLED") continue;
+
+      for (let bIdx = aIdx + 1; bIdx < normalizedSessions.length; bIdx += 1) {
+        const sB = normalizedSessions[bIdx];
+        if (sB.status === "CANCELLED") continue;
+        if (!sB.venue || sB.venue.toLowerCase().trim() !== sA.venue.toLowerCase().trim()) continue;
+        const sBStart = parseTimeToMinutes(sB.startTime);
+        const sBEnd = parseTimeToMinutes(sB.endTime);
+        if (sBStart === null || sBEnd === null) continue;
+
+        if (sAStart < sBEnd && sBStart < sAEnd) {
+          return {
+            error: `Day ${i + 1}: Sessions "${sA.title}" and "${sB.title}" have overlapping time slots in "${sA.venue}".`,
+          };
+        }
+      }
+    }
 
     normalizedDays.push({
       dayNumber: Number(rawDay.dayNumber) || i + 1,
@@ -520,6 +552,8 @@ export function normalizeCertificateEligibilityRule(rawRule = {}, validSessionId
   const mode = CERTIFICATE_ELIGIBILITY_MODES.includes(input.mode) ? input.mode : "any_day";
   const parsedMinDays = Number(input.minDays);
   const minDays = Number.isFinite(parsedMinDays) && parsedMinDays >= 1 ? Math.floor(parsedMinDays) : 1;
+  const parsedMinSessions = Number(input.minSessions);
+  const minSessions = Number.isFinite(parsedMinSessions) && parsedMinSessions >= 1 ? Math.floor(parsedMinSessions) : 1;
 
   const validSet = validSessionIds ? new Set(validSessionIds.map(String)) : null;
   const requiredSessionIds = Array.isArray(input.requiredSessionIds)
@@ -530,6 +564,7 @@ export function normalizeCertificateEligibilityRule(rawRule = {}, validSessionId
   return {
     mode,
     minDays,
+    minSessions,
     requiredSessionIds,
   };
 }
@@ -546,6 +581,7 @@ export function normalizeCertificateEligibilityRule(rawRule = {}, validSessionId
 export function evaluateRegistrationCertificateEligibility(event, registration, attendanceRecords = []) {
   const days = getEventDaysNormalized(event);
   const totalEventDays = Math.max(1, days.length);
+  const allSessions = getAllEventSessions(event);
   const rule = normalizeCertificateEligibilityRule(event?.certificateEligibilityRule);
 
   const dailyRecords = (attendanceRecords || []).filter((a) => a.attendanceType === "daily");
@@ -573,6 +609,7 @@ export function evaluateRegistrationCertificateEligibility(event, registration, 
   const attendedDayNumbers = [...dayNumberSet].sort((a, b) => a - b);
   const attendedSessionIds = [...sessionIdSet];
   const isConfirmed = registration?.status === "confirmed";
+  const userSelectedSessions = Array.isArray(registration?.selectedSessions) ? registration.selectedSessions : [];
 
   let eligibleByAttendance = false;
   let attendanceReason = "";
@@ -592,6 +629,39 @@ export function evaluateRegistrationCertificateEligibility(event, registration, 
     eligibleByAttendance = attendedDayNumbers.length >= threshold;
     if (!eligibleByAttendance) {
       attendanceReason = `Attended ${attendedDayNumbers.length} of ${threshold} minimum required days.`;
+    }
+  } else if (rule.mode === "at_least_one_session") {
+    if (userSelectedSessions.length > 0) {
+      const attendedSelected = userSelectedSessions.filter((sid) => sessionIdSet.has(sid));
+      eligibleByAttendance = attendedSelected.length >= 1;
+      if (!eligibleByAttendance) {
+        attendanceReason = "Must attend at least one of your selected event sessions.";
+      }
+    } else {
+      eligibleByAttendance = attendedSessionIds.length >= 1 || attendedDayNumbers.length >= 1;
+      if (!eligibleByAttendance) {
+        attendanceReason = "Must attend at least one event session.";
+      }
+    }
+  } else if (rule.mode === "all_selected_sessions") {
+    const targetSessionIds = userSelectedSessions.length > 0 ? userSelectedSessions : allSessions.map((s) => s.sessionId);
+    if (targetSessionIds.length > 0) {
+      const missing = targetSessionIds.filter((sid) => !sessionIdSet.has(sid));
+      eligibleByAttendance = missing.length === 0;
+      if (!eligibleByAttendance) {
+        attendanceReason = `Attended ${targetSessionIds.length - missing.length} of ${targetSessionIds.length} required selected sessions.`;
+      }
+    } else {
+      eligibleByAttendance = attendedSessionIds.length >= 1 || attendedDayNumbers.length >= 1;
+      if (!eligibleByAttendance) {
+        attendanceReason = "No sessions attended.";
+      }
+    }
+  } else if (rule.mode === "min_sessions") {
+    const threshold = Math.max(1, rule.minSessions || 1);
+    eligibleByAttendance = attendedSessionIds.length >= threshold;
+    if (!eligibleByAttendance) {
+      attendanceReason = `Attended ${attendedSessionIds.length} of ${threshold} minimum required sessions.`;
     }
   } else if (rule.mode === "required_sessions") {
     if (rule.requiredSessionIds.length > 0) {
@@ -641,5 +711,91 @@ export function evaluateRegistrationCertificateEligibility(event, registration, 
     totalEventDays,
     attendedSessionIds,
     ruleMode: rule.mode,
+  };
+}
+
+/**
+ * Calculates session-level registration and attendance statistics for organizer reports.
+ *
+ * @param {Object} event
+ * @param {Array<Object>} [registrations]
+ * @param {Array<Object>} [attendanceRecords]
+ * @returns {{ totalSessions: number, sessions: Array<Object> }}
+ */
+export function calculateSessionRegistrationAnalytics(event, registrations = [], attendanceRecords = []) {
+  const confirmed = (registrations || []).filter((r) => r.status === "confirmed");
+  const allSessions = getAllEventSessions(event);
+
+  const sessionAttendanceSet = new Map();
+  for (const rec of attendanceRecords || []) {
+    if (rec.attendanceType === "session" && rec.sessionId) {
+      const key = `${rec.registrationId}_${rec.sessionId}`;
+      sessionAttendanceSet.set(key, true);
+    }
+  }
+
+  const sessionStats = allSessions.map((ses) => {
+    const sesId = String(ses.sessionId);
+    // Count confirmed participants enrolled in this session
+    const enrolled = confirmed.filter((r) => {
+      if (Array.isArray(r.selectedSessions) && r.selectedSessions.length > 0) {
+        return r.selectedSessions.includes(sesId);
+      }
+      // If legacy event without session-level registration array, consider all general registrations
+      return false;
+    });
+
+    const registeredCount = enrolled.length;
+
+    // Count participants who attended this session
+    const attended = enrolled.filter((r) => {
+      const inAttendedArr = Array.isArray(r.attendedSessions) && r.attendedSessions.includes(sesId);
+      const inRecMap = sessionAttendanceSet.has(`${r._id}_${sesId}`);
+      return inAttendedArr || inRecMap;
+    });
+
+    // Also include any attendee who was marked present even if legacy enrolled
+    const totalAttendedSession = confirmed.filter((r) => {
+      const inAttendedArr = Array.isArray(r.attendedSessions) && r.attendedSessions.includes(sesId);
+      const inRecMap = sessionAttendanceSet.has(`${r._id}_${sesId}`);
+      return inAttendedArr || inRecMap;
+    }).length;
+
+    const effectiveAttended = Math.max(attended.length, totalAttendedSession);
+    const effectiveRegistered = Math.max(registeredCount, effectiveAttended);
+    const absentCount = Math.max(0, effectiveRegistered - effectiveAttended);
+    const attendancePercentage = effectiveRegistered > 0
+      ? Math.round((effectiveAttended / effectiveRegistered) * 1000) / 10
+      : 0;
+
+    const capacity = ses.capacity ?? null;
+    const remainingCapacity = capacity ? Math.max(0, capacity - effectiveRegistered) : null;
+    const isFull = capacity ? effectiveRegistered >= capacity : false;
+
+    return {
+      sessionId: sesId,
+      dayNumber: ses.dayNumber || 1,
+      dayTitle: ses.dayTitle || `Day ${ses.dayNumber || 1}`,
+      title: ses.title,
+      description: ses.description || "",
+      startTime: ses.startTime || "",
+      endTime: ses.endTime || "",
+      speaker: ses.speaker || "",
+      venue: ses.venue || "",
+      capacity,
+      remainingCapacity,
+      isFull,
+      registrationAvailable: ses.registrationAvailable !== false,
+      status: ses.status || "UPCOMING",
+      registeredCount: effectiveRegistered,
+      attendedCount: effectiveAttended,
+      absentCount,
+      attendancePercentage,
+    };
+  });
+
+  return {
+    totalSessions: allSessions.length,
+    sessions: sessionStats,
   };
 }

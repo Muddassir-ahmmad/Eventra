@@ -774,12 +774,34 @@ export default function PublicEvent() {
                           {ses.startTime ? `${ses.startTime}${ses.endTime ? ` – ${ses.endTime}` : ""}` : "Scheduled"}
                         </div>
                         <div className="agenda-content">
-                          <h3>{ses.title}</h3>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                            <h3>{ses.title}</h3>
+                            {ses.status && ses.status !== "UPCOMING" && (
+                              <span
+                                style={{
+                                  fontSize: "0.7rem",
+                                  fontWeight: 700,
+                                  padding: "2px 8px",
+                                  borderRadius: 4,
+                                  background: ses.status === "COMPLETED" ? "rgba(16, 185, 129, 0.15)" : ses.status === "CANCELLED" ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                                  color: ses.status === "COMPLETED" ? "#6ee7b7" : ses.status === "CANCELLED" ? "#fca5a5" : "#fbbf24",
+                                  border: `1px solid ${ses.status === "COMPLETED" ? "rgba(16, 185, 129, 0.3)" : ses.status === "CANCELLED" ? "rgba(239, 68, 68, 0.3)" : "rgba(245, 158, 11, 0.3)"}`,
+                                }}
+                              >
+                                {ses.status}
+                              </span>
+                            )}
+                          </div>
                           {ses.description && <p>{ses.description}</p>}
                           <div className="agenda-meta-tags">
                             {ses.speaker && <span className="agenda-speaker-tag">👤 {ses.speaker}</span>}
                             {ses.venue && <span className="agenda-speaker-tag">📍 {ses.venue}</span>}
                             {ses.capacity && <span className="agenda-speaker-tag">👥 Cap: {ses.capacity}</span>}
+                            {ses.registrationAvailable === false && (
+                              <span className="agenda-speaker-tag" style={{ color: "#fb7185", borderColor: "rgba(251, 113, 133, 0.3)" }}>
+                                🔒 Closed
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

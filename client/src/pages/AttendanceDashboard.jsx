@@ -615,6 +615,62 @@ export default function AttendanceDashboard() {
   const currentTargetDay = eventDays.find((d) => d.dayNumber === selectedDayNumber) || eventDays[0];
   const currentTargetSession = allSessions.find((s) => s.sessionId === selectedSessionId) || allSessions[0];
 
+  const sessionAnalyticsList = data.sessionAnalytics?.sessions ||
+    allSessions.map((ses) => {
+      const sesId = String(ses.sessionId);
+      const enrolled = registrations.filter((r) => r.status === "confirmed" && (r.selectedSessions || []).includes(sesId));
+      const attended = registrations.filter((r) => r.status === "confirmed" && (r.attendedSessions || []).includes(sesId));
+      const effectiveRegistered = Math.max(enrolled.length, attended.length);
+      const absentCount = Math.max(0, effectiveRegistered - attended.length);
+      const pct = effectiveRegistered > 0 ? Math.round((attended.length / effectiveRegistered) * 1000) / 10 : 0;
+      return {
+        ...ses,
+        registeredCount: effectiveRegistered,
+        attendedCount: attended.length,
+        absentCount,
+        attendancePercentage: pct,
+      };
+    });
+
+  function exportSessionsCsv() {
+    const headers = [
+      "Session Title",
+      "Event Day",
+      "Start Time",
+      "End Time",
+      "Venue",
+      "Speaker",
+      "Status",
+      "Capacity",
+      "Enrolled Count",
+      "Attended Count",
+      "Absent Count",
+      "Attendance Rate (%)",
+    ];
+    const rows = sessionAnalyticsList.map((s) => [
+      `"${s.title || ""}"`,
+      `"Day ${s.dayNumber || 1}"`,
+      `"${s.startTime || ""}"`,
+      `"${s.endTime || ""}"`,
+      `"${s.venue || ""}"`,
+      `"${s.speaker || ""}"`,
+      `"${s.status || "UPCOMING"}"`,
+      `"${s.capacity ?? "Unlimited"}"`,
+      `"${s.registeredCount}"`,
+      `"${s.attendedCount}"`,
+      `"${s.absentCount}"`,
+      `"${s.attendancePercentage}%"`,
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${event.slug || "event"}-session-attendance-report.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   const filteredList = registrations.filter((r) => {
     const matchesSearch =
       r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -631,7 +687,9 @@ export default function AttendanceDashboard() {
     if (statusFilter === "missed_some") return r.status === "confirmed" && !r.attendedAllDays;
     if (statusFilter === "attended_day") return (r.attendedDays || []).includes(selectedDayNumber);
     if (statusFilter === "absent_day") return r.status === "confirmed" && !(r.attendedDays || []).includes(selectedDayNumber);
+    if (statusFilter === "enrolled_session") return (r.selectedSessions || []).includes(selectedSessionId);
     if (statusFilter === "attended_session") return (r.attendedSessions || []).includes(selectedSessionId);
+    if (statusFilter === "absent_session") return (r.selectedSessions || []).includes(selectedSessionId) && !(r.attendedSessions || []).includes(selectedSessionId);
     return true;
   });
 
@@ -812,6 +870,99 @@ export default function AttendanceDashboard() {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* SESSION PERFORMANCE & ATTENDANCE REPORT */}
+        {sessionAnalyticsList.length > 0 && (
+          <div className="attendee-table-wrap" style={{ marginBottom: 24, padding: "20px 24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+              <div>
+                <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#38bdf8", letterSpacing: "0.08em" }}>
+                  SESSION PERFORMANCE &amp; ENROLLMENT
+                </span>
+                <h3 style={{ fontSize: "1.2rem", margin: "4px 0 0", color: "#ffffff" }}>
+                  Session-Wise Attendance Analytics
+                </h3>
+                <p style={{ margin: "2px 0 0", color: "#94a3b8", fontSize: "0.82rem" }}>
+                  Enrolled attendee counts and verified QR check-ins per session
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn-hero-secondary"
+                style={{ padding: "8px 14px", fontSize: "0.82rem" }}
+                onClick={exportSessionsCsv}
+              >
+                📥 Export Session Report CSV
+              </button>
+            </div>
+
+            <div style={{ overflowX: "auto" }}>
+              <table className="registration-table" style={{ margin: 0 }}>
+                <thead>
+                  <tr>
+                    <th>Day / Time</th>
+                    <th>Session Title</th>
+                    <th>Venue &amp; Speaker</th>
+                    <th>Status</th>
+                    <th>Capacity</th>
+                    <th>Enrolled</th>
+                    <th>Attended</th>
+                    <th>Absent</th>
+                    <th style={{ textAlign: "right" }}>Attendance Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessionAnalyticsList.map((s) => (
+                    <tr key={s.sessionId}>
+                      <td>
+                        <span style={{ padding: "3px 8px", background: "rgba(56, 189, 248, 0.12)", color: "#38bdf8", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>
+                          Day {s.dayNumber || 1}
+                        </span>
+                        <div style={{ fontSize: "0.78rem", color: "#94a3b8", marginTop: 4 }}>
+                          {s.startTime || "TBD"} {s.endTime ? `- ${s.endTime}` : ""}
+                        </div>
+                      </td>
+                      <td>
+                        <strong style={{ color: "#ffffff", fontSize: "0.9rem" }}>{s.title}</strong>
+                        {s.description && (
+                          <small style={{ display: "block", color: "#64748b", marginTop: 2, maxWidth: 260, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                            {s.description}
+                          </small>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ color: "#cbd5e1", fontSize: "0.85rem" }}>📍 {s.venue || "Main Hall"}</div>
+                        {s.speaker && <small style={{ color: "#a5b4fc" }}>🎙️ {s.speaker}</small>}
+                      </td>
+                      <td>
+                        <span className={`status-badge ${s.status === "COMPLETED" ? "present" : s.status === "CANCELLED" ? "absent" : "pending"}`} style={{ fontSize: "0.75rem" }}>
+                          {s.status || "UPCOMING"}
+                        </span>
+                      </td>
+                      <td style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
+                        {s.capacity ? `${s.capacity} seats` : "Unlimited"}
+                      </td>
+                      <td>
+                        <strong style={{ color: "#38bdf8" }}>{s.registeredCount}</strong>
+                      </td>
+                      <td>
+                        <strong style={{ color: "#34d399" }}>{s.attendedCount}</strong>
+                      </td>
+                      <td>
+                        <strong style={{ color: "#f87171" }}>{s.absentCount}</strong>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <span style={{ fontWeight: 800, color: s.attendancePercentage >= 75 ? "#34d399" : s.attendancePercentage >= 50 ? "#fbbf24" : "#94a3b8" }}>
+                          {s.attendancePercentage}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -1149,13 +1300,29 @@ export default function AttendanceDashboard() {
                 </>
               )}
               {scanMode === "session" && selectedSessionId && (
-                <button
-                  type="button"
-                  className={`filter-pill ${statusFilter === "attended_session" ? "active" : ""}`}
-                  onClick={() => setStatusFilter("attended_session")}
-                >
-                  Selected Session Only
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className={`filter-pill ${statusFilter === "enrolled_session" ? "active" : ""}`}
+                    onClick={() => setStatusFilter("enrolled_session")}
+                  >
+                    Enrolled in Session
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-pill ${statusFilter === "attended_session" ? "active" : ""}`}
+                    onClick={() => setStatusFilter("attended_session")}
+                  >
+                    Attended Session
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-pill ${statusFilter === "absent_session" ? "active" : ""}`}
+                    onClick={() => setStatusFilter("absent_session")}
+                  >
+                    Absent in Session
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -1188,6 +1355,13 @@ export default function AttendanceDashboard() {
                         ? (reg.attendedDays || []).includes(selectedDayNumber)
                         : reg.checkedIn === true;
 
+                    const hasSelectedSessions = Array.isArray(reg.selectedSessions) && reg.selectedSessions.length > 0;
+                    const isEnrolledInSession =
+                      scanMode !== "session" ||
+                      !selectedSessionId ||
+                      !hasSelectedSessions ||
+                      (reg.selectedSessions || []).includes(selectedSessionId);
+
                     return (
                     <tr key={reg._id}>
                       <td>
@@ -1212,6 +1386,30 @@ export default function AttendanceDashboard() {
                             })}
                           </div>
                         )}
+                        {hasSelectedSessions && (
+                          <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
+                            {reg.selectedSessions.map((sid) => {
+                              const sesObj = allSessions.find((s) => String(s.sessionId) === String(sid));
+                              const attended = (reg.attendedSessions || []).includes(String(sid));
+                              return (
+                                <span
+                                  key={sid}
+                                  style={{
+                                    fontSize: "0.68rem",
+                                    padding: "2px 6px",
+                                    borderRadius: 4,
+                                    background: attended ? "rgba(16, 185, 129, 0.16)" : "rgba(255, 255, 255, 0.05)",
+                                    border: `1px solid ${attended ? "rgba(16, 185, 129, 0.4)" : "rgba(255, 255, 255, 0.1)"}`,
+                                    color: attended ? "#6ee7b7" : "#94a3b8",
+                                  }}
+                                  title={`${sesObj?.title || sid} (${attended ? "Attended" : "Not attended"})`}
+                                >
+                                  {attended ? "✓ " : ""}{sesObj?.title || `Sess ${sid}`}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
                       </td>
                       <td>
                         <div>{reg.email}</div>
@@ -1222,7 +1420,18 @@ export default function AttendanceDashboard() {
                         <small style={{ color: "#64748b" }}>{reg.department || "General"}</small>
                       </td>
                       <td>
-                        {attendedTarget ? (
+                        {!isEnrolledInSession ? (
+                          <span
+                            className="status-badge"
+                            style={{
+                              background: "rgba(148, 163, 184, 0.12)",
+                              color: "#94a3b8",
+                              border: "1px solid rgba(148, 163, 184, 0.25)",
+                            }}
+                          >
+                            ⚠️ Not Enrolled
+                          </span>
+                        ) : attendedTarget ? (
                           <span className="status-badge present">
                             ✓ {scanMode === "session" ? "Session Present" : isMulti ? `Day ${selectedDayNumber} Present` : `Present (${new Date(reg.checkedInAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})`}
                           </span>
@@ -1246,6 +1455,16 @@ export default function AttendanceDashboard() {
                             >
                               🔒 Entry Locked
                             </span>
+                          ) : !isEnrolledInSession ? (
+                            <button
+                              type="button"
+                              className="button button-ghost small"
+                              style={{ padding: "6px 14px", fontSize: "0.78rem", opacity: 0.5, cursor: "not-allowed" }}
+                              disabled
+                              title="Participant is not registered for this session"
+                            >
+                              Not Enrolled
+                            </button>
                           ) : (
                             <button
                               type="button"

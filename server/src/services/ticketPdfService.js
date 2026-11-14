@@ -111,6 +111,10 @@ export async function generateTicketPdf(event, registration) {
 
       // Status Indicator
       doc.font("Helvetica-Bold").fontSize(7.5).fillColor("#15803d").text("● STATUS: CONFIRMED", 298, 202);
+      const selectedSessionsCount = Array.isArray(registration.selectedSessions) ? registration.selectedSessions.length : 0;
+      if (selectedSessionsCount > 0) {
+        doc.font("Helvetica-Bold").fontSize(7.5).fillColor("#0284c7").text(`● ${selectedSessionsCount} SESSIONS ENROLLED`, 298, 214);
+      }
 
       // Security / Gate Instructions
       doc.font("Helvetica").fontSize(7.5).fillColor("#94a3b8")

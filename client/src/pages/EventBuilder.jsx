@@ -1551,6 +1551,8 @@ function Agenda({ form, update }) {
       speaker: "",
       venue: form.venue || "",
       capacity: "",
+      registrationAvailable: true,
+      status: "UPCOMING",
       order: (resolvedDays[dayIdx]?.sessions || []).length,
     };
     const nextDays = resolvedDays.map((d, i) =>
@@ -1764,14 +1766,15 @@ function Agenda({ form, update }) {
                     </Field>
                   </div>
 
-                  <div className="builder-three">
-                    <Field label="Speaker Details">
-                      <input
-                        value={ses.speaker || ""}
-                        onChange={(e) => updateDaySession(safeActiveIdx, sIdx, "speaker", e.target.value)}
-                        placeholder="Dr. A. Sharma"
-                      />
-                    </Field>
+                  <Field label="Speaker Details">
+                    <input
+                      value={ses.speaker || ""}
+                      onChange={(e) => updateDaySession(safeActiveIdx, sIdx, "speaker", e.target.value)}
+                      placeholder="e.g. Dr. A. Sharma / Tech Lead"
+                    />
+                  </Field>
+
+                  <div className="builder-two">
                     <Field label="Venue / Room">
                       <input
                         value={ses.venue || ""}
@@ -1788,6 +1791,31 @@ function Agenda({ form, update }) {
                         placeholder="Unlimited"
                       />
                     </Field>
+                  </div>
+
+                  <div className="builder-two">
+                    <Field label="Session Status">
+                      <select
+                        value={ses.status || "UPCOMING"}
+                        onChange={(e) => updateDaySession(safeActiveIdx, sIdx, "status", e.target.value)}
+                      >
+                        <option value="UPCOMING">Upcoming</option>
+                        <option value="ONGOING">Ongoing</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="CANCELLED">Cancelled</option>
+                      </select>
+                    </Field>
+
+                    <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", color: "#cbd5e1", cursor: "pointer", marginTop: 14 }}>
+                        <input
+                          type="checkbox"
+                          checked={ses.registrationAvailable !== false}
+                          onChange={(e) => updateDaySession(safeActiveIdx, sIdx, "registrationAvailable", e.target.checked)}
+                        />
+                        <span>Allow participant registration</span>
+                      </label>
+                    </div>
                   </div>
 
                   <Field label="Description">

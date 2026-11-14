@@ -101,6 +101,10 @@ const sessionSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    date: {
+      type: Date,
+      default: null,
+    },
     startTime: {
       type: String,
       trim: true,
@@ -126,12 +130,21 @@ const sessionSchema = new mongoose.Schema(
       default: null,
       min: 1,
     },
+    registrationAvailable: {
+      type: Boolean,
+      default: true,
+    },
+    status: {
+      type: String,
+      enum: ["UPCOMING", "ONGOING", "COMPLETED", "CANCELLED", "upcoming", "ongoing", "completed", "cancelled"],
+      default: "UPCOMING",
+    },
     order: {
       type: Number,
       default: 0,
     },
   },
-  { _id: false }
+  { _id: true }
 );
 
 const eventDaySchema = new mongoose.Schema(
@@ -685,10 +698,23 @@ const eventSchema = new mongoose.Schema(
     certificateEligibilityRule: {
       mode: {
         type: String,
-        enum: ["any_day", "all_days", "min_days", "required_sessions"],
+        enum: [
+          "any_day",
+          "all_days",
+          "min_days",
+          "at_least_one_session",
+          "all_selected_sessions",
+          "min_sessions",
+          "required_sessions",
+        ],
         default: "any_day",
       },
       minDays: {
+        type: Number,
+        default: 1,
+        min: 1,
+      },
+      minSessions: {
         type: Number,
         default: 1,
         min: 1,

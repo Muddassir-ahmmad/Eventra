@@ -58,6 +58,52 @@ test("complete email notification module test suite", async (t) => {
     assert.equal(pdfBuffer.subarray(0, 4).toString(), "%PDF");
   });
 
+  await t.test("emailService resolves Resend provider vs SMTP correctly", () => {
+    const origProvider = process.env.EMAIL_PROVIDER;
+    const origResendKey = process.env.RESEND_API_KEY;
+    const origHost = process.env.SMTP_HOST;
+    const origFrom = process.env.EMAIL_FROM;
+
+    try {
+      // 1. Resend configured with EMAIL_PROVIDER=resend and RESEND_API_KEY
+      process.env.EMAIL_PROVIDER = "resend";
+      process.env.RESEND_API_KEY = "re_test_key_123";
+      assert.equal(emailService.getProvider(), "resend");
+      assert.equal(emailService.isConfigured(), true);
+      assert.equal(emailService.getTransport(), null); // Never uses nodemailer transport for Resend
+      const resendStatus = emailService.getSmtpStatus();
+      assert.equal(resendStatus.emailProvider, "resend");
+      assert.equal(resendStatus.emailFrom, "onboarding@resend.dev");
+
+      // 2. EMAIL_PROVIDER=resend but RESEND_API_KEY is missing
+      delete process.env.RESEND_API_KEY;
+      assert.equal(emailService.getProvider(), "resend");
+      assert.equal(emailService.isConfigured(), false);
+      assert.equal(emailService.getTransport(), null);
+
+      // 3. SMTP configured
+      delete process.env.EMAIL_PROVIDER;
+      process.env.SMTP_HOST = "smtp.gmail.com";
+      process.env.EMAIL_FROM = "test@example.com";
+      assert.equal(emailService.getProvider(), "smtp");
+      assert.equal(emailService.isConfigured(), true);
+      const smtpStatus = emailService.getSmtpStatus();
+      assert.equal(smtpStatus.emailProvider, "smtp");
+    } finally {
+      if (origProvider !== undefined) process.env.EMAIL_PROVIDER = origProvider;
+      else delete process.env.EMAIL_PROVIDER;
+
+      if (origResendKey !== undefined) process.env.RESEND_API_KEY = origResendKey;
+      else delete process.env.RESEND_API_KEY;
+
+      if (origHost !== undefined) process.env.SMTP_HOST = origHost;
+      else delete process.env.SMTP_HOST;
+
+      if (origFrom !== undefined) process.env.EMAIL_FROM = origFrom;
+      else delete process.env.EMAIL_FROM;
+    }
+  });
+
   if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
     t.skip("MONGODB_URI and JWT_SECRET are required for integration tests.");
     return;

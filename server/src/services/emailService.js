@@ -19,13 +19,27 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 class EmailService {
   /**
+   * Resolves the configured email provider ('resend' or 'smtp').
+   * @returns {"resend"|"smtp"}
+   */
+  getProvider() {
+    const raw = String(process.env.EMAIL_PROVIDER || "").toLowerCase().trim();
+    if (raw === "resend" || process.env.RESEND_API_KEY) {
+      return "resend";
+    }
+    return "smtp";
+  }
+
+  /**
    * Checks if email credentials (Resend API or SMTP) are configured on the server.
    * @returns {boolean}
    */
   isConfigured() {
+    if (this.getProvider() === "resend") {
+      return Boolean(process.env.RESEND_API_KEY);
+    }
     return Boolean(
-      process.env.RESEND_API_KEY ||
-      (process.env.SMTP_HOST && process.env.EMAIL_FROM)
+      process.env.SMTP_HOST && (process.env.EMAIL_FROM || process.env.SMTP_USER)
     );
   }
 
@@ -34,29 +48,32 @@ class EmailService {
    * @returns {Object}
    */
   getSmtpStatus() {
-    if (process.env.RESEND_API_KEY) {
+    const isResend = this.getProvider() === "resend";
+    if (isResend) {
       return {
-        configured: true,
+        configured: Boolean(process.env.RESEND_API_KEY),
+        emailProvider: "resend",
         provider: "Resend HTTP API (Port 443 — Cloud Friendly)",
         host: "api.resend.com",
         port: 443,
         secure: true,
-        authConfigured: true,
+        authConfigured: Boolean(process.env.RESEND_API_KEY),
         user: "api",
-        emailFrom: process.env.EMAIL_FROM || "onboarding@resend.dev",
+        emailFrom: "onboarding@resend.dev",
         emailFromName: process.env.EMAIL_FROM_NAME || "EVENTRA Notifications",
       };
     }
 
     return {
       configured: this.isConfigured(),
+      emailProvider: "smtp",
       provider: "SMTP (Nodemailer)",
       host: process.env.SMTP_HOST || null,
       port: Number(process.env.SMTP_PORT || 587),
       secure: process.env.SMTP_SECURE === "true",
       authConfigured: Boolean(process.env.SMTP_USER && process.env.SMTP_PASS),
       user: process.env.SMTP_USER || null,
-      emailFrom: process.env.EMAIL_FROM || null,
+      emailFrom: process.env.EMAIL_FROM || process.env.SMTP_USER || null,
       emailFromName: process.env.EMAIL_FROM_NAME || "EVENTRA",
     };
   }
@@ -66,7 +83,9 @@ class EmailService {
    * @returns {nodemailer.Transporter|null}
    */
   getTransport() {
-    if (!this.isConfigured() || process.env.RESEND_API_KEY) return null;
+    // If provider is Resend, never initialize Nodemailer SMTP
+    if (this.getProvider() === "resend") return null;
+    if (!this.isConfigured()) return null;
 
     const rawPass = process.env.SMTP_PASS || "";
     const cleanPass = rawPass.replace(/\s+/g, "");
@@ -102,15 +121,15 @@ class EmailService {
    * @returns {Promise<Object>}
    */
   async verifySmtpConnection() {
-    if (!this.isConfigured()) {
-      return {
-        configured: false,
-        ok: false,
-        error: "Email provider is not configured. Set RESEND_API_KEY or SMTP credentials in server environment.",
-      };
-    }
+    if (this.getProvider() === "resend") {
+      if (!process.env.RESEND_API_KEY) {
+        return {
+          configured: false,
+          ok: false,
+          error: "EMAIL_PROVIDER is set to 'resend', but RESEND_API_KEY is not defined in environment variables. Please add RESEND_API_KEY in Render dashboard.",
+        };
+      }
 
-    if (process.env.RESEND_API_KEY) {
       try {
         const resp = await fetch("https://api.resend.com/api-keys", {
           headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
@@ -125,8 +144,16 @@ class EmailService {
           error: `Resend authentication failed: ${data.message || resp.statusText}`,
         };
       } catch (err) {
-        return { configured: true, ok: false, error: err.message };
+        return { configured: true, ok: false, error: `Resend API connection error: ${err.message}` };
       }
+    }
+
+    if (!this.isConfigured()) {
+      return {
+        configured: false,
+        ok: false,
+        error: "Email provider is not configured. Set SMTP_HOST and EMAIL_FROM in server environment.",
+      };
     }
 
     try {
@@ -214,20 +241,29 @@ class EmailService {
     });
 
     // 4. Dispatch via Resend HTTP API (Port 443 — Cloud Friendly for Render)
-    if (process.env.RESEND_API_KEY) {
-      try {
-        const fromName = process.env.EMAIL_FROM_NAME || "EVENTRA Notifications";
-        let fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
-        const replyToEmail = process.env.EMAIL_FROM || "eventra.notify@gmail.com";
+    if (this.getProvider() === "resend") {
+      if (!process.env.RESEND_API_KEY) {
+        const errorMsg =
+          "EMAIL_PROVIDER is set to 'resend', but RESEND_API_KEY is not defined in environment variables. Please add RESEND_API_KEY in Render dashboard.";
+        log.deliveryStatus = "failed";
+        log.errorMessage = errorMsg;
+        await log.save();
+        return { success: false, error: errorMsg, logId: log._id };
+      }
 
-        // Free email providers like @gmail.com cannot be used directly in Resend 'from' without a custom domain.
-        // We automatically use 'onboarding@resend.dev' and set reply_to to the user's Gmail.
-        const isFreeDomain = /@(gmail|yahoo|hotmail|outlook)\.com$/i.test(fromEmail);
-        if (isFreeDomain || !fromEmail) {
-          fromEmail = "onboarding@resend.dev";
+      try {
+        const fromName = process.env.EMAIL_FROM_NAME || "EVENTRA";
+        let fromEmail = "onboarding@resend.dev";
+        const customFrom = String(process.env.EMAIL_FROM || "").trim();
+
+        // If custom domain is configured in Resend (not a free domain like gmail.com), use it.
+        // Otherwise use Resend's verified testing sender "onboarding@resend.dev".
+        if (customFrom && !/@(gmail|yahoo|hotmail|outlook)\.com$/i.test(customFrom)) {
+          fromEmail = customFrom;
         }
 
         const fromHeader = `${fromName} <${fromEmail}>`;
+        const replyToEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || "eventra.notify@gmail.com";
 
         const resendAttachments = attachments.map((a) => ({
           filename: a.filename || "document.pdf",
@@ -293,7 +329,8 @@ class EmailService {
 
     try {
       const fromName = process.env.EMAIL_FROM_NAME || "EVENTRA";
-      const fromHeader = `"${fromName}" <${process.env.EMAIL_FROM}>`;
+      const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER;
+      const fromHeader = `"${fromName}" <${fromEmail}>`;
 
       const info = await transport.sendMail({
         from: fromHeader,

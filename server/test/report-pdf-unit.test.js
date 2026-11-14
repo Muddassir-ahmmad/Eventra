@@ -8,18 +8,29 @@ function extractPdfStreamsText(pdfBuffer) {
   const rawPdf = pdfBuffer.toString("latin1");
   const pageMatches = rawPdf.match(/\/Type\s*\/Page\b(?!s)/g) || [];
   const streamTexts = [];
-  const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  const headerRegex = /<<[\s\S]*?\/Length\s+(\d+)[\s\S]*?>>\s*stream\r?\n/g;
   let match;
-  while ((match = streamRegex.exec(rawPdf)) !== null) {
+  while ((match = headerRegex.exec(rawPdf)) !== null) {
+    const streamLen = parseInt(match[1], 10);
+    const streamStart = match.index + match[0].length;
+    const streamBuf = pdfBuffer.subarray(streamStart, streamStart + streamLen);
     try {
-      streamTexts.push(zlib.inflateSync(Buffer.from(match[1], "latin1")).toString("latin1"));
+      streamTexts.push(zlib.inflateSync(streamBuf).toString("latin1"));
     } catch {
-      streamTexts.push(match[1]);
+      streamTexts.push(streamBuf.toString("latin1"));
     }
   }
   const decodePdfStream = (s) =>
     s
-      .replace(/>\s*-?\d+(?:\.\d+)?\s*</g, "")
+      .replace(/\[([\s\S]*?)\]\s*TJ/g, (_, inner) => {
+        const hexParts = [];
+        const hexRegex = /<([0-9a-fA-F]+)>/g;
+        let m;
+        while ((m = hexRegex.exec(inner)) !== null) {
+          hexParts.push(Buffer.from(m[1], "hex").toString("latin1"));
+        }
+        return hexParts.join("");
+      })
       .replace(/<([0-9a-fA-F]+)>/g, (_, hex) => Buffer.from(hex, "hex").toString("latin1"));
   return {
     pageCount: pageMatches.length,

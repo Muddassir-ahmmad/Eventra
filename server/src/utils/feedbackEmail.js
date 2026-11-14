@@ -4,6 +4,7 @@ import Registration from "../models/Registration.js";
 import EmailLog from "../models/EmailLog.js";
 import Event from "../models/Event.js";
 import { formatParticipantName } from "./participantName.js";
+import emailService from "../services/emailService.js";
 
 /**
  * Creates email transport using configured SMTP credentials.
@@ -110,7 +111,6 @@ export async function sendFeedbackEmailsForEvent(eventId) {
   });
 
   const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
-  const transport = getEmailTransport();
 
   let sentCount = 0;
   let failedCount = 0;
@@ -148,14 +148,14 @@ export async function sendFeedbackEmailsForEvent(eventId) {
       requireCertificateFeedback: event.requireFeedbackForCertificate === true,
     });
 
-    if (!transport) {
+    if (!emailService.isConfigured()) {
       await EmailLog.findOneAndUpdate(
         { eventId: event._id, registrationId: reg._id, emailType: "feedback_request" },
         {
           $set: {
             recipient: reg.email,
             deliveryStatus: "failed",
-            errorMessage: "SMTP credentials not configured on the server.",
+            errorMessage: "Email credentials not configured on the server.",
           },
         },
         { upsert: true }
@@ -165,40 +165,25 @@ export async function sendFeedbackEmailsForEvent(eventId) {
     }
 
     try {
-      await transport.sendMail({
-        from: process.env.EMAIL_FROM,
+      const result = await emailService.sendMail({
         to: reg.email,
+        recipientName: reg.name,
         subject: `Feedback Request: ${event.title}`,
         html,
         text: `Hello ${reg.name},\n\nPlease share your feedback for ${event.title} by visiting:\n${feedbackUrl}`,
+        eventId: event._id,
+        registrationId: reg._id,
+        emailType: "feedback_request",
+        skipDuplicateCheck: true,
       });
 
-      await EmailLog.findOneAndUpdate(
-        { eventId: event._id, registrationId: reg._id, emailType: "feedback_request" },
-        {
-          $set: {
-            recipient: reg.email,
-            deliveryStatus: "sent",
-            sentAt: new Date(),
-            errorMessage: "",
-          },
-        },
-        { upsert: true }
-      );
-      sentCount++;
+      if (result.success) {
+        sentCount++;
+      } else {
+        failedCount++;
+      }
     } catch (sendErr) {
       console.error(`Feedback email failed for ${reg.email}:`, sendErr.message);
-      await EmailLog.findOneAndUpdate(
-        { eventId: event._id, registrationId: reg._id, emailType: "feedback_request" },
-        {
-          $set: {
-            recipient: reg.email,
-            deliveryStatus: "failed",
-            errorMessage: sendErr.message || "Email delivery failed",
-          },
-        },
-        { upsert: true }
-      );
       failedCount++;
     }
   }
