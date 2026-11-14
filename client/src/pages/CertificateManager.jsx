@@ -1399,14 +1399,47 @@ export default function CertificateManager() {
                 });
                 setNotice("");
               }}
-              onMoveText={(key, x, y) => {
+              onMoveText={(key, x, y, width) => {
                 setSettings((curr) => ({
                   ...curr,
                   certificateTextStyles: {
                     ...curr.certificateTextStyles,
-                    [key]: { ...curr.certificateTextStyles?.[key], x, y },
+                    [key]: {
+                      ...curr.certificateTextStyles?.[key],
+                      x,
+                      y,
+                      ...(width != null ? { width } : {}),
+                    },
                   },
                 }));
+                setNotice("");
+              }}
+              onUpdateTextStyle={(key, patch) => {
+                setSettings((curr) => {
+                  const next = {
+                    ...curr,
+                    certificateTextStyles: {
+                      ...curr.certificateTextStyles,
+                      [key]: { ...curr.certificateTextStyles?.[key], ...patch },
+                    },
+                  };
+                  if (key === "organization" && patch.align) {
+                    next.certificateOrganizationAlign = patch.align;
+                  }
+                  return next;
+                });
+                setNotice("");
+              }}
+              onUpdateLogo={(patch) => {
+                setSettings((curr) => ({ ...curr, ...patch }));
+                setNotice("");
+              }}
+              onUpdateSignature={(sigIndex, patch) => {
+                setSettings((curr) => {
+                  const signatures = [...curr.signatures];
+                  signatures[sigIndex] = { ...signatures[sigIndex], ...patch };
+                  return { ...curr, signatures };
+                });
                 setNotice("");
               }}
             />
@@ -2338,6 +2371,84 @@ function CertificatePlacementDock({
           )}
         </label>
 
+        {/* Numeric X, Y, Width, and Size controls for precise positioning */}
+        <div className="placement-numeric-grid" role="group" aria-label="Precise coordinates and dimensions">
+          <label className="placement-numeric-field">
+            <span>X Pos (%)</span>
+            <input
+              type="number"
+              min="4"
+              max="96"
+              step="1"
+              value={Math.round(curX ?? 50)}
+              onChange={(e) => {
+                const val = Math.min(96, Math.max(4, Number(e.target.value) || 50));
+                if (isText) onUpdateTextStyle(active.key, { x: val });
+                else if (isLogo) onUpdateLogo({ certificateLogoX: val });
+                else onUpdateSignature(active.index, { x: val });
+              }}
+              title="Horizontal position from left (percentage of canvas width)"
+            />
+          </label>
+          <label className="placement-numeric-field">
+            <span>Y Pos (%)</span>
+            <input
+              type="number"
+              min="4"
+              max="96"
+              step="1"
+              value={Math.round(curY ?? (isText ? 50 : 80))}
+              onChange={(e) => {
+                const val = Math.min(96, Math.max(4, Number(e.target.value) || 50));
+                if (isText) onUpdateTextStyle(active.key, { y: val });
+                else if (isLogo) onUpdateLogo({ certificateLogoY: val });
+                else onUpdateSignature(active.index, { y: val });
+              }}
+              title="Vertical position from top (percentage of canvas height)"
+            />
+          </label>
+          <label className="placement-numeric-field">
+            <span>Width (%)</span>
+            <input
+              type="number"
+              min="10"
+              max="95"
+              step="1"
+              value={Math.round(isText ? (textStyle?.width ?? 65) : isLogo ? (settings.certificateLogoSize || 8) : Math.round(16.6 * (activeSig?.scale ?? 1)))}
+              onChange={(e) => {
+                const val = Math.min(95, Math.max(10, Number(e.target.value) || 60));
+                if (isText) onUpdateTextStyle(active.key, { width: val });
+                else if (isLogo) onUpdateLogo({ certificateLogoSize: Math.min(30, Math.max(4, val)) });
+                else onUpdateSignature(active.index, { scale: Math.min(2.5, Math.max(0.5, val / 16.6)) });
+              }}
+              title="Element box width (percentage of canvas width)"
+            />
+          </label>
+          <label className="placement-numeric-field">
+            <span>{isText ? "Font (pt)" : isLogo ? "Size (%)" : "Scale (%)"}</span>
+            <input
+              type="number"
+              min={isText ? textCfg.minSize : isLogo ? 4 : 50}
+              max={isText ? textCfg.maxSize : isLogo ? 30 : 250}
+              step={isText ? 1 : isLogo ? 1 : 5}
+              value={
+                isText
+                  ? Math.round(textStyle?.fontSize ?? textCfg.defaultSize)
+                  : isLogo
+                    ? Math.round(settings.certificateLogoSize || 8)
+                    : Math.round(((activeSig?.scale ?? 1) || 1) * 100)
+              }
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                if (isText) onUpdateTextStyle(active.key, { fontSize: Math.min(textCfg.maxSize, Math.max(textCfg.minSize, val || textCfg.defaultSize)) });
+                else if (isLogo) onUpdateLogo({ certificateLogoSize: Math.min(30, Math.max(4, val || 8)) });
+                else onUpdateSignature(active.index, { scale: Math.min(2.5, Math.max(0.5, (val || 100) / 100)) });
+              }}
+              title={isText ? "Font size in points" : isLogo ? "Logo box size percentage" : "Signature visual scale percentage"}
+            />
+          </label>
+        </div>
+
         <div className="placement-preset-grid" role="group" aria-label="Quick placement presets">
           {PLACEMENT_PRESETS.map((preset) => (
             <button
@@ -2362,6 +2473,219 @@ function CertificatePlacementDock({
   );
 }
 
+function SelectionOverlay({
+  kind,
+  meta,
+  isText,
+  isLogo,
+  isSignature,
+  textKey,
+  textStyle = {},
+  textCfg = {},
+  settings,
+  signature,
+  onStartResize,
+  onUpdateTextStyle,
+  onUpdateLogo,
+  onUpdateSignature,
+}) {
+  return (
+    <>
+      {/* PowerPoint-Style 8 Resize Handles Frame */}
+      <div className="certificate-resize-frame">
+        {["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((h) => (
+          <div
+            key={h}
+            className={`certificate-resize-handle handle-${h}`}
+            onPointerDown={(e) => onStartResize(h, kind, meta, e)}
+            title={`Resize ${h.toUpperCase()}`}
+          />
+        ))}
+      </div>
+
+      {/* Floating PowerPoint-Style In-Canvas Toolbar */}
+      <div
+        className="certificate-element-toolbar"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="toolbar-drag-handle" title="Drag element body to move">
+          ✥ Move
+        </span>
+
+        <div className="toolbar-divider" />
+
+        {isText && (
+          <>
+            <button
+              type="button"
+              className="toolbar-btn"
+              title="Decrease font size"
+              onClick={() => {
+                const cur = textStyle.fontSize || textCfg.defaultSize || 16;
+                onUpdateTextStyle?.(textKey, { fontSize: Math.max(textCfg.minSize || 8, cur - 1) });
+              }}
+            >
+              A−
+            </button>
+            <span className="toolbar-val">
+              {Math.round(textStyle.fontSize || textCfg.defaultSize || 16)}pt
+            </span>
+            <button
+              type="button"
+              className="toolbar-btn"
+              title="Increase font size"
+              onClick={() => {
+                const cur = textStyle.fontSize || textCfg.defaultSize || 16;
+                onUpdateTextStyle?.(textKey, { fontSize: Math.min(textCfg.maxSize || 60, cur + 1) });
+              }}
+            >
+              A+
+            </button>
+
+            <div className="toolbar-divider" />
+
+            <button
+              type="button"
+              className={`toolbar-btn${(textStyle.align || "center") === "left" ? " is-active" : ""}`}
+              title="Align Left"
+              onClick={() => onUpdateTextStyle?.(textKey, { align: "left" })}
+            >
+              ⇤ Left
+            </button>
+            <button
+              type="button"
+              className={`toolbar-btn${(textStyle.align || "center") === "center" ? " is-active" : ""}`}
+              title="Align Center"
+              onClick={() => onUpdateTextStyle?.(textKey, { align: "center" })}
+            >
+              ≡ Mid
+            </button>
+            <button
+              type="button"
+              className={`toolbar-btn${(textStyle.align || "center") === "right" ? " is-active" : ""}`}
+              title="Align Right"
+              onClick={() => onUpdateTextStyle?.(textKey, { align: "right" })}
+            >
+              ⇥ Right
+            </button>
+          </>
+        )}
+
+        {isLogo && (
+          <>
+            <button
+              type="button"
+              className="toolbar-btn"
+              title="Decrease logo size"
+              onClick={() => {
+                const cur = settings.certificateLogoSize || 8;
+                onUpdateLogo?.({ certificateLogoSize: Math.max(4, cur - 1) });
+              }}
+            >
+              −
+            </button>
+            <span className="toolbar-val">
+              {Math.round(settings.certificateLogoSize || 8)}%
+            </span>
+            <button
+              type="button"
+              className="toolbar-btn"
+              title="Increase logo size"
+              onClick={() => {
+                const cur = settings.certificateLogoSize || 8;
+                onUpdateLogo?.({ certificateLogoSize: Math.min(30, cur + 1) });
+              }}
+            >
+              +
+            </button>
+          </>
+        )}
+
+        {isSignature && (
+          <>
+            <button
+              type="button"
+              className="toolbar-btn"
+              title="Decrease signature scale"
+              onClick={() => {
+                const cur = signature?.scale ?? 1;
+                onUpdateSignature?.(meta, { scale: Math.max(0.5, Math.round((cur - 0.1) * 10) / 10) });
+              }}
+            >
+              −
+            </button>
+            <span className="toolbar-val">
+              {Math.round((signature?.scale ?? 1) * 100)}%
+            </span>
+            <button
+              type="button"
+              className="toolbar-btn"
+              title="Increase signature scale"
+              onClick={() => {
+                const cur = signature?.scale ?? 1;
+                onUpdateSignature?.(meta, { scale: Math.min(2.5, Math.round((cur + 0.1) * 10) / 10) });
+              }}
+            >
+              +
+            </button>
+          </>
+        )}
+
+        <div className="toolbar-divider" />
+
+        {/* Layering Controls */}
+        <button
+          type="button"
+          className="toolbar-btn"
+          title="Bring Forward (Z-Index)"
+          onClick={() => {
+            if (isText) {
+              const curZ = textStyle.zIndex || 10;
+              onUpdateTextStyle?.(textKey, { zIndex: Math.min(50, curZ + 1) });
+            }
+          }}
+        >
+          ▲ Front
+        </button>
+        <button
+          type="button"
+          className="toolbar-btn"
+          title="Send Backward (Z-Index)"
+          onClick={() => {
+            if (isText) {
+              const curZ = textStyle.zIndex || 10;
+              onUpdateTextStyle?.(textKey, { zIndex: Math.max(1, curZ - 1) });
+            }
+          }}
+        >
+          ▼ Back
+        </button>
+
+        <div className="toolbar-divider" />
+
+        {/* Reset / Delete Custom Positioning */}
+        <button
+          type="button"
+          className="toolbar-btn toolbar-btn-danger"
+          title="Reset to default auto layout position"
+          onClick={() => {
+            if (isText) {
+              onUpdateTextStyle?.(textKey, { x: null, y: null, width: null, zIndex: 10 });
+            } else if (isLogo) {
+              onUpdateLogo?.({ certificateLogoX: null, certificateLogoY: null, certificateLogoSize: 8 });
+            } else if (isSignature) {
+              onUpdateSignature?.(meta, { x: null, y: null, scale: 1 });
+            }
+          }}
+        >
+          ↺ Reset
+        </button>
+      </div>
+    </>
+  );
+}
+
 function CertificatePreview({
   event,
   organizer,
@@ -2373,87 +2697,265 @@ function CertificatePreview({
   onMoveLogo,
   onMoveSignature,
   onMoveText,
+  onUpdateTextStyle,
+  onUpdateLogo,
+  onUpdateSignature,
 }) {
   const artRef = useRef(null);
-  const dragRef = useRef(null);
+  const activeOpRef = useRef(null);
   const [snapGuides, setSnapGuides] = useState({ x: false, y: false });
-  const [draggingKey, setDraggingKey] = useState("");
+  const [activeItemKey, setActiveItemKey] = useState("");
   const [editingKey, setEditingKey] = useState("");
 
-  useEffect(() => {
-    function handleMove(ev) {
-      const drag = dragRef.current;
-      const art = artRef.current;
-      if (!drag || !art) return;
-      const rect = art.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-
-      const minX = drag.kind === "logo" ? 4 : 8;
-      const maxX = drag.kind === "logo" ? 96 : 92;
-      const minY = drag.kind === "logo" ? 4 : 8;
-      const maxY = drag.kind === "logo" ? 96 : 92;
-
-      let xPct = ((ev.clientX + drag.offsetX - rect.left) / rect.width) * 100;
-      let yPct = ((ev.clientY + drag.offsetY - rect.top) / rect.height) * 100;
-      xPct = Math.min(maxX, Math.max(minX, xPct));
-      yPct = Math.min(maxY, Math.max(minY, yPct));
-
-      const snapX = Math.abs(xPct - 50) < 1.6;
-      const snapY = Math.abs(yPct - 50) < 1.6;
-      if (snapX) xPct = 50;
-      if (snapY) yPct = 50;
-
-      const roundedX = Math.round(xPct * 100) / 100;
-      const roundedY = Math.round(yPct * 100) / 100;
-      setSnapGuides({ x: snapX, y: snapY });
-
-      if (drag.kind === "logo") {
-        onMoveLogo?.(roundedX, roundedY);
-      } else if (drag.kind === "signature") {
-        onMoveSignature?.(drag.index, roundedX, roundedY);
-      } else if (drag.kind === "text") {
-        onMoveText?.(drag.key, roundedX, roundedY);
-      }
-    }
-
-    function handleUp() {
-      if (!dragRef.current) return;
-      dragRef.current = null;
-      setDraggingKey("");
-      setSnapGuides({ x: false, y: false });
-    }
-
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", handleUp);
-    return () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", handleUp);
-    };
-  }, [onMoveLogo, onMoveSignature, onMoveText]);
+  const textStyles = settings.certificateTextStyles || {};
 
   function startCanvasDrag(kind, meta, e) {
     if (editingKey) return;
+    if (e.target.closest(".certificate-element-toolbar") || e.target.closest(".certificate-resize-handle")) {
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
-    const elRect = e.currentTarget.getBoundingClientRect();
-    const centerX = elRect.left + elRect.width / 2;
-    const centerY = elRect.top + elRect.height / 2;
-    dragRef.current = {
-      kind,
-      index: kind === "signature" ? meta : -1,
-      key: kind === "text" ? meta : "",
-      offsetX: centerX - e.clientX,
-      offsetY: centerY - e.clientY,
-    };
-    setDraggingKey(kind === "logo" ? "logo" : kind === "signature" ? `sig-${meta}` : `text-${meta}`);
-    onSelectItem?.(
+
+    const nextSelectedItem =
       kind === "logo"
         ? { type: "logo" }
         : kind === "signature"
           ? { type: "signature", index: meta }
-          : { type: "text", key: meta }
-    );
+          : { type: "text", key: meta };
+    onSelectItem?.(nextSelectedItem);
+
+    const art = artRef.current;
+    if (!art) return;
+    const canvasRect = art.getBoundingClientRect();
+    const elRect = e.currentTarget.getBoundingClientRect();
+
+    let initX, initY, initW, initH, initFontSize, initScale;
+
+    if (kind === "text") {
+      const curStyle = textStyles[meta] || {};
+      const cfg = TEXT_ELEMENT_CONFIG[meta];
+      const domXPct = ((elRect.left + elRect.width / 2 - canvasRect.left) / canvasRect.width) * 100;
+      const domYPct = ((elRect.top + elRect.height / 2 - canvasRect.top) / canvasRect.height) * 100;
+      initX = curStyle.x != null ? curStyle.x : domXPct;
+      initY = curStyle.y != null ? curStyle.y : domYPct;
+      initW = curStyle.width != null ? curStyle.width : (elRect.width / canvasRect.width) * 100;
+      initH = (elRect.height / canvasRect.height) * 100;
+      initFontSize = curStyle.fontSize || cfg?.defaultSize || 16;
+      initScale = 1;
+    } else if (kind === "logo") {
+      const domXPct = ((elRect.left + elRect.width / 2 - canvasRect.left) / canvasRect.width) * 100;
+      const domYPct = ((elRect.top + elRect.height / 2 - canvasRect.top) / canvasRect.height) * 100;
+      initX = settings.certificateLogoX != null ? settings.certificateLogoX : domXPct;
+      initY = settings.certificateLogoY != null ? settings.certificateLogoY : domYPct;
+      initW = settings.certificateLogoSize || 8;
+      initH = (elRect.height / canvasRect.height) * 100;
+      initFontSize = 16;
+      initScale = settings.certificateLogoSize || 8;
+    } else {
+      const sig = settings.signatures[meta] || {};
+      const domXPct = ((elRect.left + elRect.width / 2 - canvasRect.left) / canvasRect.width) * 100;
+      const domYPct = ((elRect.top + elRect.height / 2 - canvasRect.top) / canvasRect.height) * 100;
+      initX = sig.x != null ? sig.x : domXPct;
+      initY = sig.y != null ? sig.y : domYPct;
+      initW = (elRect.width / canvasRect.width) * 100;
+      initH = (elRect.height / canvasRect.height) * 100;
+      initFontSize = 16;
+      initScale = sig.scale ?? 1;
+    }
+
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    } catch (_) {}
+
+    activeOpRef.current = {
+      mode: "move",
+      kind,
+      key: kind === "text" ? meta : "",
+      index: kind === "signature" ? meta : -1,
+      startPointerX: e.clientX,
+      startPointerY: e.clientY,
+      hasMoved: false,
+      canvasRect,
+      initialX: initX,
+      initialY: initY,
+      initialWidth: initW,
+      initialHeight: initH,
+      initialFontSize: initFontSize,
+      initialScale: initScale,
+    };
   }
+
+  function startResize(handle, kind, meta, e) {
+    if (editingKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const art = artRef.current;
+    if (!art) return;
+    const canvasRect = art.getBoundingClientRect();
+    const targetEl = e.currentTarget.closest(".is-draggable-item");
+    const elRect = targetEl ? targetEl.getBoundingClientRect() : null;
+    if (!elRect) return;
+
+    let initX, initY, initW, initH, initFontSize, initScale;
+
+    if (kind === "text") {
+      const curStyle = textStyles[meta] || {};
+      const cfg = TEXT_ELEMENT_CONFIG[meta];
+      const domXPct = ((elRect.left + elRect.width / 2 - canvasRect.left) / canvasRect.width) * 100;
+      const domYPct = ((elRect.top + elRect.height / 2 - canvasRect.top) / canvasRect.height) * 100;
+      initX = curStyle.x != null ? curStyle.x : domXPct;
+      initY = curStyle.y != null ? curStyle.y : domYPct;
+      initW = curStyle.width != null ? curStyle.width : (elRect.width / canvasRect.width) * 100;
+      initH = (elRect.height / canvasRect.height) * 100;
+      initFontSize = curStyle.fontSize || cfg?.defaultSize || 16;
+      initScale = 1;
+    } else if (kind === "logo") {
+      const domXPct = ((elRect.left + elRect.width / 2 - canvasRect.left) / canvasRect.width) * 100;
+      const domYPct = ((elRect.top + elRect.height / 2 - canvasRect.top) / canvasRect.height) * 100;
+      initX = settings.certificateLogoX != null ? settings.certificateLogoX : domXPct;
+      initY = settings.certificateLogoY != null ? settings.certificateLogoY : domYPct;
+      initW = settings.certificateLogoSize || 8;
+      initH = (elRect.height / canvasRect.height) * 100;
+      initFontSize = 16;
+      initScale = settings.certificateLogoSize || 8;
+    } else {
+      const sig = settings.signatures[meta] || {};
+      const domXPct = ((elRect.left + elRect.width / 2 - canvasRect.left) / canvasRect.width) * 100;
+      const domYPct = ((elRect.top + elRect.height / 2 - canvasRect.top) / canvasRect.height) * 100;
+      initX = sig.x != null ? sig.x : domXPct;
+      initY = sig.y != null ? sig.y : domYPct;
+      initW = (elRect.width / canvasRect.width) * 100;
+      initH = (elRect.height / canvasRect.height) * 100;
+      initFontSize = 16;
+      initScale = sig.scale ?? 1;
+    }
+
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    } catch (_) {}
+
+    activeOpRef.current = {
+      mode: "resize",
+      handle,
+      kind,
+      key: kind === "text" ? meta : "",
+      index: kind === "signature" ? meta : -1,
+      startPointerX: e.clientX,
+      startPointerY: e.clientY,
+      hasMoved: true,
+      canvasRect,
+      initialX: initX,
+      initialY: initY,
+      initialWidth: initW,
+      initialHeight: initH,
+      initialFontSize: initFontSize,
+      initialScale: initScale,
+    };
+    setActiveItemKey(kind === "logo" ? "logo" : kind === "signature" ? `sig-${meta}` : `text-${meta}`);
+  }
+
+  useEffect(() => {
+    function handlePointerMove(ev) {
+      const op = activeOpRef.current;
+      if (!op) return;
+
+      const dxPx = ev.clientX - op.startPointerX;
+      const dyPx = ev.clientY - op.startPointerY;
+
+      if (op.mode === "move" && !op.hasMoved) {
+        if (Math.hypot(dxPx, dyPx) < 3) return;
+        op.hasMoved = true;
+        setActiveItemKey(op.kind === "logo" ? "logo" : op.kind === "signature" ? `sig-${op.index}` : `text-${op.key}`);
+      }
+
+      const dxPct = (dxPx / op.canvasRect.width) * 100;
+      const dyPct = (dyPx / op.canvasRect.height) * 100;
+
+      if (op.mode === "move") {
+        const minX = op.kind === "logo" ? 4 : 6;
+        const maxX = op.kind === "logo" ? 96 : 94;
+        const minY = op.kind === "logo" ? 4 : 6;
+        const maxY = op.kind === "logo" ? 96 : 94;
+
+        let newX = Math.min(maxX, Math.max(minX, op.initialX + dxPct));
+        let newY = Math.min(maxY, Math.max(minY, op.initialY + dyPct));
+
+        const snapX = Math.abs(newX - 50) < 1.4;
+        const snapY = Math.abs(newY - 50) < 1.4;
+        if (snapX) newX = 50;
+        if (snapY) newY = 50;
+        setSnapGuides({ x: snapX, y: snapY });
+
+        const roundedX = Math.round(newX * 10) / 10;
+        const roundedY = Math.round(newY * 10) / 10;
+
+        if (op.kind === "logo") {
+          onMoveLogo?.(roundedX, roundedY);
+        } else if (op.kind === "signature") {
+          onMoveSignature?.(op.index, roundedX, roundedY);
+        } else if (op.kind === "text") {
+          onUpdateTextStyle?.(op.key, {
+            x: roundedX,
+            y: roundedY,
+            width: Math.round(op.initialWidth),
+          });
+        }
+      } else if (op.mode === "resize") {
+        const { handle, kind, key, index, initialWidth, initialHeight, initialFontSize, initialScale } = op;
+
+        if (kind === "text") {
+          const cfg = TEXT_ELEMENT_CONFIG[key] || { minSize: 10, maxSize: 50 };
+
+          if (["se", "sw", "ne", "nw"].includes(handle)) {
+            const factorX = (handle.includes("e") ? dxPct : -dxPct) / Math.max(12, initialWidth);
+            const factorY = (handle.includes("s") ? dyPct : -dyPct) / Math.max(4, initialHeight);
+            const scaleFactor = 1 + (factorX + factorY) / 2;
+            const newW = Math.round(Math.min(96, Math.max(14, initialWidth * Math.max(0.25, scaleFactor))));
+            const newFont = Math.round(Math.min(cfg.maxSize, Math.max(cfg.minSize, initialFontSize * Math.max(0.25, scaleFactor))));
+            onUpdateTextStyle?.(key, { width: newW, fontSize: newFont });
+          } else if (handle === "e") {
+            const newW = Math.round(Math.min(96, Math.max(14, initialWidth + 2 * dxPct)));
+            onUpdateTextStyle?.(key, { width: newW });
+          } else if (handle === "w") {
+            const newW = Math.round(Math.min(96, Math.max(14, initialWidth - 2 * dxPct)));
+            onUpdateTextStyle?.(key, { width: newW });
+          } else if (handle === "s") {
+            const factor = 1 + (dyPct / Math.max(4, initialHeight));
+            const newFont = Math.round(Math.min(cfg.maxSize, Math.max(cfg.minSize, initialFontSize * Math.max(0.3, factor))));
+            onUpdateTextStyle?.(key, { fontSize: newFont });
+          } else if (handle === "n") {
+            const factor = 1 - (dyPct / Math.max(4, initialHeight));
+            const newFont = Math.round(Math.min(cfg.maxSize, Math.max(cfg.minSize, initialFontSize * Math.max(0.3, factor))));
+            onUpdateTextStyle?.(key, { fontSize: newFont });
+          }
+        } else if (kind === "logo") {
+          const factor = (handle.includes("e") || handle === "s" ? dxPct + dyPct : -dxPct - dyPct) / Math.max(4, initialWidth);
+          const newLogoSize = Math.round(Math.min(30, Math.max(4, initialScale * Math.max(0.3, 1 + factor))) * 10) / 10;
+          onUpdateLogo?.({ certificateLogoSize: newLogoSize });
+        } else if (kind === "signature") {
+          const factor = (handle.includes("e") || handle === "s" ? dxPct + dyPct : -dxPct - dyPct) / Math.max(6, initialWidth);
+          const newSigScale = Math.round(Math.min(2.5, Math.max(0.5, initialScale * Math.max(0.3, 1 + factor))) * 100) / 100;
+          onUpdateSignature?.(index, { scale: newSigScale });
+        }
+      }
+    }
+
+    function handlePointerUp() {
+      if (!activeOpRef.current) return;
+      activeOpRef.current = null;
+      setActiveItemKey("");
+      setSnapGuides({ x: false, y: false });
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [onMoveLogo, onMoveSignature, onMoveText, onUpdateTextStyle, onUpdateLogo, onUpdateSignature]);
 
   const participantName = formatParticipantName(participant?.name, "Participant Name");
   const eventDisplayTitle = (settings.certificateEventTitle || "").trim() || event.title || "Event Name";
@@ -2484,13 +2986,12 @@ function CertificatePreview({
   const orgUppercase = settings.certificateOrganizationUppercase === true;
   const hasTopHeader = Boolean(organizationDisplay || organizationTaglineDisplay || (settings.certificateLogoUrl && !hasCustomLogoPos));
 
-  const textStyles = settings.certificateTextStyles || {};
   const isTextSelected = (key) => selectedItem?.type === "text" && selectedItem.key === key;
   const isFloatingText = (key) => textStyles[key]?.x != null && textStyles[key]?.y != null;
 
   function renderEditableText(key, displayText, className, Tag = "div") {
     const styleObj = textStyles[key] || {};
-    const cfg = TEXT_ELEMENT_CONFIG[key];
+    const cfg = TEXT_ELEMENT_CONFIG[key] || { defaultSize: 16 };
     const floating = styleObj.x != null && styleObj.y != null;
     const inlineCss = resolveCssFontStyle(styleObj);
     const isSelected = isTextSelected(key);
@@ -2500,10 +3001,17 @@ function CertificatePreview({
       ? {
           left: `${styleObj.x}%`,
           top: `${styleObj.y}%`,
-          maxWidth: key === "description" ? "78%" : "86%",
+          width: styleObj.width ? `${styleObj.width}%` : "max-content",
+          maxWidth: "96%",
           textAlign: styleObj.align || "center",
+          zIndex: styleObj.zIndex || (isSelected ? 30 : 10),
         }
-      : {};
+      : {
+          width: styleObj.width ? `${styleObj.width}%` : undefined,
+          zIndex: isSelected ? 25 : undefined,
+          position: "relative",
+          display: "inline-block",
+        };
 
     if (isEditing && cfg?.editableKey) {
       const editVal =
@@ -2546,9 +3054,9 @@ function CertificatePreview({
 
     return (
       <Tag
-        className={`${className} is-draggable-item${floating ? " certificate-floating-text" : ""}${isSelected ? " is-selected" : ""}${draggingKey === `text-${key}` ? " is-dragging" : ""}`}
+        className={`${className} is-draggable-item${floating ? " certificate-floating-text" : ""}${isSelected ? " is-selected" : ""}${activeItemKey === `text-${key}` ? " is-dragging" : ""}`}
         style={{ ...inlineCss, ...floatingStyle }}
-        title={`Click to select & drag ${cfg.label}${cfg.editableKey ? " · Double-click to edit text directly" : ""}`}
+        title={`Click to select & drag ${cfg.label || "text"}${cfg.editableKey ? " · Double-click to edit text" : ""}`}
         onPointerDown={(e) => startCanvasDrag("text", key, e)}
         onClick={(e) => {
           e.stopPropagation();
@@ -2561,6 +3069,21 @@ function CertificatePreview({
         }}
       >
         {displayText}
+        {isSelected && !isEditing && (
+          <SelectionOverlay
+            kind="text"
+            meta={key}
+            isText={true}
+            textKey={key}
+            textStyle={styleObj}
+            textCfg={cfg}
+            settings={settings}
+            onStartResize={startResize}
+            onUpdateTextStyle={onUpdateTextStyle}
+            onUpdateLogo={onUpdateLogo}
+            onUpdateSignature={onUpdateSignature}
+          />
+        )}
       </Tag>
     );
   }
@@ -2579,18 +3102,35 @@ function CertificatePreview({
           className={`certificate-art-header is-align-${textStyles.organization?.align || orgAlign} is-size-${orgSize}${orgUppercase ? " is-uppercase" : ""}`}
         >
           {settings.certificateLogoUrl && !hasCustomLogoPos && (
-            <img
-              className={`certificate-organization-logo is-draggable-item${selectedItem?.type === "logo" ? " is-selected" : ""}`}
-              src={settings.certificateLogoUrl}
-              alt="Organization logo"
-              draggable={false}
-              title="Drag logo anywhere on certificate"
+            <div
+              className={`certificate-organization-logo-wrap is-draggable-item${selectedItem?.type === "logo" ? " is-selected" : ""}${activeItemKey === "logo" ? " is-dragging" : ""}`}
+              style={{ position: "relative", display: "inline-block" }}
               onPointerDown={(e) => startCanvasDrag("logo", -1, e)}
               onClick={(e) => {
                 e.stopPropagation();
                 onSelectItem?.({ type: "logo" });
               }}
-            />
+            >
+              <img
+                className="certificate-organization-logo"
+                src={settings.certificateLogoUrl}
+                alt="Organization logo"
+                draggable={false}
+                title="Drag logo anywhere on certificate"
+              />
+              {selectedItem?.type === "logo" && (
+                <SelectionOverlay
+                  kind="logo"
+                  meta={-1}
+                  isLogo={true}
+                  settings={settings}
+                  onStartResize={startResize}
+                  onUpdateTextStyle={onUpdateTextStyle}
+                  onUpdateLogo={onUpdateLogo}
+                  onUpdateSignature={onUpdateSignature}
+                />
+              )}
+            </div>
           )}
           {(organizationDisplay || organizationTaglineDisplay) && !isFloatingText("organization") && (
             <div className="certificate-org-stack">
@@ -2608,6 +3148,7 @@ function CertificatePreview({
             </div>
           )}
         </header>
+
         <div className="certificate-art-main">
           <span className="certificate-art-brand">
             {settings.certificateTemplate === "techAurora"
@@ -2665,6 +3206,7 @@ function CertificatePreview({
             </>
           )}
         </div>
+
         <div className="certificate-art-signatories">
           {flowSignatures.map(({ signature, index }) => {
             const isSelected = selectedItem?.type === "signature" && selectedItem.index === index;
@@ -2672,7 +3214,8 @@ function CertificatePreview({
             return (
               <div
                 key={`${signature.name}-${index}`}
-                className={`is-draggable-item${isSelected ? " is-selected" : ""}`}
+                className={`is-draggable-item${isSelected ? " is-selected" : ""}${activeItemKey === `sig-${index}` ? " is-dragging" : ""}`}
+                style={{ position: "relative" }}
                 title="Drag signatory anywhere on certificate"
                 onPointerDown={(e) => startCanvasDrag("signature", index, e)}
                 onClick={(e) => {
@@ -2691,6 +3234,19 @@ function CertificatePreview({
                 <i />
                 <strong>{signature.name || "Authorized signatory"}</strong>
                 <span>{signature.designation || signature.role}</span>
+                {isSelected && (
+                  <SelectionOverlay
+                    kind="signature"
+                    meta={index}
+                    isSignature={true}
+                    signature={signature}
+                    settings={settings}
+                    onStartResize={startResize}
+                    onUpdateTextStyle={onUpdateTextStyle}
+                    onUpdateLogo={onUpdateLogo}
+                    onUpdateSignature={onUpdateSignature}
+                  />
+                )}
               </div>
             );
           })}
@@ -2739,7 +3295,7 @@ function CertificatePreview({
 
       {settings.certificateLogoUrl && hasCustomLogoPos && (
         <div
-          className={`certificate-floating-logo is-draggable-item${selectedItem?.type === "logo" ? " is-selected" : ""}${draggingKey === "logo" ? " is-dragging" : ""}`}
+          className={`certificate-floating-logo is-draggable-item${selectedItem?.type === "logo" ? " is-selected" : ""}${activeItemKey === "logo" ? " is-dragging" : ""}`}
           style={{
             left: `${settings.certificateLogoX}%`,
             top: `${settings.certificateLogoY}%`,
@@ -2753,6 +3309,18 @@ function CertificatePreview({
           }}
         >
           <img src={settings.certificateLogoUrl} alt="Organization logo" draggable={false} />
+          {selectedItem?.type === "logo" && (
+            <SelectionOverlay
+              kind="logo"
+              meta={-1}
+              isLogo={true}
+              settings={settings}
+              onStartResize={startResize}
+              onUpdateTextStyle={onUpdateTextStyle}
+              onUpdateLogo={onUpdateLogo}
+              onUpdateSignature={onUpdateSignature}
+            />
+          )}
         </div>
       )}
 
@@ -2762,7 +3330,7 @@ function CertificatePreview({
         return (
           <div
             key={`pinned-${index}`}
-            className={`certificate-floating-signatory is-draggable-item${isSelected ? " is-selected" : ""}${draggingKey === `sig-${index}` ? " is-dragging" : ""}`}
+            className={`certificate-floating-signatory is-draggable-item${isSelected ? " is-selected" : ""}${activeItemKey === `sig-${index}` ? " is-dragging" : ""}`}
             style={{
               left: `${signature.x}%`,
               top: `${signature.y}%`,
@@ -2786,6 +3354,19 @@ function CertificatePreview({
             <i />
             <strong>{signature.name || "Authorized signatory"}</strong>
             <span>{signature.designation || signature.role}</span>
+            {isSelected && (
+              <SelectionOverlay
+                kind="signature"
+                meta={index}
+                isSignature={true}
+                signature={signature}
+                settings={settings}
+                onStartResize={startResize}
+                onUpdateTextStyle={onUpdateTextStyle}
+                onUpdateLogo={onUpdateLogo}
+                onUpdateSignature={onUpdateSignature}
+              />
+            )}
           </div>
         );
       })}

@@ -50,6 +50,8 @@ export function normalizeCertificateTextStyles(rawStyles = {}, legacyOrg = {}) {
     const x = parseOptionalNumber(entry.x, 6, 94);
     const y = parseOptionalNumber(entry.y, 6, 94);
     const hasPos = x !== null && y !== null;
+    const width = parseOptionalNumber(entry.width, 10, 95);
+    const zIndex = parseOptionalNumber(entry.zIndex, 1, 50);
 
     result[key] = {
       font,
@@ -57,6 +59,8 @@ export function normalizeCertificateTextStyles(rawStyles = {}, legacyOrg = {}) {
       align,
       x: hasPos ? x : null,
       y: hasPos ? y : null,
+      ...(width !== null ? { width } : {}),
+      ...(zIndex !== null ? { zIndex } : {}),
     };
   }
 

@@ -256,6 +256,7 @@ function drawCustomPositionedText(doc, {
   align = "center",
   xPct,
   yPct,
+  widthPct,
   pageWidth,
   pageHeight,
   maxBoxWidth,
@@ -265,20 +266,21 @@ function drawCustomPositionedText(doc, {
 }) {
   doc.font(font).fontSize(fontSize).fillColor(color);
   const measuredSingle = doc.widthOfString(text, { characterSpacing });
-  const boxW = multiline
+  const explicitWidth = widthPct ? (widthPct / 100) * pageWidth : null;
+  const boxW = explicitWidth || (multiline
     ? Math.min(maxBoxWidth, Math.max(220, measuredSingle + 24))
-    : Math.min(maxBoxWidth, Math.max(80, measuredSingle + 16));
+    : Math.min(maxBoxWidth, Math.max(80, measuredSingle + 16)));
   const boxH = multiline
     ? doc.heightOfString(text, { width: boxW, align, lineGap, characterSpacing })
     : doc.currentLineHeight(true);
 
-  const safeLeft = 48;
-  const safeRight = 48;
-  const safeTop = 40;
-  const safeBottom = 42;
+  const safeLeft = 24;
+  const safeRight = 24;
+  const safeTop = 20;
+  const safeBottom = 22;
 
-  const centerX = (Math.min(94, Math.max(6, Number(xPct))) / 100) * pageWidth;
-  const centerY = (Math.min(94, Math.max(6, Number(yPct))) / 100) * pageHeight;
+  const centerX = (Math.min(96, Math.max(4, Number(xPct))) / 100) * pageWidth;
+  const centerY = (Math.min(96, Math.max(4, Number(yPct))) / 100) * pageHeight;
 
   const drawX = Math.max(safeLeft, Math.min(pageWidth - safeRight - boxW, centerX - boxW / 2));
   const drawY = Math.max(safeTop, Math.min(pageHeight - safeBottom - boxH, centerY - boxH / 2));
@@ -508,6 +510,7 @@ export function renderCertificate(event, registration, organization, images = { 
           align: resolvedOrgAlign,
           xPct: orgStyle.x,
           yPct: orgStyle.y,
+          widthPct: orgStyle.width,
           pageWidth: width,
           pageHeight: height,
           maxBoxWidth: contentWidth,
@@ -659,6 +662,7 @@ export function renderCertificate(event, registration, organization, images = { 
           align: titleAlign,
           xPct: titleStyle.x,
           yPct: titleStyle.y,
+          widthPct: titleStyle.width,
           pageWidth: width,
           pageHeight: height,
           maxBoxWidth: contentWidth,
@@ -694,6 +698,7 @@ export function renderCertificate(event, registration, organization, images = { 
           align: recipientAlign,
           xPct: recipientStyle.x,
           yPct: recipientStyle.y,
+          widthPct: recipientStyle.width,
           pageWidth: width,
           pageHeight: height,
           maxBoxWidth: contentWidth,
@@ -728,6 +733,7 @@ export function renderCertificate(event, registration, organization, images = { 
           align: descAlign,
           xPct: descStyle.x,
           yPct: descStyle.y,
+          widthPct: descStyle.width,
           pageWidth: width,
           pageHeight: height,
           maxBoxWidth: descBoxWidth,
@@ -759,6 +765,7 @@ export function renderCertificate(event, registration, organization, images = { 
           align: eventAlign,
           xPct: eventStyle.x,
           yPct: eventStyle.y,
+          widthPct: eventStyle.width,
           pageWidth: width,
           pageHeight: height,
           maxBoxWidth: contentWidth,
