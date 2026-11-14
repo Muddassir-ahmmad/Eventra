@@ -23,7 +23,7 @@
   font-family: var(--font-heading, 'Manrope', sans-serif);
   font-size: clamp(28px, 3.2vw, 38px);
   font-weight: 700;
-  color: var(--text-primary-heading, #202B36);
+  color: var(--text-primary-heading, #0F172A);
   letter-spacing: -0.025em;
   margin: 0.5rem 0 0.35rem 0;
 }
@@ -37,9 +37,9 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  background: var(--bg-soft-green, #E5EFEB) !important;
-  color: var(--primary, #477C73) !important;
-  border: 1px solid var(--border-accent, rgba(71, 124, 115, 0.35));
+  background: var(--bg-soft-green, #ECFDF5) !important;
+  color: var(--primary, #059669) !important;
+  border: 1px solid var(--border-accent, rgba(5, 150, 105, 0.35));
 }
 
 .email-kpi-grid {
@@ -52,14 +52,14 @@
 .email-kpi-card {
   background: var(--bg-surface, #FFFFFF);
   border-radius: var(--radius-md, 12px);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   padding: 1.25rem;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
 }
 
 .email-kpi-card:hover {
-  border-color: var(--border-medium, #CDCAC0);
+  border-color: var(--border-medium, #CBD5E1);
   box-shadow: var(--shadow-hover);
   transform: translateY(-2px);
 }
@@ -69,7 +69,7 @@
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  color: var(--text-muted-meta, #84909B);
+  color: var(--text-muted-meta, #94A3B8);
   letter-spacing: 0.05em;
   margin-bottom: 0.5rem;
 }
@@ -78,7 +78,7 @@
   font-family: var(--font-heading, 'Manrope', sans-serif);
   font-size: 28px;
   font-weight: 700;
-  color: var(--text-primary-heading, #202B36);
+  color: var(--text-primary-heading, #0F172A);
   line-height: 1;
   margin-bottom: 0.4rem;
   letter-spacing: -0.02em;
@@ -87,12 +87,12 @@
 .email-kpi-card .kpi-subtext {
   font-family: var(--font-body, 'Inter', sans-serif);
   font-size: 13px;
-  color: var(--text-secondary, #65717D);
+  color: var(--text-secondary, #64748B);
 }
 
 .email-provider-card {
   background: var(--bg-surface, #FFFFFF);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: var(--radius-md, 12px);
   padding: 1.25rem 1.5rem;
   margin-bottom: 2rem;
@@ -109,14 +109,14 @@
   font-family: var(--font-heading, 'Manrope', sans-serif);
   font-size: 16px;
   font-weight: 650;
-  color: var(--text-primary-heading, #202B36);
+  color: var(--text-primary-heading, #0F172A);
 }
 
 .provider-info p {
   margin: 0;
   font-family: var(--font-body, 'Inter', sans-serif);
   font-size: 14px;
-  color: var(--text-secondary, #65717D);
+  color: var(--text-secondary, #64748B);
 }
 
 .provider-badge {
@@ -132,20 +132,20 @@
 
 .provider-badge.is-connected {
   background: var(--color-success-bg, rgba(40, 122, 89, 0.1));
-  color: var(--color-success, #287A59);
+  color: var(--color-success, #059669);
   border: 1px solid var(--color-success-border, rgba(40, 122, 89, 0.28));
 }
 
 .provider-badge.is-disconnected {
   background: var(--color-warning-bg, rgba(169, 109, 32, 0.1));
-  color: var(--color-warning, #A96D20);
+  color: var(--color-warning, #D97706);
   border: 1px solid var(--color-warning-border, rgba(169, 109, 32, 0.28));
 }
 
 /* Email Filters Bar */
 .email-filter-bar {
   background: var(--bg-surface, #FFFFFF);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: var(--radius-md, 12px) var(--radius-md, 12px) 0 0;
   padding: 1.25rem;
   display: flex;
@@ -163,26 +163,26 @@
 }
 
 .filter-input {
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   padding: 0.55rem 0.85rem;
   border-radius: var(--radius-sm, 8px);
   font-family: var(--font-ui, 'Inter', sans-serif);
   font-size: 14px;
-  color: var(--text-primary-heading, #202B36);
+  color: var(--text-primary-heading, #0F172A);
   background: var(--bg-surface, #FFFFFF);
   outline: none;
   transition: all 0.15s ease;
 }
 
 .filter-input:focus {
-  border-color: var(--primary, #477C73);
-  box-shadow: 0 0 0 3px rgba(71, 124, 115, 0.15);
+  border-color: var(--primary, #059669);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
 }
 
 /* Table */
 .email-table-container {
   background: var(--bg-surface, #FFFFFF);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-top: none;
   border-radius: 0 0 var(--radius-md, 12px) var(--radius-md, 12px);
   overflow-x: auto;
@@ -197,12 +197,12 @@
 }
 
 .email-table th {
-  background: var(--bg-secondary, #ECE9E2);
+  background: var(--bg-secondary, #F1F5F9);
   padding: 0.85rem 1.25rem;
   font-family: var(--font-ui, 'Inter', sans-serif);
   font-weight: 600;
-  color: var(--text-secondary-heading, #344454);
-  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
+  color: var(--text-secondary-heading, #1E293B);
+  border-bottom: 1px solid var(--border-subtle, #E2E8F0);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -210,9 +210,9 @@
 
 .email-table td {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
+  border-bottom: 1px solid var(--border-subtle, #E2E8F0);
   vertical-align: middle;
-  color: var(--text-body, #465462);
+  color: var(--text-body, #334155);
   font-family: var(--font-body, 'Inter', sans-serif);
 }
 
@@ -235,11 +235,11 @@
   letter-spacing: 0.04em;
 }
 
-.type-registration { background: var(--bg-soft-green, #E5EFEB); color: var(--primary, #477C73); border: 1px solid var(--border-accent, rgba(71, 124, 115, 0.35)); }
-.type-ticket { background: rgba(40, 122, 89, 0.1); color: #287A59; border: 1px solid rgba(40, 122, 89, 0.28); }
-.type-certificate { background: rgba(169, 109, 32, 0.1); color: #A96D20; border: 1px solid rgba(169, 109, 32, 0.28); }
-.type-feedback { background: var(--bg-secondary, #ECE9E2); color: var(--text-primary-heading, #202B36); border: 1px solid var(--border-subtle, #DEDCD5); }
-.type-alert { background: rgba(189, 78, 78, 0.1); color: #BD4E4E; border: 1px solid rgba(189, 78, 78, 0.28); }
+.type-registration { background: var(--bg-soft-green, #ECFDF5); color: var(--primary, #059669); border: 1px solid var(--border-accent, rgba(5, 150, 105, 0.35)); }
+.type-ticket { background: rgba(40, 122, 89, 0.1); color: #059669; border: 1px solid rgba(40, 122, 89, 0.28); }
+.type-certificate { background: rgba(169, 109, 32, 0.1); color: #D97706; border: 1px solid rgba(169, 109, 32, 0.28); }
+.type-feedback { background: var(--bg-secondary, #F1F5F9); color: var(--text-primary-heading, #0F172A); border: 1px solid var(--border-subtle, #E2E8F0); }
+.type-alert { background: rgba(189, 78, 78, 0.1); color: #DC2626; border: 1px solid rgba(189, 78, 78, 0.28); }
 .type-test { background: rgba(66, 108, 146, 0.1); color: #426C92; border: 1px solid rgba(66, 108, 146, 0.28); }
 
 .status-pill {
@@ -255,14 +255,14 @@
   letter-spacing: 0.04em;
 }
 
-.status-sent { background: rgba(40, 122, 89, 0.1); color: #287A59; border: 1px solid rgba(40, 122, 89, 0.28); }
-.status-failed { background: rgba(189, 78, 78, 0.1); color: #BD4E4E; border: 1px solid rgba(189, 78, 78, 0.28); }
-.status-pending { background: rgba(169, 109, 32, 0.1); color: #A96D20; border: 1px solid rgba(169, 109, 32, 0.28); }
+.status-sent { background: rgba(40, 122, 89, 0.1); color: #059669; border: 1px solid rgba(40, 122, 89, 0.28); }
+.status-failed { background: rgba(189, 78, 78, 0.1); color: #DC2626; border: 1px solid rgba(189, 78, 78, 0.28); }
+.status-pending { background: rgba(169, 109, 32, 0.1); color: #D97706; border: 1px solid rgba(169, 109, 32, 0.28); }
 
 .retry-action-btn {
   background: var(--bg-surface, #FFFFFF);
-  border: 1px solid var(--border-subtle, #DEDCD5);
-  color: var(--text-primary-heading, #202B36);
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  color: var(--text-primary-heading, #0F172A);
   padding: 0.35rem 0.75rem;
   border-radius: var(--radius-sm, 8px);
   font-family: var(--font-ui, 'Inter', sans-serif);
@@ -273,9 +273,9 @@
 }
 
 .retry-action-btn:hover:not(:disabled) {
-  background: var(--bg-soft-green, #E5EFEB);
-  border-color: var(--primary, #477C73);
-  color: var(--primary, #477C73);
+  background: var(--bg-soft-green, #ECFDF5);
+  border-color: var(--primary, #059669);
+  color: var(--primary, #059669);
 }
 
 .retry-action-btn:disabled {

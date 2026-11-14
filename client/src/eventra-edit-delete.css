@@ -10,7 +10,7 @@
 }
 
 .sidebar-danger {
-  border-top: 1px solid var(--border-subtle, #DEDCD5);
+  border-top: 1px solid var(--border-subtle, #E2E8F0);
   margin-top: 14px;
   padding-top: 14px;
 }
@@ -19,7 +19,7 @@
   width: 100%;
   border: 1px solid rgba(189, 78, 78, 0.3);
   background: #FDF0F0;
-  color: #BD4E4E;
+  color: #DC2626;
   border-radius: 8px;
   padding: 10px 14px;
   text-align: left;
@@ -50,7 +50,7 @@
 .edit-event-shell h1 {
   margin-bottom: 8px;
   font-family: var(--font-heading, 'Manrope', sans-serif);
-  color: var(--text-primary-heading, #202B36);
+  color: var(--text-primary-heading, #0F172A);
   font-size: 1.85rem;
   font-weight: 700;
 }
@@ -59,7 +59,7 @@
   display: grid;
   gap: 14px;
   padding: 20px;
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: 12px;
   background: var(--bg-surface, #FFFFFF);
   box-shadow: 0 2px 10px rgba(32, 43, 54, 0.04);

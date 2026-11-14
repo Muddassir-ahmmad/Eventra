@@ -122,7 +122,7 @@ export default function ParticipantDashboard() {
           EVENT<span>RA</span>
         </Link>
         <div className="participant-nav-actions">
-          <Link to="/" style={{ color: "#94a3b8", fontSize: "0.88rem", textDecoration: "none" }}>
+          <Link to="/" style={{ color: "#64748B", fontSize: "0.88rem", textDecoration: "none" }}>
             Explore Events
           </Link>
           {organizerToken ? (
@@ -130,12 +130,13 @@ export default function ParticipantDashboard() {
               to="/dashboard"
               style={{
                 fontSize: "0.82rem",
-                color: "#c4b5fd",
+                color: "#059669",
                 padding: "6px 12px",
                 borderRadius: 8,
-                background: "rgba(124, 77, 255, 0.15)",
+                background: "#ECFDF5",
                 textDecoration: "none",
-                border: "1px solid rgba(124, 77, 255, 0.3)",
+                border: "1px solid #A7F3D0",
+                fontWeight: 600,
               }}
             >
               Organizer Dashboard →
@@ -145,11 +146,13 @@ export default function ParticipantDashboard() {
               to="/login"
               style={{
                 fontSize: "0.82rem",
-                color: "#94a3b8",
+                color: "#334155",
                 padding: "6px 12px",
                 borderRadius: 8,
-                background: "rgba(255, 255, 255, 0.05)",
+                background: "#F1F5F9",
                 textDecoration: "none",
+                border: "1px solid #E2E8F0",
+                fontWeight: 600,
               }}
             >
               Organizer Login
@@ -215,8 +218,8 @@ export default function ParticipantDashboard() {
         {!loading && hasSearched && registrations.length === 0 && (
           <div className="participant-empty-box">
             <span className="participant-empty-icon">🎟️</span>
-            <h3 style={{ fontSize: "1.3rem", color: "#ffffff", margin: "0 0 8px" }}>No Registrations Found</h3>
-            <p style={{ color: "#94a3b8", maxWidth: 440, margin: "0 auto 20px", fontSize: "0.92rem" }}>
+            <h3 style={{ fontSize: "1.3rem", color: "#0F172A", margin: "0 0 8px" }}>No Registrations Found</h3>
+            <p style={{ color: "#64748B", maxWidth: 440, margin: "0 auto 20px", fontSize: "0.92rem" }}>
               We could not find any active tickets under "{activeSearch}". Double check your email or phone number,
               or browse upcoming public events.
             </p>
@@ -234,8 +237,8 @@ export default function ParticipantDashboard() {
         {!loading && !hasSearched && registrations.length === 0 && (
           <div className="participant-empty-box">
             <span className="participant-empty-icon">🔍</span>
-            <h3 style={{ fontSize: "1.3rem", color: "#ffffff", margin: "0 0 8px" }}>Look Up Your Passes</h3>
-            <p style={{ color: "#94a3b8", maxWidth: 480, margin: "0 auto 20px", fontSize: "0.92rem" }}>
+            <h3 style={{ fontSize: "1.3rem", color: "#0F172A", margin: "0 0 8px" }}>Look Up Your Passes</h3>
+            <p style={{ color: "#64748B", maxWidth: 480, margin: "0 auto 20px", fontSize: "0.92rem" }}>
               Enter the email address or phone number you used when booking an event ticket to view your live passes,
               download vector PDFs, and access attendance certificates.
             </p>
@@ -252,7 +255,7 @@ export default function ParticipantDashboard() {
                 <button
                   type="button"
                   onClick={() => performLookup(activeSearch)}
-                  style={{ background: "transparent", border: 0, color: "#a78bfa", fontSize: "0.82rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}
+                  style={{ background: "transparent", border: 0, color: "#059669", fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}
                 >
                   ↻ Refresh
                 </button>
@@ -317,25 +320,25 @@ export default function ParticipantDashboard() {
                           <span>{isExpired ? "REGISTRATION ID (EXPIRED)" : "REGISTRATION ID"}</span>
                           <strong style={{
                             textDecoration: isExpired ? "line-through" : "none",
-                            color: isExpired ? "#94a3b8" : "#818cf8",
+                            color: isExpired ? "#94A3B8" : "#059669",
                           }}>
                             {reg.registrationId}
                           </strong>
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <span>TIER</span>
-                          <div style={{ fontSize: "0.85rem", color: "#e2e8f0" }}>{reg.ticketType || "General"}</div>
+                          <div style={{ fontSize: "0.85rem", color: "#0F172A", fontWeight: 700 }}>{reg.ticketType || "General"}</div>
                         </div>
                       </div>
 
                       {/* Enrolled Sessions Breakdown */}
                       {Array.isArray(reg.selectedSessions) && reg.selectedSessions.length > 0 && (
-                        <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(255, 255, 255, 0.03)", borderRadius: 8, border: "1px solid rgba(255, 255, 255, 0.06)" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                            <span style={{ fontSize: "0.72rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>
+                        <div style={{ marginTop: 12, padding: "12px 14px", background: "#F8FAFC", borderRadius: 10, border: "1px solid #E2E8F0" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                            <span style={{ fontSize: "0.72rem", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>
                               Selected Sessions ({reg.selectedSessions.length})
                             </span>
-                            <span style={{ fontSize: "0.72rem", color: "#38bdf8", fontWeight: 700 }}>
+                            <span style={{ fontSize: "0.74rem", color: "#059669", fontWeight: 700 }}>
                               {(reg.attendedSessions || []).length}/{reg.selectedSessions.length} Attended
                             </span>
                           </div>
@@ -346,31 +349,31 @@ export default function ParticipantDashboard() {
                               const isAttended = (reg.attendedSessions || []).includes(String(sid));
                               const isCancelled = ses?.status === "CANCELLED";
                               return (
-                                <div key={sid} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.8rem", padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                                <div key={sid} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.82rem", padding: "6px 0", borderBottom: "1px solid #E2E8F0" }}>
                                   <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>
-                                    <strong style={{ color: "#ffffff" }}>{ses ? ses.title : `Session #${sid}`}</strong>
-                                    {ses?.startTime && <span style={{ color: "#94a3b8", marginLeft: 6, fontSize: "0.74rem" }}>({ses.startTime}{ses.endTime ? ` - ${ses.endTime}` : ""})</span>}
+                                    <strong style={{ color: "#0F172A" }}>{ses ? ses.title : `Session #${sid}`}</strong>
+                                    {ses?.startTime && <span style={{ color: "#64748B", marginLeft: 6, fontSize: "0.74rem" }}>({ses.startTime}{ses.endTime ? ` - ${ses.endTime}` : ""})</span>}
                                   </div>
                                   <span
                                     style={{
                                       fontSize: "0.7rem",
                                       fontWeight: 700,
-                                      padding: "2px 8px",
-                                      borderRadius: 4,
+                                      padding: "3px 8px",
+                                      borderRadius: 6,
                                       whiteSpace: "nowrap",
                                       background: isAttended
-                                        ? "rgba(16, 185, 129, 0.16)"
+                                        ? "#ECFDF5"
                                         : isCancelled
-                                        ? "rgba(239, 68, 68, 0.16)"
-                                        : "rgba(148, 163, 184, 0.12)",
+                                        ? "#FEF2F2"
+                                        : "#F1F5F9",
                                       border: `1px solid ${
                                         isAttended
-                                          ? "rgba(16, 185, 129, 0.3)"
+                                          ? "#A7F3D0"
                                           : isCancelled
-                                          ? "rgba(239, 68, 68, 0.3)"
-                                          : "rgba(148, 163, 184, 0.2)"
+                                          ? "#FECACA"
+                                          : "#E2E8F0"
                                       }`,
-                                      color: isAttended ? "#6ee7b7" : isCancelled ? "#fca5a5" : "#94a3b8",
+                                      color: isAttended ? "#059669" : isCancelled ? "#DC2626" : "#64748B",
                                     }}
                                   >
                                     {isAttended ? "✓ Present" : isCancelled ? "Cancelled" : "Pending"}
@@ -427,13 +430,13 @@ export default function ParticipantDashboard() {
                             <Link
                               to={`/events/${event._id}/feedback`}
                               className="button button-ghost"
-                              style={{ fontSize: "0.82rem", color: "#fbbf24", borderColor: "rgba(251, 191, 36, 0.4)", textAlign: "center", textDecoration: "none" }}
+                              style={{ fontSize: "0.82rem", color: "#D97706", borderColor: "#FDE68A", background: "#FFFBEB", textAlign: "center", textDecoration: "none", fontWeight: 600 }}
                             >
                               ✍️ Complete Feedback to Unlock Certificate
                             </Link>
                           )
                         ) : isExpired ? (
-                          <span style={{ fontSize: "0.75rem", color: "#94a3b8", textAlign: "center", padding: "4px 0" }}>
+                          <span style={{ fontSize: "0.75rem", color: "#64748B", textAlign: "center", padding: "4px 0" }}>
                             Event has concluded · Gate scan expired
                           </span>
                         ) : null}
@@ -446,6 +449,27 @@ export default function ParticipantDashboard() {
           </div>
         )}
       </section>
+
+      {/* Minimal Footer */}
+      <footer
+        style={{
+          borderTop: "1px solid #E2E8F0",
+          background: "#F1F5F9",
+          padding: "24px 20px",
+          textAlign: "center",
+          fontSize: "0.85rem",
+          color: "#64748B",
+        }}
+      >
+        Copyright © 2026{" "}
+        <Link
+          to="/admin/login"
+          style={{ color: "#0F172A", fontWeight: 700, textDecoration: "none" }}
+        >
+          EVENTRA
+        </Link>{" "}
+        Inc. All rights reserved.
+      </footer>
     </main>
   );
 }

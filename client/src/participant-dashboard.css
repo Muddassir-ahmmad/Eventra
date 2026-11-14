@@ -5,8 +5,8 @@
 
 .participant-page-root {
   min-height: 100vh;
-  background: var(--bg-canvas, #F4F2ED);
-  color: var(--text-primary, #202B36);
+  background: var(--bg-canvas, #F8F9FA);
+  color: var(--text-primary, #0F172A);
   position: relative;
   overflow-x: hidden;
   font-family: 'Manrope', 'DM Sans', 'Inter', -apple-system, sans-serif;
@@ -18,10 +18,10 @@
   align-items: center;
   padding: 0 32px;
   height: 68px;
-  background: rgba(244, 241, 234, 0.94);
+  background: rgba(248, 249, 250, 0.94);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
+  border-bottom: 1px solid var(--border-subtle, #E2E8F0);
   position: sticky;
   top: 0;
   z-index: 40;
@@ -31,7 +31,7 @@
   font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.04em;
-  color: var(--text-primary, #202B36);
+  color: var(--text-primary, #0F172A);
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -39,7 +39,7 @@
 }
 
 .participant-brand span {
-  color: var(--primary, #477C73);
+  color: var(--primary, #059669);
 }
 
 .participant-nav-actions {
@@ -59,9 +59,9 @@
   display: inline-block;
   padding: 6px 14px;
   border-radius: 999px;
-  background: var(--primary-tint, rgba(71, 124, 115, 0.08));
-  border: 1px solid var(--border-accent, rgba(71, 124, 115, 0.35));
-  color: var(--primary, #477C73);
+  background: var(--primary-tint, rgba(5, 150, 105, 0.08));
+  border: 1px solid var(--border-accent, rgba(5, 150, 105, 0.35));
+  color: var(--primary, #059669);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -74,11 +74,11 @@
   font-weight: 900;
   letter-spacing: -0.05em;
   margin: 0 0 14px;
-  color: var(--text-primary, #202B36);
+  color: var(--text-primary, #0F172A);
 }
 
 .participant-hero-section p {
-  color: var(--text-secondary, #65717D);
+  color: var(--text-secondary, #64748B);
   font-size: 1.05rem;
   max-width: 620px;
   margin: 0 auto 36px;
@@ -91,7 +91,7 @@
   display: flex;
   gap: 10px;
   background: var(--bg-surface, #FFFFFF);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: var(--radius-full, 9999px);
   padding: 6px 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
@@ -99,8 +99,8 @@
 }
 
 .participant-search-bar:focus-within {
-  border-color: var(--primary, #477C73);
-  box-shadow: 0 0 0 3px rgba(71, 124, 115, 0.2), 0 6px 24px rgba(0, 0, 0, 0.06);
+  border-color: var(--primary, #059669);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2), 0 6px 24px rgba(0, 0, 0, 0.06);
 }
 
 .participant-search-bar input {
@@ -108,13 +108,13 @@
   background: transparent;
   border: 0;
   padding: 10px 18px;
-  color: var(--text-primary, #202B36);
+  color: var(--text-primary, #0F172A);
   font-size: 0.95rem;
   outline: none;
 }
 
 .participant-search-bar input::placeholder {
-  color: var(--text-muted, #65717D);
+  color: var(--text-muted, #64748B);
 }
 
 .participant-tickets-container {
@@ -132,7 +132,7 @@
 
 .participant-card {
   background: var(--bg-surface, #FFFFFF);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: 20px;
   overflow: hidden;
   display: flex;
@@ -143,19 +143,19 @@
 
 .participant-card:hover {
   transform: translateY(-4px);
-  border-color: var(--primary, #477C73);
-  box-shadow: 0 16px 36px rgba(71, 124, 115, 0.12);
+  border-color: var(--primary, #059669);
+  box-shadow: 0 16px 36px rgba(5, 150, 105, 0.12);
 }
 
 .participant-card-cover {
   height: 140px;
-  background: var(--bg-secondary, #ECE9E2);
+  background: var(--bg-secondary, #F1F5F9);
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: flex-end;
   padding: 16px;
-  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
+  border-bottom: 1px solid var(--border-subtle, #E2E8F0);
 }
 
 .participant-card-cover img {
@@ -178,26 +178,26 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   background: var(--bg-surface, #FFFFFF);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .participant-card-status-badge.attended {
-  color: var(--color-success, #39836B);
+  color: var(--color-success, #059669);
   border-color: var(--color-success-border, rgba(57, 131, 107, 0.3));
   background: var(--color-success-bg, rgba(57, 131, 107, 0.12));
 }
 
 .participant-card-status-badge.expired {
-  color: var(--color-danger, #C65D55);
+  color: var(--color-danger, #DC2626);
   border-color: var(--color-danger-border, rgba(198, 93, 85, 0.3));
   background: var(--color-danger-bg, rgba(198, 93, 85, 0.12));
 }
 
 .participant-card-status-badge.upcoming {
-  color: var(--primary, #477C73);
-  border-color: var(--border-accent, rgba(71, 124, 115, 0.35));
-  background: var(--primary-tint, rgba(71, 124, 115, 0.08));
+  color: var(--primary, #059669);
+  border-color: var(--border-accent, rgba(5, 150, 105, 0.35));
+  background: var(--primary-tint, rgba(5, 150, 105, 0.08));
 }
 
 .participant-search-meta {
@@ -206,8 +206,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  background: var(--bg-secondary, #ECE9E2);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  background: var(--bg-secondary, #F1F5F9);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: 12px;
   padding: 12px 18px;
   margin-bottom: 20px;
@@ -215,11 +215,11 @@
 
 .participant-search-meta-text {
   font-size: 0.88rem;
-  color: var(--text-secondary, #65717D);
+  color: var(--text-secondary, #64748B);
 }
 
 .participant-search-meta-text strong {
-  color: var(--text-primary, #202B36);
+  color: var(--text-primary, #0F172A);
 }
 
 .participant-search-meta-actions {
@@ -236,7 +236,7 @@
   border-radius: 8px;
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--color-danger, #C65D55);
+  color: var(--color-danger, #DC2626);
   background: var(--color-danger-bg, rgba(198, 93, 85, 0.1));
   border: 1px solid var(--color-danger-border, rgba(198, 93, 85, 0.3));
   cursor: pointer;
@@ -245,7 +245,7 @@
 
 .btn-clear-search:hover {
   background: rgba(198, 93, 85, 0.2);
-  color: var(--color-danger, #C65D55);
+  color: var(--color-danger, #DC2626);
 }
 
 .participant-card-body {
@@ -259,7 +259,7 @@
   font-size: 1.25rem;
   font-weight: 800;
   margin: 0 0 10px;
-  color: var(--text-primary, #202B36);
+  color: var(--text-primary, #0F172A);
   letter-spacing: -0.02em;
 }
 
@@ -267,7 +267,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-secondary, #65717D);
+  color: var(--text-secondary, #64748B);
   font-size: 0.85rem;
   margin-bottom: 6px;
 }
@@ -275,8 +275,8 @@
 .participant-ticket-pill {
   margin: 16px 0;
   padding: 12px 14px;
-  background: var(--bg-surface-alt, #FAF8F5);
-  border: 1px dashed var(--border-subtle, #DEDCD5);
+  background: var(--bg-secondary, #F1F5F9);
+  border: 1px dashed var(--border-subtle, #E2E8F0);
   border-radius: 12px;
   display: flex;
   justify-content: space-between;
@@ -285,14 +285,14 @@
 
 .participant-ticket-pill span {
   font-size: 0.72rem;
-  color: var(--text-muted, #65717D);
+  color: var(--text-muted, #64748B);
   text-transform: uppercase;
   font-weight: 600;
 }
 
 .participant-ticket-pill strong {
   font-size: 0.92rem;
-  color: var(--primary, #477C73);
+  color: var(--primary, #059669);
   font-family: monospace;
 }
 
@@ -306,16 +306,16 @@
 .participant-empty-box {
   text-align: center;
   padding: 64px 24px;
-  border: 1px dashed var(--border-medium, #CCC6BA);
+  border: 1px dashed var(--border-medium, #CBD5E1);
   border-radius: 18px;
   background: var(--bg-surface, #FFFFFF);
   margin-top: 28px;
-  color: var(--text-secondary, #65717D);
+  color: var(--text-secondary, #64748B);
 }
 
 .participant-empty-icon {
   font-size: 2.8rem;
   margin-bottom: 14px;
   display: inline-block;
-  color: var(--primary, #477C73);
+  color: var(--primary, #059669);
 }

@@ -5,11 +5,11 @@ import api, { setToken } from "../api";
 const DISMISSED_NOTIFICATIONS_KEY = "eventra_dismissed_platform_notifications";
 
 const NOTIFICATION_TYPE_META = {
-  SECURITY_ALERT: { label: "Security Alert", accent: "#C65D55", bg: "rgba(198, 93, 85, 0.1)" },
-  MAINTENANCE: { label: "Maintenance", accent: "#C58A3B", bg: "rgba(197, 138, 59, 0.1)" },
-  BILLING_REMINDER: { label: "Billing Reminder", accent: "#477C73", bg: "rgba(71, 124, 115, 0.1)" },
-  POLICY_UPDATE: { label: "Policy Update", accent: "#D98D76", bg: "rgba(217, 141, 118, 0.1)" },
-  ANNOUNCEMENT: { label: "Announcement", accent: "#39836B", bg: "rgba(57, 131, 107, 0.1)" },
+  SECURITY_ALERT: { label: "Security Alert", accent: "#DC2626", bg: "rgba(198, 93, 85, 0.1)" },
+  MAINTENANCE: { label: "Maintenance", accent: "#D97706", bg: "rgba(197, 138, 59, 0.1)" },
+  BILLING_REMINDER: { label: "Billing Reminder", accent: "#059669", bg: "rgba(5, 150, 105, 0.1)" },
+  POLICY_UPDATE: { label: "Policy Update", accent: "#F97316", bg: "rgba(217, 141, 118, 0.1)" },
+  ANNOUNCEMENT: { label: "Announcement", accent: "#059669", bg: "rgba(57, 131, 107, 0.1)" },
 };
 
 function readDismissedNotifications() {
@@ -97,8 +97,8 @@ export default function Dashboard() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
-                color: "#477C73",
-                borderColor: "#DEDCD5",
+                color: "#059669",
+                borderColor: "#E2E8F0",
                 background: "#FFFFFF",
                 fontWeight: 600,
               }}
@@ -156,14 +156,14 @@ export default function Dashboard() {
                       >
                         {meta.label}
                       </span>
-                      <strong style={{ color: "#202B36", fontSize: "0.95rem" }}>{item.title}</strong>
+                      <strong style={{ color: "#0F172A", fontSize: "0.95rem" }}>{item.title}</strong>
                       {item.createdAt && (
-                        <span style={{ fontSize: "0.75rem", color: "#65717D" }}>
+                        <span style={{ fontSize: "0.75rem", color: "#64748B" }}>
                           · {new Date(item.createdAt).toLocaleDateString()}
                         </span>
                       )}
                     </div>
-                    <p style={{ margin: 0, color: "#202B36", fontSize: "0.86rem", lineHeight: 1.45 }}>
+                    <p style={{ margin: 0, color: "#0F172A", fontSize: "0.86rem", lineHeight: 1.45 }}>
                       {item.message}
                     </p>
                   </div>
@@ -175,7 +175,7 @@ export default function Dashboard() {
                     style={{
                       background: "transparent",
                       border: "none",
-                      color: "#65717D",
+                      color: "#64748B",
                       cursor: "pointer",
                       fontSize: "1.1rem",
                       lineHeight: 1,

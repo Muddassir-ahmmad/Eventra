@@ -5,8 +5,8 @@
 
 .attendance-page-root {
   min-height: 100vh;
-  background: var(--bg-canvas, #F4F2ED);
-  color: var(--text-primary, #202B36);
+  background: var(--bg-canvas, #F8F9FA);
+  color: var(--text-primary, #0F172A);
   padding: 36px 4% 80px;
 }
 
@@ -28,7 +28,7 @@
   font-size: 2.1rem;
   font-weight: 800;
   margin: 4px 0 0;
-  color: var(--text-primary, #202B36);
+  color: var(--text-primary, #0F172A);
   letter-spacing: -0.04em;
 }
 
@@ -43,7 +43,7 @@
   padding: 20px;
   border-radius: 14px;
   background: var(--bg-surface, #FFFFFF);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   position: relative;
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
@@ -52,8 +52,8 @@
 
 .attendance-stat-card:hover {
   transform: translateY(-2px);
-  border-color: var(--primary, #477C73);
-  box-shadow: 0 8px 24px rgba(71, 124, 115, 0.1);
+  border-color: var(--primary, #059669);
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.1);
 }
 
 .attendance-stat-card.highlight {
@@ -63,7 +63,7 @@
 
 .attendance-stat-card span {
   font-size: 0.76rem;
-  color: var(--text-secondary, #65717D);
+  color: var(--text-secondary, #64748B);
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -74,17 +74,17 @@
 .attendance-stat-card strong {
   font-size: 2.2rem;
   font-weight: 900;
-  color: var(--text-primary, #202B36);
+  color: var(--text-primary, #0F172A);
   letter-spacing: -0.03em;
 }
 
 .attendance-stat-card.highlight strong {
-  color: var(--color-success, #39836B);
+  color: var(--color-success, #059669);
 }
 
 /* Scanner & Fast Check-In Area */
 .scanner-checkin-card {
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
   border-radius: 18px;
   padding: 28px;
@@ -103,16 +103,16 @@
   flex: 1;
   padding: 13px 18px;
   border-radius: 10px;
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-primary, #202B36);
+  color: var(--text-primary, #0F172A);
   font-size: 0.95rem;
 }
 
 .scan-input-row input:focus {
   outline: none;
-  border-color: var(--primary, #477C73);
-  box-shadow: 0 0 0 3px rgba(71, 124, 115, 0.2);
+  border-color: var(--primary, #059669);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
 }
 
 .scan-feedback-banner {
@@ -128,24 +128,24 @@
 .scan-feedback-banner.success {
   background: var(--color-success-bg, rgba(57, 131, 107, 0.12));
   border: 1px solid var(--color-success-border, rgba(57, 131, 107, 0.35));
-  color: var(--color-success, #39836B);
+  color: var(--color-success, #059669);
 }
 
 .scan-feedback-banner.warning {
   background: var(--color-warning-bg, rgba(197, 138, 59, 0.12));
   border: 1px solid var(--color-warning-border, rgba(197, 138, 59, 0.35));
-  color: var(--color-warning, #C58A3B);
+  color: var(--color-warning, #D97706);
 }
 
 .scan-feedback-banner.error {
   background: var(--color-danger-bg, rgba(198, 93, 85, 0.12));
   border: 1px solid var(--color-danger-border, rgba(198, 93, 85, 0.35));
-  color: var(--color-danger, #C65D55);
+  color: var(--color-danger, #DC2626);
 }
 
 /* Attendee Directory Table */
 .attendee-table-wrap {
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
   border-radius: 16px;
   overflow: hidden;
@@ -154,8 +154,8 @@
 
 .attendee-toolbar {
   padding: 18px 22px;
-  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
-  background: var(--bg-surface-alt, #FAF8F5);
+  border-bottom: 1px solid var(--border-subtle, #E2E8F0);
+  background: var(--bg-secondary, #F1F5F9);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -166,17 +166,17 @@
 .attendee-search-input {
   padding: 10px 14px;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-primary, #202B36);
+  color: var(--text-primary, #0F172A);
   font-size: 0.88rem;
   width: 280px;
 }
 
 .attendee-search-input:focus {
   outline: none;
-  border-color: var(--primary, #477C73);
-  box-shadow: 0 0 0 3px rgba(71, 124, 115, 0.2);
+  border-color: var(--primary, #059669);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
 }
 
 .filter-pills {
@@ -187,9 +187,9 @@
 .filter-pill {
   padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-primary, #202B36);
+  color: var(--text-primary, #0F172A);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -197,15 +197,15 @@
 }
 
 .filter-pill:hover {
-  background: var(--bg-card-hover, #FAF8F5);
-  color: var(--primary, #477C73);
+  background: var(--bg-card-hover, #F8FAFC);
+  color: var(--primary, #059669);
 }
 
 .filter-pill.active {
-  background: var(--primary, #477C73);
+  background: var(--primary, #059669);
   color: #ffffff;
-  border-color: var(--primary-hover, #35665D);
-  box-shadow: 0 2px 8px rgba(71, 124, 115, 0.25);
+  border-color: var(--primary-hover, #047857);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
 }
 
 .status-badge {
@@ -221,19 +221,19 @@
 .status-badge.present {
   background: var(--color-success-bg, rgba(57, 131, 107, 0.12));
   border: 1px solid var(--color-success-border, rgba(57, 131, 107, 0.35));
-  color: var(--color-success, #39836B);
+  color: var(--color-success, #059669);
 }
 
 .status-badge.absent {
-  background: var(--bg-secondary, #ECE9E2);
-  border: 1px solid var(--border-subtle, #DEDCD5);
-  color: var(--text-secondary, #65717D);
+  background: var(--bg-secondary, #F1F5F9);
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  color: var(--text-secondary, #64748B);
 }
 
 /* Multi-day attendance mode, day pills, and session selector */
 .multiday-attendance-panel {
-  background: var(--bg-surface-alt, #FAF8F5);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  background: var(--bg-secondary, #F1F5F9);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: 14px;
   padding: 16px 18px;
   margin-bottom: 20px;
@@ -255,23 +255,23 @@
 .multiday-day-card {
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-primary, #202B36);
+  color: var(--text-primary, #0F172A);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .multiday-day-card:hover {
-  border-color: var(--primary, #477C73);
+  border-color: var(--primary, #059669);
 }
 
 .multiday-day-card.is-selected {
-  background: var(--primary, #477C73);
-  border-color: var(--primary-hover, #35665D);
+  background: var(--primary, #059669);
+  border-color: var(--primary-hover, #047857);
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(71, 124, 115, 0.25);
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.25);
 }
 
 .day-progress-chips {
@@ -291,13 +291,13 @@
 .day-chip.yes {
   background: var(--color-success-bg, rgba(57, 131, 107, 0.15));
   border: 1px solid var(--color-success-border, rgba(57, 131, 107, 0.4));
-  color: var(--color-success, #39836B);
+  color: var(--color-success, #059669);
 }
 
 .day-chip.no {
-  background: var(--bg-secondary, #ECE9E2);
-  border: 1px solid var(--border-subtle, #DEDCD5);
-  color: var(--text-muted, #65717D);
+  background: var(--bg-secondary, #F1F5F9);
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  color: var(--text-muted, #64748B);
 }
 
 /* Laser Scanner Animation & Camera Viewport */
@@ -312,8 +312,8 @@
   left: 15%;
   width: 70%;
   height: 3px;
-  background: linear-gradient(90deg, transparent, #35665D, #477C73, transparent);
-  box-shadow: 0 0 15px #477C73;
+  background: linear-gradient(90deg, transparent, #047857, #059669, transparent);
+  box-shadow: 0 0 15px #059669;
   border-radius: 999px;
   animation: laserScan 2s ease-in-out infinite;
   pointer-events: none;
@@ -330,8 +330,8 @@
   position: relative;
   border-radius: 18px;
   overflow: hidden;
-  border: 2px solid var(--primary, #477C73);
-  box-shadow: 0 0 25px rgba(71, 124, 115, 0.2);
+  border: 2px solid var(--primary, #059669);
+  box-shadow: 0 0 25px rgba(5, 150, 105, 0.2);
   background: #1a2020;
   display: flex;
   align-items: center;
@@ -347,6 +347,6 @@
 }
 
 .camera-scan-viewport.scanned {
-  border-color: var(--color-success, #39836B);
+  border-color: var(--color-success, #059669);
   box-shadow: 0 0 35px rgba(57, 131, 107, 0.5);
 }

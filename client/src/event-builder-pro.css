@@ -6,8 +6,8 @@
 .poster-tabs {
   display: flex;
   gap: 8px;
-  background: var(--bg-surface-secondary, #ECE9E2);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  background: var(--bg-surface-secondary, #F1F5F9);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: 12px;
   padding: 5px;
   margin-bottom: 22px;
@@ -19,7 +19,7 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--text-secondary, #65717D);
+  color: var(--text-secondary, #64748B);
   font-family: var(--font-body, 'Inter', sans-serif);
   font-weight: 600;
   font-size: 0.82rem;
@@ -32,23 +32,23 @@
 }
 
 .poster-tab-btn:hover {
-  color: var(--text-primary-heading, #202B36);
+  color: var(--text-primary-heading, #0F172A);
   background: rgba(255, 255, 255, 0.6);
 }
 
 .poster-tab-btn.active {
-  background: var(--primary, #477C73);
+  background: var(--primary, #059669);
   color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(71, 124, 115, 0.25);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
 }
 
 .poster-upload-box {
-  border: 2px dashed var(--border-subtle, #DEDCD5);
+  border: 2px dashed var(--border-subtle, #E2E8F0);
   border-radius: 16px;
   padding: 35px 20px;
   text-align: center;
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-body, #465462);
+  color: var(--text-body, #334155);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -56,15 +56,15 @@
 }
 
 .poster-upload-box:hover {
-  border-color: var(--primary, #477C73);
-  background: var(--brand-soft, #E5EFEB);
+  border-color: var(--primary, #059669);
+  background: var(--brand-soft, #ECFDF5);
 }
 
 .poster-preview-card {
   position: relative;
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   background: #FAF9F6;
   aspect-ratio: 16 / 9;
   max-width: 600px;
@@ -94,11 +94,11 @@
 }
 
 .template-card-btn {
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: 12px;
   padding: 12px;
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-body, #465462);
+  color: var(--text-body, #334155);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -113,9 +113,9 @@
 }
 
 .template-card-btn.active {
-  border-color: var(--primary, #477C73);
-  background: var(--brand-soft, #E5EFEB);
-  box-shadow: 0 0 0 2px rgba(71, 124, 115, 0.2);
+  border-color: var(--primary, #059669);
+  background: var(--brand-soft, #ECFDF5);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
 }
 
 .template-mini-header {
@@ -134,19 +134,19 @@
   font-size: 0.88rem;
   font-weight: 700;
   margin-bottom: 2px;
-  color: var(--text-primary-heading, #202B36);
+  color: var(--text-primary-heading, #0F172A);
 }
 
 .template-card-btn small {
   display: block;
   font-size: 0.72rem;
-  color: var(--text-secondary, #65717D);
+  color: var(--text-secondary, #64748B);
   line-height: 1.35;
 }
 
 .template-controls {
   background: var(--bg-surface, #FFFFFF);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: 14px;
   padding: 20px;
   margin-top: 18px;
@@ -166,7 +166,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.82rem;
-  color: var(--text-body, #465462);
+  color: var(--text-body, #334155);
   font-weight: 500;
 }
 
@@ -174,7 +174,7 @@
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   cursor: pointer;
   background: transparent;
   padding: 0;
@@ -187,10 +187,10 @@
   gap: 12px;
   padding: 14px 18px;
   border-radius: 12px;
-  background: var(--brand-soft, #E5EFEB);
-  border: 1px solid rgba(71, 124, 115, 0.25);
+  background: var(--brand-soft, #ECFDF5);
+  border: 1px solid rgba(5, 150, 105, 0.25);
   margin-bottom: 18px;
-  color: var(--text-body, #465462);
+  color: var(--text-body, #334155);
   font-size: 0.85rem;
   line-height: 1.5;
 }
@@ -198,7 +198,7 @@
 .ai-notice-banner strong {
   display: block;
   font-size: 0.92rem;
-  color: var(--primary-hover, #35665D);
+  color: var(--primary-hover, #047857);
   margin-bottom: 2px;
 }
 
@@ -207,23 +207,23 @@
   border-radius: 20px;
   font-size: 0.78rem;
   font-weight: 600;
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-body, #465462);
+  color: var(--text-body, #334155);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .mode-pill:hover {
-  background: var(--bg-surface-secondary, #ECE9E2);
-  color: var(--text-primary-heading, #202B36);
+  background: var(--bg-surface-secondary, #F1F5F9);
+  color: var(--text-primary-heading, #0F172A);
 }
 
 .mode-pill.selected {
-  background: var(--primary, #477C73);
-  border-color: var(--primary, #477C73);
+  background: var(--primary, #059669);
+  border-color: var(--primary, #059669);
   color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(71, 124, 115, 0.25);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
 }
 
 /* Multi-day schedule builder UI */
@@ -237,9 +237,9 @@
 .multiday-duration-option {
   padding: 14px 16px;
   border-radius: 12px;
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-body, #465462);
+  color: var(--text-body, #334155);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -251,10 +251,10 @@
 }
 
 .multiday-duration-option.is-active {
-  background: var(--brand-soft, #E5EFEB);
-  border-color: var(--primary, #477C73);
-  color: var(--primary-hover, #35665D);
-  box-shadow: 0 0 0 2px rgba(71, 124, 115, 0.2);
+  background: var(--brand-soft, #ECFDF5);
+  border-color: var(--primary, #059669);
+  color: var(--primary-hover, #047857);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
 }
 
 .multiday-duration-option strong {
@@ -263,12 +263,12 @@
   font-size: 0.92rem;
   font-weight: 700;
   margin-bottom: 3px;
-  color: var(--text-primary-heading, #202B36);
+  color: var(--text-primary-heading, #0F172A);
 }
 
 .multiday-duration-option small {
   font-size: 0.76rem;
-  color: var(--text-secondary, #65717D);
+  color: var(--text-secondary, #64748B);
 }
 
 .multiday-tabs-bar {
@@ -278,15 +278,15 @@
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
+  border-bottom: 1px solid var(--border-subtle, #E2E8F0);
 }
 
 .multiday-tab-btn {
   padding: 8px 16px;
   border-radius: 10px;
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-secondary-heading, #344454);
+  color: var(--text-secondary-heading, #1E293B);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -295,19 +295,19 @@
 
 .multiday-tab-btn:hover {
   border-color: #C8C5BC;
-  color: var(--text-primary-heading, #202B36);
+  color: var(--text-primary-heading, #0F172A);
 }
 
 .multiday-tab-btn.is-active {
-  background: var(--primary, #477C73);
-  border-color: var(--primary, #477C73);
+  background: var(--primary, #059669);
+  border-color: var(--primary, #059669);
   color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(71, 124, 115, 0.25);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
 }
 
 .multiday-day-box {
   background: var(--bg-surface, #FFFFFF);
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: 14px;
   padding: 18px;
   margin-bottom: 16px;
@@ -323,17 +323,17 @@
 .session-order-btn {
   padding: 4px 8px;
   border-radius: 6px;
-  border: 1px solid var(--border-subtle, #DEDCD5);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-body, #465462);
+  color: var(--text-body, #334155);
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .session-order-btn:hover:not(:disabled) {
-  border-color: var(--primary, #477C73);
-  color: var(--primary, #477C73);
+  border-color: var(--primary, #059669);
+  color: var(--primary, #059669);
 }
 
 .session-order-btn:disabled {

@@ -1031,20 +1031,14 @@ export default function PublicEvent() {
       {/* 9. FOOTER */}
       <footer className="public-footer">
         <p>
-          Hosted via{" "}
+          Copyright © 2026{" "}
           <Link
             to="/admin/login"
-            style={{ color: "inherit", textDecoration: "none" }}
+            style={{ color: "#0F172A", fontWeight: 700, textDecoration: "none" }}
           >
-            <strong>EVENTRA</strong>
+            EVENTRA
           </Link>{" "}
-          — Smart Event Management &amp; Registration Platform.
-        </p>
-        <p style={{ marginTop: 4 }}>
-          © {new Date().getFullYear()} EVENTRA. All rights reserved. ·{" "}
-          <Link to="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#818cf8" }}>
-            Terms &amp; Conditions
-          </Link>
+          Inc. All rights reserved.
         </p>
       </footer>
 

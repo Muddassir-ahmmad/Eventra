@@ -3,22 +3,22 @@
    ========================================================================== */
 
 :root {
-  --admin-bg: #F4F2ED;
+  --admin-bg: #F8F9FA;
   --admin-sidebar-bg: #FFFFFF;
   --admin-card-bg: #FFFFFF;
   --admin-card-hover: #FAF9F6;
-  --admin-border: #DEDCD5;
-  --admin-border-focus: rgba(71, 124, 115, 0.5);
-  --admin-primary: #477C73;
-  --admin-primary-hover: #35665D;
-  --admin-primary-glow: rgba(71, 124, 115, 0.2);
-  --admin-accent-gold: #A96D20;
-  --admin-accent-emerald: #287A59;
-  --admin-accent-rose: #BD4E4E;
+  --admin-border: #E2E8F0;
+  --admin-border-focus: rgba(5, 150, 105, 0.5);
+  --admin-primary: #059669;
+  --admin-primary-hover: #047857;
+  --admin-primary-glow: rgba(5, 150, 105, 0.2);
+  --admin-accent-gold: #D97706;
+  --admin-accent-emerald: #059669;
+  --admin-accent-rose: #DC2626;
   --admin-accent-cyan: #426C92;
-  --admin-text-main: #202B36;
-  --admin-text-muted: #65717D;
-  --admin-text-sub: #84909B;
+  --admin-text-main: #0F172A;
+  --admin-text-muted: #64748B;
+  --admin-text-sub: #94A3B8;
   --admin-radius-sm: 8px;
   --admin-radius-md: 12px;
   --admin-radius-lg: 16px;
@@ -310,7 +310,7 @@
   font-size: 1.25rem;
   padding: 8px;
   border-radius: var(--admin-radius-sm);
-  background: #F4F2ED;
+  background: #F8F9FA;
   color: var(--admin-primary);
 }
 
@@ -447,7 +447,7 @@
 
 .admin-search-input:focus {
   border-color: var(--admin-primary);
-  box-shadow: 0 0 0 3px rgba(71, 124, 115, 0.15);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
 }
 
 .admin-filter-group {
@@ -541,7 +541,7 @@
 }
 
 .admin-badge-deactivated {
-  background: #F4F2ED;
+  background: #F8F9FA;
   color: var(--admin-text-sub);
   border: 1px solid var(--admin-border);
 }
@@ -641,7 +641,7 @@
 .admin-form-input:focus,
 .admin-form-textarea:focus {
   border-color: var(--admin-primary);
-  box-shadow: 0 0 0 3px rgba(71, 124, 115, 0.15);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
 }
 
 /* Pagination */
