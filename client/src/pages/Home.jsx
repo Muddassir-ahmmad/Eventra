@@ -1,62 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import api from "../api";
 
 export default function Home() {
   const token = typeof window !== "undefined" ? localStorage.getItem("eventra_token") : null;
   const [activeTab, setActiveTab] = useState("pass");
   const [activeDay, setActiveDay] = useState(1);
-  const [publicEvents, setPublicEvents] = useState([]);
-  const [loadingEvents, setLoadingEvents] = useState(true);
-
-  useEffect(() => {
-    api.get("/events/public")
-      .then((res) => {
-        const events = res.data?.events || [];
-        setPublicEvents(events.slice(0, 3));
-      })
-      .catch(() => {
-        // Fallback curated samples if server has no public events or network offline
-        setPublicEvents([
-          {
-            _id: "sample-1",
-            slug: "global-ai-summit-2026",
-            title: "Global AI & Systems Summit 2026",
-            description: "Three immersive days exploring generative intelligence, autonomous agents, and next-gen cloud architectures.",
-            venue: "Imperial Convention Centre, Hall A",
-            date: "2026-11-20",
-            category: "Technology",
-            eventDurationType: "multi_day",
-            days: [{}, {}, {}],
-            capacity: 500,
-          },
-          {
-            _id: "sample-2",
-            slug: "design-systems-symposium",
-            title: "International Design Systems Symposium",
-            description: "A premier gathering of product designers, design engineers, and creative directors.",
-            venue: "National Academy of Design, Auditorium",
-            date: "2026-11-28",
-            category: "Design",
-            eventDurationType: "single_day",
-            capacity: 350,
-          },
-          {
-            _id: "sample-3",
-            slug: "cybersecurity-defence-forum",
-            title: "Zero-Trust Cybersecurity Forum",
-            description: "Hands-on workshops, live red-team demonstrations, and defensive security protocols.",
-            venue: "Tech City Convention Complex",
-            date: "2026-12-05",
-            category: "Engineering",
-            eventDurationType: "multi_day",
-            days: [{}, {}],
-            capacity: 400,
-          },
-        ]);
-      })
-      .finally(() => setLoadingEvents(false));
-  }, []);
 
   return (
     <main style={{ background: "#F8F9FA", color: "#0F172A", minHeight: "100vh", overflowX: "hidden" }}>
@@ -210,7 +158,7 @@ export default function Home() {
                 </Link>
                 <Link
                   className="button button-ghost home-ghost-button"
-                  to="/participant/dashboard"
+                  to="/login"
                   style={{
                     padding: "13px 28px",
                     fontSize: "0.95rem",
@@ -221,7 +169,7 @@ export default function Home() {
                     textDecoration: "none",
                   }}
                 >
-                  🎟️ Find My Ticket Pass
+                  Organizer Login
                 </Link>
               </>
             )}
@@ -742,114 +690,7 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
-          4. FEATURED EVENTS DISCOVERY STRIP
-          ========================================================================= */}
-      <section style={{ maxWidth: "1140px", margin: "0 auto 80px", padding: "0 24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "32px", flexWrap: "wrap", gap: "16px" }}>
-          <div>
-            <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#059669", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-              FEATURED PLATFORM EVENTS
-            </span>
-            <h2 style={{ fontSize: "2.2rem", fontWeight: 800, color: "#0F172A", letterSpacing: "-0.03em", margin: "6px 0 0" }}>
-              Explore Landmark Gatherings
-            </h2>
-          </div>
-          <Link
-            to="/participant/dashboard"
-            style={{
-              fontSize: "0.92rem",
-              fontWeight: 700,
-              color: "#059669",
-              textDecoration: "none",
-            }}
-          >
-            Find Registered Tickets →
-          </Link>
-        </div>
-
-        {loadingEvents ? (
-          <div style={{ textAlign: "center", padding: "40px", color: "#64748B" }}>
-            <div className="spinner" style={{ margin: "0 auto 12px" }} />
-            <p>Loading events...</p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px" }}>
-            {publicEvents.map((evt) => (
-              <article
-                key={evt._id}
-                className="home-interactive-card"
-                style={{
-                  background: "#FFFFFF",
-                  border: "1px solid #E2E8F0",
-                  borderRadius: "20px",
-                  overflow: "hidden",
-                  boxShadow: "0 4px 18px rgba(0, 0, 0, 0.04)",
-                  display: "flex",
-                  flexDirection: "column",
-                  cursor: "pointer",
-                }}
-              >
-                <div style={{ height: "160px", background: "#F1F5F9", position: "relative", overflow: "hidden", padding: "20px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-                  <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "#059669", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                    {evt.category || "General Event"}
-                  </span>
-                  <strong style={{ fontSize: "1.25rem", color: "#0F172A", fontWeight: 800, margin: "4px 0 0", lineHeight: 1.25 }}>
-                    {evt.title}
-                  </strong>
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: "14px",
-                      right: "14px",
-                      padding: "4px 10px",
-                      borderRadius: "9999px",
-                      background: "#FFFFFF",
-                      border: "1px solid #E2E8F0",
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#059669",
-                    }}
-                  >
-                    {evt.eventDurationType === "multi_day" ? "Multi-Day" : "Single-Day"}
-                  </span>
-                </div>
-
-                <div style={{ padding: "22px", flex: 1, display: "flex", flexDirection: "column" }}>
-                  <p style={{ margin: "0 0 14px", color: "#64748B", fontSize: "0.88rem", lineHeight: 1.55 }}>
-                    {evt.description ? evt.description.slice(0, 110) + "…" : "Join this event on EVENTRA."}
-                  </p>
-
-                  <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "6px", fontSize: "0.82rem", color: "#64748B", marginBottom: "18px" }}>
-                    <span>📅 {evt.date ? new Date(evt.date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "TBD"}</span>
-                    <span>📍 {evt.venue || "Campus Venue"}</span>
-                  </div>
-
-                  <Link
-                    to={`/events/${evt.slug}`}
-                    className="button button-primary"
-                    style={{
-                      width: "100%",
-                      textAlign: "center",
-                      padding: "10px",
-                      borderRadius: "10px",
-                      background: "#059669",
-                      color: "#FFFFFF",
-                      textDecoration: "none",
-                      fontWeight: 700,
-                      fontSize: "0.88rem",
-                    }}
-                  >
-                    View Event &amp; Register →
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* =========================================================================
-          5. BENTO BOX FEATURE GRID
+          4. BENTO BOX FEATURE GRID
           ========================================================================= */}
       <section style={{ maxWidth: "1140px", margin: "0 auto 80px", padding: "0 24px" }}>
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
@@ -962,7 +803,7 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
-          6. COMPARISON MATRIX
+          5. COMPARISON MATRIX
           ========================================================================= */}
       <section style={{ maxWidth: "980px", margin: "0 auto 100px", padding: "0 24px" }}>
         <div style={{ textAlign: "center", marginBottom: "36px" }}>
@@ -1027,7 +868,7 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
-          7. MINIMAL FOOTER
+          6. MINIMAL FOOTER
           ========================================================================= */}
       <footer
         style={{
