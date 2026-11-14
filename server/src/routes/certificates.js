@@ -1159,6 +1159,38 @@ async function getCertificatePdf(event, registration, certificate) {
   return freshPdf;
 }
 
+router.post("/event/:eventId/preview-pdf", requireAuth, async (req, res) => {
+  try {
+    const event = await findOwnedEvent(req.params.eventId, req.userId);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    // Overlay draft or active certificate settings from client
+    const draftEvent = {
+      ...event.toObject(),
+      ...(req.body || {}),
+    };
+
+    const org = await organizerOrganization(draftEvent);
+    const samplePerson = {
+      name: req.body?.participantName || "Alex Morgan",
+      _id: req.body?.registrationId || "sample-preview-id",
+    };
+
+    const images = await certificateImages(draftEvent);
+    const pdfBuffer = await renderCertificate(draftEvent, samplePerson, org, images);
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "inline; filename=certificate-preview.pdf",
+      "Cache-Control": "no-store, no-cache, must-revalidate, private",
+    });
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Certificate PDF preview error:", error);
+    res.status(500).json({ message: "Could not generate certificate preview PDF." });
+  }
+});
+
 router.get("/event/:eventId/:registrationId/download", requireAuth, async (req, res) => {
   try {
     const event = await findOwnedEvent(req.params.eventId, req.userId);

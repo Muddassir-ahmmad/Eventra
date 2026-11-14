@@ -177,6 +177,10 @@ export default function CertificateManager() {
   const [working, setWorking] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewPdfBlobUrl, setPreviewPdfBlobUrl] = useState(null);
+  const [generatingPreviewPdf, setGeneratingPreviewPdf] = useState(false);
+  const [previewModalPersonId, setPreviewModalPersonId] = useState("");
 
   useEffect(() => {
     loadCertificates();
@@ -232,6 +236,49 @@ export default function CertificateManager() {
       ...(key === "role" ? { designation: value } : {}),
     };
     update("signatures", signatures);
+  }
+
+  async function openFinalPreview(personId) {
+    const targetId = personId || previewId;
+    setPreviewModalPersonId(targetId);
+    setShowPreviewModal(true);
+    setGeneratingPreviewPdf(true);
+
+    const person =
+      participants.find((p) => p._id === targetId) ||
+      participants[0] || { name: "Alex Morgan", _id: "preview-id" };
+
+    try {
+      const res = await api.post(
+        `/certificates/event/${eventId}/preview-pdf`,
+        {
+          ...settings,
+          participantName: person.name,
+          registrationId: person._id,
+        },
+        { responseType: "blob" }
+      );
+      if (previewPdfBlobUrl) {
+        window.URL.revokeObjectURL(previewPdfBlobUrl);
+      }
+      const blobUrl = window.URL.createObjectURL(
+        new Blob([res.data], { type: "application/pdf" })
+      );
+      setPreviewPdfBlobUrl(blobUrl);
+    } catch (err) {
+      console.error("Preview certificate error:", err);
+      setError(err.response?.data?.message || "Could not generate certificate preview PDF.");
+    } finally {
+      setGeneratingPreviewPdf(false);
+    }
+  }
+
+  function closePreviewModal() {
+    setShowPreviewModal(false);
+    if (previewPdfBlobUrl) {
+      window.URL.revokeObjectURL(previewPdfBlobUrl);
+      setPreviewPdfBlobUrl(null);
+    }
   }
 
   function clearSignatureImage(index) {
@@ -580,6 +627,20 @@ export default function CertificateManager() {
             <span className={`certificate-state ${settings.certificateEnabled ? "is-on" : ""}`}>
               {settings.certificateEnabled ? "Issuing enabled" : "Issuing disabled"}
             </span>
+            <button
+              type="button"
+              className="cert-button"
+              onClick={() => openFinalPreview(previewPerson?._id)}
+              disabled={generatingPreviewPdf}
+              style={{
+                background: "#ECFDF5",
+                borderColor: "#A7F3D0",
+                color: "#059669",
+                fontWeight: 700,
+              }}
+            >
+              {generatingPreviewPdf ? "Rendering Preview…" : "👁️ Preview Final Certificate"}
+            </button>
             <button className="cert-button cert-button-primary" onClick={saveSettings} disabled={saving || working}>
               {saving ? "Saving…" : "Save settings"}
             </button>
@@ -661,40 +722,23 @@ export default function CertificateManager() {
                 Printed neatly below the top header on the certificate (leave blank to omit).
               </small>
             </label>
-            <div className="certificate-header-style-controls">
-              <div className="certificate-style-group">
-                <span>Header size</span>
-                <div className="certificate-pill-group" role="group" aria-label="Header font size">
-                  {[
-                    { id: "sm", label: "Small" },
-                    { id: "md", label: "Medium" },
-                    { id: "lg", label: "Large" },
-                    { id: "xl", label: "XL" },
-                  ].map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={`certificate-pill-btn${(settings.certificateOrganizationSize || "md") === item.id ? " is-active" : ""}`}
-                      onClick={() => {
-                        const presetPt = TEXT_ELEMENT_CONFIG.organization.presets[item.id];
-                        setSettings((curr) => ({
-                          ...curr,
-                          certificateOrganizationSize: item.id,
-                          certificateTextStyles: {
-                            ...curr.certificateTextStyles,
-                            organization: { ...curr.certificateTextStyles?.organization, fontSize: presetPt },
-                          },
-                        }));
-                        setNotice("");
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="certificate-style-group">
-                <span>Header font</span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "8px 12px",
+                background: "#F8FAFC",
+                border: "1px solid #E2E8F0",
+                borderRadius: 8,
+                marginTop: 4,
+                marginBottom: 14,
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Font:</span>
                 <select
                   className="certificate-inline-select"
                   value={settings.certificateTextStyles?.organization?.font || "theme"}
@@ -709,51 +753,124 @@ export default function CertificateManager() {
                     }));
                     setNotice("");
                   }}
+                  style={{
+                    padding: "4px 8px",
+                    fontSize: "0.76rem",
+                    borderRadius: 6,
+                    border: "1px solid #CBD5E1",
+                    background: "#FFFFFF",
+                    color: "#0F172A",
+                    cursor: "pointer",
+                  }}
                 >
                   {CERTIFICATE_FONTS.map((f) => (
                     <option key={f.id} value={f.id}>{f.label}</option>
                   ))}
                 </select>
               </div>
-              <div className="certificate-style-group">
-                <span>Position</span>
-                <div className="certificate-pill-group" role="group" aria-label="Header alignment">
+
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Size:</span>
+                <div style={{ display: "flex", gap: 4 }}>
                   {[
-                    { id: "left", label: "Left" },
-                    { id: "center", label: "Middle" },
-                    { id: "right", label: "Right" },
-                  ].map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={`certificate-pill-btn${(settings.certificateOrganizationAlign || "center") === item.id ? " is-active" : ""}`}
-                      onClick={() => {
-                        setSettings((curr) => ({
-                          ...curr,
-                          certificateOrganizationAlign: item.id,
-                          certificateTextStyles: {
-                            ...curr.certificateTextStyles,
-                            organization: { ...curr.certificateTextStyles?.organization, align: item.id },
-                          },
-                        }));
-                        setNotice("");
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+                    { id: "sm", label: "S" },
+                    { id: "md", label: "M" },
+                    { id: "lg", label: "L" },
+                    { id: "xl", label: "XL" },
+                  ].map((item) => {
+                    const isSel = (settings.certificateOrganizationSize || "md") === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          const presetPt = TEXT_ELEMENT_CONFIG.organization.presets[item.id];
+                          setSettings((curr) => ({
+                            ...curr,
+                            certificateOrganizationSize: item.id,
+                            certificateTextStyles: {
+                              ...curr.certificateTextStyles,
+                              organization: { ...curr.certificateTextStyles?.organization, fontSize: presetPt },
+                            },
+                          }));
+                          setNotice("");
+                        }}
+                        style={{
+                          padding: "3px 8px",
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          borderRadius: 5,
+                          border: `1px solid ${isSel ? "#059669" : "#CBD5E1"}`,
+                          background: isSel ? "#059669" : "#FFFFFF",
+                          color: isSel ? "#FFFFFF" : "#334155",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="certificate-style-group">
-                <span>Letter case</span>
-                <button
-                  type="button"
-                  className={`certificate-pill-btn${settings.certificateOrganizationUppercase ? " is-active" : ""}`}
-                  onClick={() => update("certificateOrganizationUppercase", !settings.certificateOrganizationUppercase)}
-                >
-                  {settings.certificateOrganizationUppercase ? "ALL CAPS ✓" : "UPPERCASE"}
-                </button>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Align:</span>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {[
+                    { id: "left", label: "Left" },
+                    { id: "center", label: "Mid" },
+                    { id: "right", label: "Right" },
+                  ].map((item) => {
+                    const isSel = (settings.certificateOrganizationAlign || "center") === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setSettings((curr) => ({
+                            ...curr,
+                            certificateOrganizationAlign: item.id,
+                            certificateTextStyles: {
+                              ...curr.certificateTextStyles,
+                              organization: { ...curr.certificateTextStyles?.organization, align: item.id },
+                            },
+                          }));
+                          setNotice("");
+                        }}
+                        style={{
+                          padding: "3px 8px",
+                          fontSize: "0.72rem",
+                          fontWeight: 600,
+                          borderRadius: 5,
+                          border: `1px solid ${isSel ? "#059669" : "#CBD5E1"}`,
+                          background: isSel ? "#059669" : "#FFFFFF",
+                          color: isSel ? "#FFFFFF" : "#334155",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+
+              <button
+                type="button"
+                onClick={() => update("certificateOrganizationUppercase", !settings.certificateOrganizationUppercase)}
+                style={{
+                  padding: "3px 10px",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  borderRadius: 5,
+                  border: `1px solid ${settings.certificateOrganizationUppercase ? "#059669" : "#CBD5E1"}`,
+                  background: settings.certificateOrganizationUppercase ? "#ECFDF5" : "#FFFFFF",
+                  color: settings.certificateOrganizationUppercase ? "#059669" : "#64748B",
+                  cursor: "pointer",
+                }}
+              >
+                {settings.certificateOrganizationUppercase ? "CAPS ON ✓" : "Caps Off"}
+              </button>
             </div>
             <label className="certificate-field">
               <span>Event type</span>
@@ -763,19 +880,21 @@ export default function CertificateManager() {
               <span>Certificate description</span>
               <textarea rows="4" maxLength="500" value={settings.certificateDescription} onChange={(change) => update("certificateDescription", change.target.value)} />
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
-                <span style={{ fontSize: "0.75rem", color: "#94a3b8", width: "100%" }}>Insert dynamic placeholder:</span>
+                <span style={{ fontSize: "0.75rem", color: "#64748B", width: "100%", fontWeight: 600 }}>Insert dynamic placeholder:</span>
                 {PLACEHOLDER_TAGS.map(({ tag, label }) => (
                   <button
                     key={tag}
                     type="button"
                     style={{
-                      background: "rgba(255, 255, 255, 0.06)",
-                      border: "1px solid rgba(255, 255, 255, 0.12)",
-                      borderRadius: 4,
-                      padding: "2px 8px",
+                      background: "#F1F5F9",
+                      border: "1px solid #CBD5E1",
+                      borderRadius: 6,
+                      padding: "3px 8px",
                       fontSize: "0.72rem",
-                      color: "#38bdf8",
+                      color: "#059669",
                       cursor: "pointer",
+                      fontWeight: 600,
+                      transition: "all 0.15s ease",
                     }}
                     onClick={() => insertPlaceholder(tag)}
                     title={`Insert ${label}`}
@@ -800,80 +919,59 @@ export default function CertificateManager() {
               }}
             />
 
-            {/* Multi-Day Certificate Eligibility Rules */}
+            {/* Multi-Day Certificate Eligibility Rules (Compact Dropdown) */}
             <div
               style={{
-                padding: "14px 16px",
-                background: "rgba(15, 23, 42, 0.7)",
-                border: "1px solid rgba(99, 102, 241, 0.28)",
-                borderRadius: 10,
-                marginTop: 14,
+                padding: "16px 18px",
+                background: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                borderRadius: 12,
+                marginTop: 16,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
               }}
             >
-              <div style={{ marginBottom: 10 }}>
-                <strong style={{ color: "#ffffff", fontSize: "0.92rem", display: "block" }}>
-                  Certificate Eligibility Rule
-                </strong>
-                <small style={{ color: "#94a3b8", fontSize: "0.76rem" }}>
-                  Select the attendance verification criteria required before certificates can be generated or downloaded.
-                </small>
-              </div>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>
+                Certificate Eligibility Rule *
+              </label>
+              <small style={{ color: "#64748B", fontSize: "0.76rem", display: "block", marginBottom: 10 }}>
+                Choose the gate or session check-in criteria required before certificates can be generated or downloaded.
+              </small>
 
-              <div style={{ display: "grid", gap: 8 }}>
-                {[
-                  { id: "any_day", label: "At least one day attended", desc: "Participants verified on at least 1 event day qualify." },
-                  { id: "all_days", label: "All event days attended", desc: "Participants must attend every scheduled event day." },
-                  { id: "min_days", label: "Minimum number of days attended", desc: "Require a minimum day count across the event." },
-                  { id: "at_least_one_session", label: "At least one session attended", desc: "Qualify if attendee checked into at least 1 session." },
-                  { id: "all_selected_sessions", label: "All selected sessions attended", desc: "Participant must attend all sessions they enrolled in during registration." },
-                  { id: "min_sessions", label: "Minimum number of sessions attended", desc: "Require attendee to check into a specific minimum count of sessions." },
-                  { id: "required_sessions", label: "Required specific sessions attended", desc: "Require check-ins for specific mandatory agenda sessions." },
-                ].map((rule) => {
-                  const currentMode = settings.certificateEligibilityRule?.mode || "any_day";
-                  const isSel = currentMode === rule.id;
-                  return (
-                    <label
-                      key={rule.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 10,
-                        padding: "8px 12px",
-                        borderRadius: 8,
-                        background: isSel ? "rgba(99, 102, 241, 0.16)" : "rgba(255, 255, 255, 0.02)",
-                        border: `1px solid ${isSel ? "#818cf8" : "rgba(255, 255, 255, 0.08)"}`,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="certRuleMode"
-                        checked={isSel}
-                        onChange={() => {
-                          update("certificateEligibilityRule", {
-                            ...settings.certificateEligibilityRule,
-                            mode: rule.id,
-                          });
-                        }}
-                        style={{ marginTop: 3 }}
-                      />
-                      <div>
-                        <strong style={{ fontSize: "0.85rem", color: isSel ? "#ffffff" : "#cbd5e1" }}>
-                          {rule.label}
-                        </strong>
-                        <p style={{ margin: "2px 0 0", fontSize: "0.74rem", color: "#94a3b8" }}>
-                          {rule.desc}
-                        </p>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
+              <select
+                value={settings.certificateEligibilityRule?.mode || "any_day"}
+                onChange={(e) => {
+                  update("certificateEligibilityRule", {
+                    ...settings.certificateEligibilityRule,
+                    mode: e.target.value,
+                  });
+                }}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: 8,
+                  border: "1px solid #CBD5E1",
+                  background: "#FFFFFF",
+                  color: "#0F172A",
+                  fontSize: "0.88rem",
+                  fontWeight: 600,
+                  outline: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="any_day">At least one day attended (Default)</option>
+                <option value="all_days">All event days attended</option>
+                <option value="min_days">Minimum number of days attended</option>
+                <option value="at_least_one_session">At least one session attended</option>
+                <option value="all_selected_sessions">All selected sessions attended</option>
+                <option value="min_sessions">Minimum number of sessions attended</option>
+                <option value="required_sessions">Specific mandatory sessions attended</option>
+              </select>
 
+              {/* Conditional Sub-settings */}
               {settings.certificateEligibilityRule?.mode === "min_days" && (
-                <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(0,0,0,0.25)", borderRadius: 8 }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "0.82rem", color: "#cbd5e1" }}>
-                    <span>Minimum days required:</span>
+                <div style={{ marginTop: 12, padding: "10px 14px", background: "#F8FAFC", borderRadius: 8, border: "1px solid #E2E8F0" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "0.82rem", color: "#334155" }}>
+                    <span style={{ fontWeight: 600 }}>Minimum days required:</span>
                     <input
                       type="number"
                       min="1"
@@ -888,23 +986,24 @@ export default function CertificateManager() {
                       }}
                       style={{
                         width: 70,
-                        padding: "4px 8px",
-                        background: "#0f172a",
-                        border: "1px solid rgba(255, 255, 255, 0.15)",
-                        color: "#ffffff",
+                        padding: "6px 10px",
+                        background: "#FFFFFF",
+                        border: "1px solid #CBD5E1",
+                        color: "#0F172A",
                         borderRadius: 6,
                         textAlign: "center",
+                        fontWeight: 700,
                       }}
                     />
-                    <small style={{ color: "#94a3b8" }}>of {eventDays.length || 1} total days</small>
+                    <small style={{ color: "#64748B" }}>of {eventDays.length || 1} total event days</small>
                   </label>
                 </div>
               )}
 
               {settings.certificateEligibilityRule?.mode === "min_sessions" && (
-                <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(0,0,0,0.25)", borderRadius: 8 }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "0.82rem", color: "#cbd5e1" }}>
-                    <span>Minimum sessions required:</span>
+                <div style={{ marginTop: 12, padding: "10px 14px", background: "#F8FAFC", borderRadius: 8, border: "1px solid #E2E8F0" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "0.82rem", color: "#334155" }}>
+                    <span style={{ fontWeight: 600 }}>Minimum sessions required:</span>
                     <input
                       type="number"
                       min="1"
@@ -919,33 +1018,34 @@ export default function CertificateManager() {
                       }}
                       style={{
                         width: 70,
-                        padding: "4px 8px",
-                        background: "#0f172a",
-                        border: "1px solid rgba(255, 255, 255, 0.15)",
-                        color: "#ffffff",
+                        padding: "6px 10px",
+                        background: "#FFFFFF",
+                        border: "1px solid #CBD5E1",
+                        color: "#0F172A",
                         borderRadius: 6,
                         textAlign: "center",
+                        fontWeight: 700,
                       }}
                     />
-                    <small style={{ color: "#94a3b8" }}>of {allSessions.length || 1} total sessions</small>
+                    <small style={{ color: "#64748B" }}>of {allSessions.length || 1} total sessions</small>
                   </label>
                 </div>
               )}
 
               {settings.certificateEligibilityRule?.mode === "required_sessions" && (
-                <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(0,0,0,0.25)", borderRadius: 8 }}>
-                  <span style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#cbd5e1", marginBottom: 6 }}>
-                    Select mandatory sessions:
+                <div style={{ marginTop: 12, padding: "12px 14px", background: "#F8FAFC", borderRadius: 8, border: "1px solid #E2E8F0" }}>
+                  <span style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>
+                    Select mandatory sessions to verify:
                   </span>
                   {allSessions.length === 0 ? (
-                    <small style={{ color: "#94a3b8" }}>No sessions configured in the event schedule yet.</small>
+                    <small style={{ color: "#64748B" }}>No sessions configured in the event schedule yet.</small>
                   ) : (
-                    <div style={{ display: "grid", gap: 6, maxHeight: 160, overflowY: "auto" }}>
+                    <div style={{ display: "grid", gap: 6, maxHeight: 180, overflowY: "auto" }}>
                       {allSessions.map((ses) => {
                         const reqList = settings.certificateEligibilityRule?.requiredSessionIds || [];
                         const checked = reqList.includes(ses.sessionId);
                         return (
-                          <label key={ses.sessionId} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.78rem", color: "#e2e8f0" }}>
+                          <label key={ses.sessionId} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem", color: "#334155", cursor: "pointer" }}>
                             <input
                               type="checkbox"
                               checked={checked}
@@ -958,6 +1058,7 @@ export default function CertificateManager() {
                                   requiredSessionIds: nextList,
                                 });
                               }}
+                              style={{ accentColor: "#059669" }}
                             />
                             <span>D{ses.dayNumber} · <strong>{ses.title}</strong> {ses.speaker ? `(${ses.speaker})` : ""}</span>
                           </label>
@@ -973,10 +1074,10 @@ export default function CertificateManager() {
             <div
               style={{
                 marginTop: 14,
-                padding: "12px 14px",
-                background: "rgba(255, 255, 255, 0.03)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: 8,
+                padding: "14px 16px",
+                background: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                borderRadius: 10,
               }}
             >
               <label className="certificate-switch" style={{ margin: 0 }}>
@@ -985,13 +1086,13 @@ export default function CertificateManager() {
                   checked={settings.requireFeedbackForCertificate}
                   onChange={(change) => update("requireFeedbackForCertificate", change.target.checked)}
                 />
-                <span style={{ fontWeight: 600 }}>Require Feedback Before Issuing</span>
+                <span style={{ fontWeight: 600, color: "#0F172A" }}>Require Feedback Before Issuing</span>
               </label>
-              <small style={{ display: "block", color: "#94a3b8", marginTop: 4, fontSize: "0.78rem" }}>
+              <small style={{ display: "block", color: "#64748B", marginTop: 4, fontSize: "0.78rem" }}>
                 When enabled, attendees must complete their post-event feedback survey before their certificate becomes eligible.{" "}
                 <Link
                   to={`/dashboard/events/${eventId}/edit?step=feedback`}
-                  style={{ color: "#a5b4fc", textDecoration: "underline", fontWeight: 600 }}
+                  style={{ color: "#059669", textDecoration: "underline", fontWeight: 600 }}
                 >
                   Edit feedback questions →
                 </Link>
@@ -1035,22 +1136,23 @@ export default function CertificateManager() {
             {/* AI Certificate Studio */}
             <div
               style={{
-                padding: "14px 16px",
-                background: "rgba(99, 102, 241, 0.08)",
-                border: "1px solid rgba(99, 102, 241, 0.25)",
-                borderRadius: 10,
+                padding: "16px 18px",
+                background: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                borderRadius: 12,
                 marginTop: 14,
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                 <div>
-                  <span style={{ fontSize: "0.68rem", fontWeight: 800, color: "#a5b4fc", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  <span style={{ fontSize: "0.68rem", fontWeight: 800, color: "#059669", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     ✦ GEMINI AI STUDIO
                   </span>
-                  <strong style={{ display: "block", fontSize: "0.92rem", color: "#ffffff", marginTop: 2 }}>
+                  <strong style={{ display: "block", fontSize: "0.95rem", color: "#0F172A", marginTop: 2 }}>
                     AI Certificate Designer
                   </strong>
-                  <small style={{ color: "#94a3b8", display: "block", fontSize: "0.74rem", marginTop: 2 }}>
+                  <small style={{ color: "#64748B", display: "block", fontSize: "0.76rem", marginTop: 2 }}>
                     Generate tailored theme recommendations, titles, descriptions & signatories using Google Gemini.
                   </small>
                 </div>
@@ -1064,12 +1166,12 @@ export default function CertificateManager() {
                   placeholder="Custom goal (e.g. 1st Place Hackathon, Medical Conference, Leadership)..."
                   style={{
                     flex: 1,
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                    border: "1px solid #CBD5E1",
                     borderRadius: 6,
-                    background: "rgba(14, 20, 36, 0.85)",
-                    color: "#ffffff",
-                    padding: "7px 11px",
-                    fontSize: "0.75rem",
+                    background: "#FFFFFF",
+                    color: "#0F172A",
+                    padding: "8px 12px",
+                    fontSize: "0.8rem",
                   }}
                   onKeyDown={(e) => e.key === "Enter" && askForSuggestion(false)}
                 />
@@ -1078,14 +1180,14 @@ export default function CertificateManager() {
                   className="cert-button cert-button-primary"
                   onClick={() => askForSuggestion(false)}
                   disabled={working || !aiConfigured}
-                  style={{ flexShrink: 0 }}
+                  style={{ flexShrink: 0, padding: "8px 14px", fontSize: "0.8rem" }}
                 >
                   {working ? "Designing…" : "Suggest 4 Themes ✦"}
                 </button>
               </div>
 
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Quick prompts:</span>
+                <span style={{ fontSize: "0.7rem", color: "#64748B", alignSelf: "center" }}>Quick prompts:</span>
                 {[
                   "Hackathon Championship",
                   "Tech Workshop",
@@ -1096,12 +1198,13 @@ export default function CertificateManager() {
                     key={chip}
                     type="button"
                     style={{
-                      background: "rgba(99, 102, 241, 0.14)",
-                      border: "1px solid rgba(99, 102, 241, 0.3)",
-                      borderRadius: 4,
-                      padding: "2px 7px",
-                      fontSize: "0.68rem",
-                      color: "#c7d2fe",
+                      background: "#ECFDF5",
+                      border: "1px solid #A7F3D0",
+                      borderRadius: 6,
+                      padding: "3px 8px",
+                      fontSize: "0.7rem",
+                      fontWeight: 600,
+                      color: "#065F46",
                       cursor: "pointer",
                     }}
                     onClick={() => {
@@ -1114,7 +1217,7 @@ export default function CertificateManager() {
               </div>
 
               {!aiConfigured && (
-                <p className="certificate-empty-line" style={{ marginTop: 8 }}>
+                <p className="certificate-empty-line" style={{ marginTop: 8, color: "#94A3B8" }}>
                   AI suggestions unavailable. Configure GEMINI_API_KEY in server .env.
                 </p>
               )}
@@ -1122,7 +1225,7 @@ export default function CertificateManager() {
               {suggestions.length > 0 && (
                 <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#c7d2fe" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#0F172A" }}>
                       {suggestions.length} AI Template Concepts Ready — Click any option to preview live
                     </span>
                     <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -1131,11 +1234,11 @@ export default function CertificateManager() {
                         className="cert-button"
                         onClick={() => askForSuggestion(true)}
                         disabled={working || !aiConfigured}
-                        style={{ minHeight: 28, padding: "4px 10px", fontSize: "0.7rem" }}
+                        style={{ minHeight: 28, padding: "4px 10px", fontSize: "0.72rem" }}
                       >
                         {working ? "Loading…" : "↻ More Themes"}
                       </button>
-                      <button type="button" className="text-action" onClick={() => setSuggestions([])} style={{ marginRight: 0 }}>
+                      <button type="button" className="text-action" onClick={() => setSuggestions([])} style={{ marginRight: 0, color: "#64748B" }}>
                         Clear
                       </button>
                     </div>
@@ -1152,15 +1255,17 @@ export default function CertificateManager() {
                         className="certificate-suggestion"
                         style={{
                           marginTop: 0,
-                          borderColor: isApplied ? "#34d399" : "rgba(99, 102, 241, 0.35)",
-                          background: isApplied ? "rgba(16, 185, 129, 0.1)" : "rgba(99, 102, 241, 0.1)",
+                          borderColor: isApplied ? "#059669" : "#E2E8F0",
+                          background: isApplied ? "#ECFDF5" : "#F8FAFC",
+                          borderRadius: 8,
+                          padding: "12px 14px",
                         }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
                             <span
                               className={`certificate-template-swatch template-${item.template}`}
-                              style={{ width: 58, height: 36, flexShrink: 0 }}
+                              style={{ width: 58, height: 36, flexShrink: 0, borderRadius: 4 }}
                             >
                               <i /><b /><em />
                             </span>
@@ -1170,17 +1275,17 @@ export default function CertificateManager() {
                                   {tmplMeta?.name || item.template}
                                 </span>
                                 {item.styleTag && (
-                                  <span style={{ fontSize: "0.68rem", color: "#cbd5e1", fontWeight: 600 }}>
+                                  <span style={{ fontSize: "0.7rem", color: "#64748B", fontWeight: 600 }}>
                                     {item.styleTag}
                                   </span>
                                 )}
                                 {idx === 0 && (
-                                  <span style={{ fontSize: "0.68rem", color: "#34d399", fontWeight: 700 }}>
+                                  <span style={{ fontSize: "0.7rem", color: "#059669", fontWeight: 700 }}>
                                     ★ Top Match
                                   </span>
                                 )}
                                 {isApplied && (
-                                  <span style={{ fontSize: "0.68rem", color: "#6ee7b7", fontWeight: 700 }}>
+                                  <span style={{ fontSize: "0.7rem", color: "#059669", fontWeight: 700 }}>
                                     ✓ Active on Preview
                                   </span>
                                 )}
@@ -1188,17 +1293,17 @@ export default function CertificateManager() {
                             </div>
                           </div>
 
-                          <strong style={{ fontSize: "0.88rem", color: "#ffffff", marginTop: 2 }}>{item.title}</strong>
-                          <p style={{ marginTop: 4, fontSize: "0.75rem", color: "#cbd5e1", lineHeight: 1.45 }}>
+                          <strong style={{ fontSize: "0.9rem", color: "#0F172A", marginTop: 2 }}>{item.title}</strong>
+                          <p style={{ marginTop: 4, fontSize: "0.78rem", color: "#475569", lineHeight: 1.45 }}>
                             {item.description}
                           </p>
                           {item.suggestedSignatories?.length > 0 && (
-                            <div style={{ marginTop: 5, fontSize: "0.69rem", color: "#94a3b8" }}>
-                              <b style={{ color: "#c7d2fe" }}>Signatories:</b>{" "}
+                            <div style={{ marginTop: 5, fontSize: "0.72rem", color: "#64748B" }}>
+                              <b style={{ color: "#334155" }}>Signatories:</b>{" "}
                               {item.suggestedSignatories.join(", ")}
                             </div>
                           )}
-                          <p style={{ marginTop: 4, fontSize: "0.69rem", color: "#a5b4fc" }}>
+                          <p style={{ marginTop: 4, fontSize: "0.72rem", color: "#059669" }}>
                             <b>Why this fits:</b> {item.reason}
                           </p>
                         </div>
@@ -1208,7 +1313,7 @@ export default function CertificateManager() {
                             type="button"
                             className="cert-button cert-button-primary"
                             onClick={() => applySuggestion(item, false, false)}
-                            style={{ minHeight: 32, padding: "6px 11px", fontSize: "0.73rem" }}
+                            style={{ minHeight: 32, padding: "6px 12px", fontSize: "0.75rem" }}
                           >
                             {isApplied ? "Re-Apply Theme" : "Apply Theme"}
                           </button>
@@ -1217,7 +1322,7 @@ export default function CertificateManager() {
                               type="button"
                               className="text-action"
                               onClick={() => applySuggestion(item, false, true)}
-                              style={{ marginRight: 0, fontSize: "0.69rem" }}
+                              style={{ marginRight: 0, fontSize: "0.72rem" }}
                               title={`Replace your current heading with "${item.title}"`}
                             >
                               + Use AI Heading
@@ -1228,7 +1333,7 @@ export default function CertificateManager() {
                               type="button"
                               className="text-action"
                               onClick={() => applySuggestion(item, true, false)}
-                              style={{ marginRight: 0, fontSize: "0.69rem" }}
+                              style={{ marginRight: 0, fontSize: "0.72rem" }}
                             >
                               + Apply Signatories
                             </button>
@@ -1245,14 +1350,33 @@ export default function CertificateManager() {
           <div className="certificate-preview-panel">
             <div className="certificate-panel-heading">
               <div><p className="certificate-kicker">LIVE PREVIEW</p><h2>{settings.certificateTemplate} certificate</h2></div>
-              <label className="preview-participant">
-                <span>Eligible participant</span>
-                <select value={previewId} onChange={(change) => setPreviewId(change.target.value)}>
-                  {eligibleList.map((person) => <option key={person._id} value={person._id}>{person.name}</option>)}
-                  {participants.length === 0 && <option value="">Sample participant</option>}
-                  {participants.length > 0 && eligibleList.length === 0 && <option value={participants[0]._id}>No eligible participants yet</option>}
-                </select>
-              </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <label className="preview-participant">
+                  <span>Eligible participant</span>
+                  <select value={previewId} onChange={(change) => setPreviewId(change.target.value)}>
+                    {eligibleList.map((person) => <option key={person._id} value={person._id}>{person.name}</option>)}
+                    {participants.length === 0 && <option value="">Sample participant</option>}
+                    {participants.length > 0 && eligibleList.length === 0 && <option value={participants[0]._id}>No eligible participants yet</option>}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="cert-button cert-button-primary"
+                  onClick={() => openFinalPreview(previewPerson?._id)}
+                  disabled={generatingPreviewPdf}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "7px 15px",
+                    fontWeight: 700,
+                    fontSize: "0.82rem",
+                  }}
+                  title="Generate and view the high-resolution vector PDF certificate"
+                >
+                  {generatingPreviewPdf ? "Generating PDF…" : "👁️ View Final PDF Preview"}
+                </button>
+              </div>
             </div>
             <CertificatePreview
               event={event}
@@ -1558,6 +1682,282 @@ export default function CertificateManager() {
           }}
         />
       )}
+
+      {/* Final Certificate PDF Preview Modal */}
+      {showPreviewModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cert-preview-modal-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1400,
+            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closePreviewModal();
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#FFFFFF",
+              borderRadius: "16px",
+              boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.35)",
+              width: "100%",
+              maxWidth: "1100px",
+              maxHeight: "94vh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              border: "1px solid #E2E8F0",
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "14px 20px",
+                borderBottom: "1px solid #E2E8F0",
+                background: "#F8FAFC",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    fontSize: "0.7rem",
+                    fontWeight: 800,
+                    color: "#059669",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  HIGH-RESOLUTION VECTOR RENDER
+                </span>
+                <h3
+                  id="cert-preview-modal-title"
+                  style={{
+                    fontSize: "1.1rem",
+                    fontWeight: 700,
+                    color: "#0F172A",
+                    margin: 0,
+                  }}
+                >
+                  Final Certificate Preview
+                </h3>
+              </div>
+
+              {/* Attendee Selector & Actions */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: "0.8rem",
+                    color: "#475569",
+                    fontWeight: 600,
+                  }}
+                >
+                  <span>Sample Attendee:</span>
+                  <select
+                    value={previewModalPersonId}
+                    onChange={(e) => {
+                      setPreviewModalPersonId(e.target.value);
+                      openFinalPreview(e.target.value);
+                    }}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #CBD5E1",
+                      background: "#FFFFFF",
+                      color: "#0F172A",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {eligibleList.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name}
+                      </option>
+                    ))}
+                    {participants.length === 0 && <option value="">Alex Morgan (Demo)</option>}
+                    {participants.length > 0 && eligibleList.length === 0 && (
+                      <option value={participants[0]._id}>{participants[0].name}</option>
+                    )}
+                  </select>
+                </label>
+
+                {previewPdfBlobUrl && (
+                  <>
+                    <a
+                      href={previewPdfBlobUrl}
+                      download={`Certificate-${event?.title || "Event"}-Preview.pdf`}
+                      className="cert-button"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "6px 12px",
+                        fontSize: "0.78rem",
+                        textDecoration: "none",
+                        background: "#F1F5F9",
+                        color: "#0F172A",
+                        border: "1px solid #CBD5E1",
+                        fontWeight: 600,
+                      }}
+                    >
+                      📥 Download PDF
+                    </a>
+                    <a
+                      href={previewPdfBlobUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="cert-button"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "6px 12px",
+                        fontSize: "0.78rem",
+                        textDecoration: "none",
+                        background: "#F1F5F9",
+                        color: "#0F172A",
+                        border: "1px solid #CBD5E1",
+                        fontWeight: 600,
+                      }}
+                    >
+                      🗗 Full Tab
+                    </a>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={closePreviewModal}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    fontSize: "1.3rem",
+                    cursor: "pointer",
+                    color: "#64748B",
+                    padding: "4px 8px",
+                    lineHeight: 1,
+                    borderRadius: 6,
+                  }}
+                  title="Close preview"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div
+              style={{
+                flex: 1,
+                minHeight: "450px",
+                maxHeight: "75vh",
+                background: "#0F172A",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+              }}
+            >
+              {generatingPreviewPdf && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: 2,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 12,
+                    background: "rgba(15, 23, 42, 0.85)",
+                    color: "#FFFFFF",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      border: "3px solid rgba(255, 255, 255, 0.2)",
+                      borderTopColor: "#059669",
+                      borderRadius: "50%",
+                      animation: "spin 0.8s linear infinite",
+                    }}
+                  />
+                  <p style={{ margin: 0, fontSize: "0.9rem", fontWeight: 600 }}>
+                    Generating high-resolution vector PDF with active styling…
+                  </p>
+                </div>
+              )}
+
+              {previewPdfBlobUrl ? (
+                <iframe
+                  src={`${previewPdfBlobUrl}#toolbar=0&navpanes=0`}
+                  title="Final Certificate PDF Preview"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    border: "none",
+                    minHeight: "520px",
+                  }}
+                />
+              ) : !generatingPreviewPdf ? (
+                <div style={{ color: "#94A3B8", textAlign: "center", padding: "40px" }}>
+                  <p>No preview generated yet. Click below to render.</p>
+                  <button
+                    type="button"
+                    className="cert-button cert-button-primary"
+                    onClick={() => openFinalPreview(previewModalPersonId)}
+                  >
+                    Render Certificate PDF
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: "10px 20px",
+                background: "#F8FAFC",
+                borderTop: "1px solid #E2E8F0",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                fontSize: "0.78rem",
+                color: "#64748B",
+              }}
+            >
+              <span>
+                Template: <strong style={{ color: "#0F172A" }}>{settings.certificateTemplate}</strong> · Format: Vector PDF (Landscape A4)
+              </span>
+              <button
+                type="button"
+                className="cert-button"
+                onClick={closePreviewModal}
+                style={{ padding: "5px 14px", fontSize: "0.8rem", fontWeight: 600 }}
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -1579,26 +1979,77 @@ function InlineTextStyleRow({ elementKey, styleObj, onChange }) {
   if (!cfg) return null;
   const activeFont = styleObj?.font || "theme";
   const activeSize = styleObj?.fontSize ?? cfg.defaultSize;
-  const activeAlign = styleObj?.align || "";
+  const activeAlign = styleObj?.align || "center";
 
   return (
-    <div className="certificate-header-style-controls" style={{ marginTop: -4, marginBottom: 14 }}>
-      <div className="certificate-style-group">
-        <span>{cfg.label} size ({Math.round(activeSize)}pt)</span>
-        <div className="certificate-pill-group" role="group" aria-label={`${cfg.label} font size`}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+        padding: "8px 12px",
+        background: "#F8FAFC",
+        border: "1px solid #E2E8F0",
+        borderRadius: 8,
+        marginTop: 4,
+        marginBottom: 14,
+        flexWrap: "wrap",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>
+          Font:
+        </span>
+        <select
+          className="certificate-inline-select"
+          value={activeFont}
+          onChange={(e) => onChange({ font: e.target.value })}
+          style={{
+            padding: "4px 8px",
+            fontSize: "0.76rem",
+            borderRadius: 6,
+            border: "1px solid #CBD5E1",
+            background: "#FFFFFF",
+            color: "#0F172A",
+            cursor: "pointer",
+          }}
+        >
+          {CERTIFICATE_FONTS.map((f) => (
+            <option key={f.id} value={f.id}>{f.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>
+          Size:
+        </span>
+        <div style={{ display: "flex", gap: 4 }}>
           {[
-            { id: "sm", label: "Small" },
-            { id: "md", label: "Medium" },
-            { id: "lg", label: "Large" },
+            { id: "sm", label: "S" },
+            { id: "md", label: "M" },
+            { id: "lg", label: "L" },
             { id: "xl", label: "XL" },
           ].map((item) => {
             const pt = cfg.presets[item.id];
+            const isSel = activeSize === pt;
             return (
               <button
                 key={item.id}
                 type="button"
-                className={`certificate-pill-btn${activeSize === pt ? " is-active" : ""}`}
                 onClick={() => onChange({ fontSize: pt })}
+                style={{
+                  padding: "3px 8px",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  borderRadius: 5,
+                  border: `1px solid ${isSel ? "#059669" : "#CBD5E1"}`,
+                  background: isSel ? "#059669" : "#FFFFFF",
+                  color: isSel ? "#FFFFFF" : "#334155",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
               >
                 {item.label}
               </button>
@@ -1606,35 +2057,39 @@ function InlineTextStyleRow({ elementKey, styleObj, onChange }) {
           })}
         </div>
       </div>
-      <div className="certificate-style-group">
-        <span>Font</span>
-        <select
-          className="certificate-inline-select"
-          value={activeFont}
-          onChange={(e) => onChange({ font: e.target.value })}
-        >
-          {CERTIFICATE_FONTS.map((f) => (
-            <option key={f.id} value={f.id}>{f.label}</option>
-          ))}
-        </select>
-      </div>
-      <div className="certificate-style-group">
-        <span>Align</span>
-        <div className="certificate-pill-group" role="group" aria-label={`${cfg.label} alignment`}>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>
+          Align:
+        </span>
+        <div style={{ display: "flex", gap: 4 }}>
           {[
             { id: "left", label: "Left" },
-            { id: "center", label: "Middle" },
+            { id: "center", label: "Mid" },
             { id: "right", label: "Right" },
-          ].map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`certificate-pill-btn${activeAlign === item.id ? " is-active" : ""}`}
-              onClick={() => onChange({ align: item.id })}
-            >
-              {item.label}
-            </button>
-          ))}
+          ].map((item) => {
+            const isSel = activeAlign === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onChange({ align: item.id })}
+                style={{
+                  padding: "3px 8px",
+                  fontSize: "0.72rem",
+                  fontWeight: 600,
+                  borderRadius: 5,
+                  border: `1px solid ${isSel ? "#059669" : "#CBD5E1"}`,
+                  background: isSel ? "#059669" : "#FFFFFF",
+                  color: isSel ? "#FFFFFF" : "#334155",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
