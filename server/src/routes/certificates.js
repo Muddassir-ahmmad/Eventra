@@ -419,10 +419,11 @@ export function renderCertificate(event, registration, organization, images = { 
         eventTitle,
         date
       );
-      const visibleOrganization =
-        String(event.certificateOrganization || "").trim() ||
-        (event.certificateShowOrganization ? organization : "");
-      const headerTagline = String(event.certificateOrganizationTagline || "").trim();
+      const visibleOrganization = (event.certificateShowOrganization === false && !String(event.certificateOrganization || "").trim())
+        ? ""
+        : (String(event.certificateOrganization || "").trim() ||
+           (event.certificateShowOrganization !== false ? String(organization || "").trim() : ""));
+      const headerTagline = visibleOrganization ? String(event.certificateOrganizationTagline || "").trim() : "";
       const textStyles = normalizeCertificateTextStyles(event.certificateTextStyles, {
         size: event.certificateOrganizationSize || "md",
         align: event.certificateOrganizationAlign || "center",
@@ -436,8 +437,6 @@ export function renderCertificate(event, registration, organization, images = { 
         doc.rect(0, 0, 25, height).fill(style.ink);
         doc.rect(25, 0, 7, height).fill(style.accent);
         doc.rect(58, 42, width - 94, height - 84).lineWidth(1).strokeColor(style.edge).stroke();
-        doc.circle(68, 72, 5).fill(style.accent);
-        doc.circle(width - 55, height - 62, 5).fill(style.accent);
       } else if (style.layout === "academic") {
         doc.lineWidth(5).strokeColor(style.accent).rect(25, 25, width - 50, height - 50).stroke();
         doc.lineWidth(1).strokeColor(style.edge).rect(37, 37, width - 74, height - 74).stroke();
@@ -488,144 +487,156 @@ export function renderCertificate(event, registration, organization, images = { 
       const resolvedOrgAlign = orgStyle.align || orgAlign;
       const topHeadline = visibleOrganization
         ? (event.certificateOrganizationUppercase ? visibleOrganization.toUpperCase() : visibleOrganization)
-        : (style.headerText || "CERTIFICATE OF EXCELLENCE").toUpperCase();
+        : "";
       const customOrgSize = orgStyle.fontSize;
       const maxHeaderSize = customOrgSize || (visibleOrganization ? orgSizeMap[orgSizeKey] : 10);
       const minHeaderSize = visibleOrganization || customOrgSize ? Math.max(8, maxHeaderSize - 5) : 9;
       const headerSpacing = visibleOrganization ? 0.6 : 1.5;
       const hasCustomLogoPos = event.certificateLogoX != null && event.certificateLogoY != null;
       const hasCustomOrgPos = orgStyle.x != null && orgStyle.y != null;
-      const hasCustomHeader = Boolean(visibleOrganization || headerTagline || (images.logo && !hasCustomLogoPos));
-      const headerY = hasCustomHeader ? 58 : style.layout === "academic" ? 108 : 82;
+      const hasCustomHeader = Boolean(topHeadline || headerTagline || (images.logo && !hasCustomLogoPos));
+      const headerY = hasCustomHeader ? 54 : 40;
       const taglineFont = resolvePdfFont(orgStyle.font, style.font, false);
 
       let headerBottomY = headerY;
-      if (hasCustomOrgPos) {
-        const headerFontSize = fitFontSize(doc, topHeadline, orgFont, contentWidth, maxHeaderSize, minHeaderSize);
-        const headlineBox = drawCustomPositionedText(doc, {
-          text: topHeadline,
-          font: orgFont,
-          fontSize: headerFontSize,
-          color: style.accent,
-          align: resolvedOrgAlign,
-          xPct: orgStyle.x,
-          yPct: orgStyle.y,
-          widthPct: orgStyle.width,
-          pageWidth: width,
-          pageHeight: height,
-          maxBoxWidth: contentWidth,
-          characterSpacing: headerSpacing,
-        });
-        if (headerTagline) {
+      if (hasCustomHeader) {
+        if (hasCustomOrgPos) {
+          if (topHeadline) {
+            const headerFontSize = fitFontSize(doc, topHeadline, orgFont, contentWidth, maxHeaderSize, minHeaderSize);
+            const headlineBox = drawCustomPositionedText(doc, {
+              text: topHeadline,
+              font: orgFont,
+              fontSize: headerFontSize,
+              color: style.accent,
+              align: resolvedOrgAlign,
+              xPct: orgStyle.x,
+              yPct: orgStyle.y,
+              widthPct: orgStyle.width,
+              pageWidth: width,
+              pageHeight: height,
+              maxBoxWidth: contentWidth,
+              characterSpacing: headerSpacing,
+            });
+            if (headerTagline) {
+              const taglineSize = Math.max(7.5, Math.min(10.5, headerFontSize - 3));
+              const taglineBoxW = Math.min(contentWidth, Math.max(headlineBox.boxW, 240));
+              const taglineX = Math.max(48, Math.min(width - 48 - taglineBoxW, headlineBox.drawX + (headlineBox.boxW - taglineBoxW) / 2));
+              drawHeaderTagline(doc, headerTagline, {
+                x: taglineX,
+                y: headlineBox.drawY + headlineBox.boxH + 3,
+                width: taglineBoxW,
+                align: resolvedOrgAlign,
+                font: taglineFont,
+                fontSize: taglineSize,
+                color: style.ink,
+              });
+            }
+          }
+          if (images.logo && !hasCustomLogoPos) {
+            try {
+              doc.image(images.logo, left, headerY, { fit: [38, 32], align: "center", valign: "center" });
+            } catch (error) {
+              console.error("Certificate logo could not be rendered:", error.message);
+            }
+          }
+          headerBottomY = headerY + 28;
+        } else if (images.logo && !hasCustomLogoPos) {
+          const logoBox = 38;
+          const logoHeight = 32;
+          const gap = 10;
+          const availTextWidth = Math.max(120, contentWidth - logoBox - gap);
+          const headerFontSize = fitFontSize(doc, topHeadline || " ", orgFont, availTextWidth, maxHeaderSize, minHeaderSize);
           const taglineSize = Math.max(7.5, Math.min(10.5, headerFontSize - 3));
-          const taglineBoxW = Math.min(contentWidth, Math.max(headlineBox.boxW, 240));
-          const taglineX = Math.max(48, Math.min(width - 48 - taglineBoxW, headlineBox.drawX + (headlineBox.boxW - taglineBoxW) / 2));
-          drawHeaderTagline(doc, headerTagline, {
-            x: taglineX,
-            y: headlineBox.drawY + headlineBox.boxH + 3,
-            width: taglineBoxW,
-            align: resolvedOrgAlign,
-            font: taglineFont,
-            fontSize: taglineSize,
-            color: style.ink,
-          });
-        }
-        if (images.logo && !hasCustomLogoPos) {
+
+          let measuredHeadlineWidth = 0;
+          let headlineBlockWidth = 0;
+          let textHeight = 0;
+          if (topHeadline) {
+            doc.font(orgFont).fontSize(headerFontSize).fillColor(style.accent);
+            measuredHeadlineWidth = doc.widthOfString(topHeadline, { characterSpacing: headerSpacing });
+            headlineBlockWidth = Math.min(availTextWidth, measuredHeadlineWidth);
+            textHeight = doc.heightOfString(topHeadline, { width: headlineBlockWidth, characterSpacing: headerSpacing });
+          }
+
+          let measuredTaglineWidth = 0;
+          let taglineHeight = 0;
+          if (headerTagline) {
+            doc.font(taglineFont).fontSize(taglineSize);
+            measuredTaglineWidth = doc.widthOfString(headerTagline);
+            taglineHeight = doc.heightOfString(headerTagline, { width: availTextWidth, lineGap: 1.5 });
+          }
+
+          const textBlockWidth = Math.min(availTextWidth, Math.max(headlineBlockWidth, measuredTaglineWidth));
+          const totalTextHeight = headerTagline ? (topHeadline ? textHeight + 3 : 0) + taglineHeight : textHeight;
+          const rowHeight = Math.max(logoHeight, totalTextHeight);
+          const totalBlockWidth = topHeadline || headerTagline ? logoBox + gap + textBlockWidth : logoBox;
+          const blockX = resolvedOrgAlign === "left"
+            ? left
+            : resolvedOrgAlign === "right"
+              ? left + contentWidth - totalBlockWidth
+              : left + (contentWidth - totalBlockWidth) / 2;
+
           try {
-            doc.image(images.logo, left, headerY, { fit: [38, 32], align: "center", valign: "center" });
+            doc.image(images.logo, blockX, headerY + (rowHeight - logoHeight) / 2, {
+              fit: [logoBox, logoHeight],
+              align: "center",
+              valign: "center",
+            });
           } catch (error) {
             console.error("Certificate logo could not be rendered:", error.message);
           }
+
+          if (topHeadline || headerTagline) {
+            const textStartX = blockX + logoBox + gap;
+            const textStartY = headerY + Math.max(0, (rowHeight - totalTextHeight) / 2);
+            if (topHeadline) {
+              doc.font(orgFont).fontSize(headerFontSize).fillColor(style.accent);
+              doc.text(topHeadline, textStartX, textStartY, {
+                width: textBlockWidth,
+                align: "left",
+                characterSpacing: headerSpacing,
+              });
+            }
+            if (headerTagline) {
+              drawHeaderTagline(doc, headerTagline, {
+                x: textStartX,
+                y: textStartY + (topHeadline ? textHeight + 3 : 0),
+                width: textBlockWidth,
+                align: "left",
+                font: taglineFont,
+                fontSize: taglineSize,
+                color: style.ink,
+              });
+            }
+          }
+          headerBottomY = headerY + rowHeight;
+        } else if (topHeadline || headerTagline) {
+          const headerFontSize = fitFontSize(doc, topHeadline || " ", orgFont, contentWidth, maxHeaderSize, minHeaderSize);
+          const taglineSize = Math.max(7.5, Math.min(10.5, headerFontSize - 3));
+          let textHeight = 0;
+          if (topHeadline) {
+            doc.font(orgFont).fontSize(headerFontSize).fillColor(style.accent);
+            textHeight = doc.heightOfString(topHeadline, { width: contentWidth, align: resolvedOrgAlign, characterSpacing: headerSpacing });
+            doc.text(topHeadline, left, headerY, {
+              width: contentWidth,
+              align: resolvedOrgAlign,
+              characterSpacing: headerSpacing,
+            });
+          }
+          let taglineHeight = 0;
+          if (headerTagline) {
+            taglineHeight = drawHeaderTagline(doc, headerTagline, {
+              x: left,
+              y: headerY + (topHeadline ? textHeight + 3 : 0),
+              width: contentWidth,
+              align: resolvedOrgAlign,
+              font: taglineFont,
+              fontSize: taglineSize,
+              color: style.ink,
+            });
+          }
+          headerBottomY = headerY + textHeight + (taglineHeight > 0 ? 3 + taglineHeight : 0);
         }
-        headerBottomY = headerY + 28;
-      } else if (images.logo && !hasCustomLogoPos) {
-        const logoBox = 38;
-        const logoHeight = 32;
-        const gap = 10;
-        const availTextWidth = Math.max(120, contentWidth - logoBox - gap);
-        const headerFontSize = fitFontSize(doc, topHeadline, orgFont, availTextWidth, maxHeaderSize, minHeaderSize);
-        const taglineSize = Math.max(7.5, Math.min(10.5, headerFontSize - 3));
-
-        doc.font(orgFont).fontSize(headerFontSize).fillColor(style.accent);
-        const measuredHeadlineWidth = doc.widthOfString(topHeadline, { characterSpacing: headerSpacing });
-        const headlineBlockWidth = Math.min(availTextWidth, measuredHeadlineWidth);
-
-        let measuredTaglineWidth = 0;
-        if (headerTagline) {
-          doc.font(taglineFont).fontSize(taglineSize);
-          measuredTaglineWidth = doc.widthOfString(headerTagline);
-        }
-
-        const textBlockWidth = Math.min(availTextWidth, Math.max(headlineBlockWidth, measuredTaglineWidth));
-        doc.font(orgFont).fontSize(headerFontSize);
-        const textHeight = doc.heightOfString(topHeadline, { width: textBlockWidth, characterSpacing: headerSpacing });
-
-        let taglineHeight = 0;
-        if (headerTagline) {
-          doc.font(taglineFont).fontSize(taglineSize);
-          taglineHeight = doc.heightOfString(headerTagline, { width: textBlockWidth, lineGap: 1.5 });
-        }
-
-        const totalTextHeight = headerTagline ? textHeight + 3 + taglineHeight : textHeight;
-        const rowHeight = Math.max(logoHeight, totalTextHeight);
-        const totalBlockWidth = logoBox + gap + textBlockWidth;
-        const blockX = resolvedOrgAlign === "left"
-          ? left
-          : resolvedOrgAlign === "right"
-            ? left + contentWidth - totalBlockWidth
-            : left + (contentWidth - totalBlockWidth) / 2;
-
-        try {
-          doc.image(images.logo, blockX, headerY + (rowHeight - logoHeight) / 2, {
-            fit: [logoBox, logoHeight],
-            align: "center",
-            valign: "center",
-          });
-        } catch (error) {
-          console.error("Certificate logo could not be rendered:", error.message);
-        }
-
-        const textStartX = blockX + logoBox + gap;
-        const textStartY = headerY + Math.max(0, (rowHeight - totalTextHeight) / 2);
-        const headlineAlign = measuredHeadlineWidth <= textBlockWidth && !headerTagline ? "left" : resolvedOrgAlign;
-        doc.font(orgFont).fontSize(headerFontSize).fillColor(style.accent);
-        doc.text(topHeadline, textStartX, textStartY, {
-          width: textBlockWidth,
-          align: headlineAlign,
-          characterSpacing: headerSpacing,
-        });
-        if (headerTagline) {
-          drawHeaderTagline(doc, headerTagline, {
-            x: textStartX,
-            y: textStartY + textHeight + 3,
-            width: textBlockWidth,
-            align: resolvedOrgAlign,
-            font: taglineFont,
-            fontSize: taglineSize,
-            color: style.ink,
-          });
-        }
-        headerBottomY = headerY + rowHeight;
-      } else {
-        const headerFontSize = fitFontSize(doc, topHeadline, orgFont, contentWidth, maxHeaderSize, minHeaderSize);
-        const taglineSize = Math.max(7.5, Math.min(10.5, headerFontSize - 3));
-        doc.font(orgFont).fontSize(headerFontSize).fillColor(style.accent);
-        const textHeight = doc.heightOfString(topHeadline, { width: contentWidth, align: resolvedOrgAlign, characterSpacing: headerSpacing });
-        doc.text(topHeadline, left, headerY, {
-          width: contentWidth,
-          align: resolvedOrgAlign,
-          characterSpacing: headerSpacing,
-        });
-        const taglineHeight = drawHeaderTagline(doc, headerTagline, {
-          x: left,
-          y: headerY + textHeight + 3,
-          width: contentWidth,
-          align: resolvedOrgAlign,
-          font: taglineFont,
-          fontSize: taglineSize,
-          color: style.ink,
-        });
-        headerBottomY = headerY + textHeight + (taglineHeight > 0 ? 3 + taglineHeight : 0);
       }
 
       if (images.logo && hasCustomLogoPos) {
@@ -646,12 +657,33 @@ export function renderCertificate(event, registration, organization, images = { 
         }
       }
 
+      const TEMPLATE_KICKERS = {
+        techAurora: "✦ TECH MERIT & INNOVATION ✦",
+        royalGold: "✦ ROYAL MERIT & DISTINCTION ✦",
+        academic: "ACADEMIC DISTINCTION",
+        emeraldExecutive: "EXECUTIVE LEADERSHIP",
+        crimsonLuxe: "PRESTIGIOUS HONORS",
+        vintageParchment: "HISTORIC DISTINCTION",
+        modern: "OFFICIAL RECOGNITION",
+        classic: "OFFICIAL RECOGNITION",
+      };
+      const brandKicker = TEMPLATE_KICKERS[event.certificateTemplate] || "OFFICIAL RECOGNITION";
+
       const titleStyle = textStyles.title;
       const titleFont = resolvePdfFont(titleStyle.font, style.titleFont, true);
       const titleAlign = titleStyle.align || align;
-      const titleMaxSize = titleStyle.fontSize || 29;
+      const titleMaxSize = titleStyle.fontSize || 28;
       const titleSize = fitFontSize(doc, title, titleFont, contentWidth, titleMaxSize, Math.min(14, titleMaxSize));
-      const titleY = Math.max(139, Math.ceil(headerBottomY + 18));
+
+      let currentY = hasCustomHeader ? Math.max(headerBottomY + 16, 96) : 70;
+
+      // Brand Kicker (rendered right above title when title is in normal flow)
+      if (titleStyle.x == null || titleStyle.y == null) {
+        const kickerColor = style.secondaryAccentColor || style.accent;
+        doc.font("Helvetica-Bold").fontSize(8).fillColor(kickerColor)
+          .text(brandKicker, left, currentY, { width: contentWidth, align, characterSpacing: 1.6 });
+        currentY += 8 + 10;
+      }
 
       if (titleStyle.x != null && titleStyle.y != null) {
         drawCustomPositionedText(doc, {
@@ -669,16 +701,19 @@ export function renderCertificate(event, registration, organization, images = { 
         });
       } else {
         doc.font(titleFont).fontSize(titleSize).fillColor(style.ink)
-          .text(title, left, titleY, { width: contentWidth, align: titleAlign, lineBreak: false, ellipsis: true });
+          .text(title, left, currentY, { width: contentWidth, align: titleAlign, lineBreak: false, ellipsis: true });
+        currentY += titleSize + 14;
       }
 
-      doc.font(style.font).fontSize(13).fillColor(style.ink)
-        .text("This certificate is proudly presented to", left, Math.max(194, titleY + 52), { width: contentWidth, align });
+      const presentedText = "This certificate is proudly presented to";
+      doc.font(style.font).fontSize(11).fillColor(style.ink)
+        .text(presentedText, left, currentY, { width: contentWidth, align });
+      currentY += 11 + 12;
 
       const recipientStyle = textStyles.recipient;
       const recipientFont = resolvePdfFont(recipientStyle.font, style.titleFont, true);
       const recipientAlign = recipientStyle.align || align;
-      const recipientMaxSize = recipientStyle.fontSize || 35;
+      const recipientMaxSize = recipientStyle.fontSize || 34;
       const participantName = formatParticipantName(registration.name, "Participant");
       const recipientSize = fitFontSize(
         doc,
@@ -705,23 +740,20 @@ export function renderCertificate(event, registration, organization, images = { 
         });
       } else {
         doc.font(recipientFont).fontSize(recipientSize).fillColor(style.accent)
-          .text(participantName, left, 222, { width: contentWidth, align: recipientAlign, lineBreak: false, ellipsis: true });
-        doc.moveTo(left + contentWidth * 0.18, 270)
-          .lineTo(left + contentWidth * 0.82, 270)
-          .lineWidth(style.layout === "academic" ? 1.8 : 0.8)
-          .strokeColor(style.edge)
-          .stroke();
+          .text(participantName, left, currentY, { width: contentWidth, align: recipientAlign, lineBreak: false, ellipsis: true });
+        currentY += recipientSize + 14;
       }
 
       const descStyle = textStyles.description;
       const descFont = resolvePdfFont(descStyle.font, style.font, false);
       const descAlign = descStyle.align || align;
-      let descriptionFont = descStyle.fontSize || 13;
-      const descBoxWidth = contentWidth * 0.84;
+      let descriptionFont = descStyle.fontSize || 10.5;
+      const descBoxWidth = align === "left" ? contentWidth * 0.78 : contentWidth * 0.86;
+      const descBoxX = align === "left" ? left : left + (contentWidth - descBoxWidth) / 2;
       while (descriptionFont > 8) {
         doc.font(descFont).fontSize(descriptionFont);
-        if (doc.heightOfString(description, { width: descBoxWidth, lineGap: 2 }) <= 82) break;
-        descriptionFont -= 1;
+        if (doc.heightOfString(description, { width: descBoxWidth, lineGap: 2.5 }) <= 72) break;
+        descriptionFont -= 0.5;
       }
 
       if (descStyle.x != null && descStyle.y != null) {
@@ -741,19 +773,21 @@ export function renderCertificate(event, registration, organization, images = { 
         });
       } else {
         doc.font(descFont).fontSize(descriptionFont).fillColor(style.ink)
-          .text(description, left + contentWidth * 0.08, 284, {
+          .text(description, descBoxX, currentY, {
             width: descBoxWidth,
-            height: 82,
+            height: 72,
             align: descAlign,
-            lineGap: 2,
+            lineGap: 2.5,
             ellipsis: true,
           });
+        const actualDescH = doc.heightOfString(description, { width: descBoxWidth, lineGap: 2.5 });
+        currentY += Math.min(actualDescH, 72) + 16;
       }
 
       const eventStyle = textStyles.eventName;
       const eventFont = resolvePdfFont(eventStyle.font, style.titleFont, true);
       const eventAlign = eventStyle.align || align;
-      const eventMaxSize = eventStyle.fontSize || 16;
+      const eventMaxSize = eventStyle.fontSize || 14;
       const eventSize = fitFontSize(doc, eventTitle, eventFont, contentWidth, eventMaxSize, Math.min(9, eventMaxSize));
 
       if (eventStyle.x != null && eventStyle.y != null) {
@@ -777,10 +811,11 @@ export function renderCertificate(event, registration, organization, images = { 
             lineBreak: false,
           });
       } else {
+        const eventY = Math.max(currentY, 342);
         doc.font(eventFont).fontSize(eventSize).fillColor(style.ink)
-          .text(eventTitle, left, 359, { width: contentWidth, align: eventAlign, lineBreak: false, ellipsis: true });
-        doc.font("Helvetica").fontSize(9).fillColor(style.ink)
-          .text(date, left, 382, { width: contentWidth, align: eventAlign });
+          .text(eventTitle, left, eventY, { width: contentWidth * 0.45, align: eventAlign, lineBreak: false, ellipsis: true });
+        doc.font("Helvetica").fontSize(9).fillColor("#526071")
+          .text(date, left, eventY + eventSize + 4, { width: contentWidth * 0.45, align: eventAlign });
       }
 
       const signatures = (event.signatures || []).filter((signature) => signature.name || signature.imageUrl).slice(0, 4);
@@ -814,7 +849,7 @@ export function renderCertificate(event, registration, organization, images = { 
             lineBreak: false,
             ellipsis: true,
           });
-        doc.font("Helvetica").fontSize(roleSize).fillColor(style.ink)
+        doc.font("Helvetica").fontSize(roleSize).fillColor("#66717C")
           .text(signature.designation || signature.role || "", centerX - halfBlock, lineY + 6 + nameSize + 4, {
             width: blockWidth,
             align: "center",
@@ -835,15 +870,19 @@ export function renderCertificate(event, registration, organization, images = { 
       });
 
       const signatureTop = 432;
-      const signatureWidth = Math.min(150, (contentWidth - 24) / Math.max(flowSignatures.length, 1));
-      const signatureGap = flowSignatures.length > 1
-        ? (contentWidth - signatureWidth * flowSignatures.length) / (flowSignatures.length - 1)
-        : 0;
-      for (let index = 0; index < flowSignatures.length; index += 1) {
-        const { signature, image } = flowSignatures[index];
-        const centerX = left + index * (signatureWidth + signatureGap) + signatureWidth / 2;
-        const scale = signature.scale != null ? Number(signature.scale) : 1;
-        drawSignatureBlock(signature, image, centerX, signatureTop + 8, signatureWidth, scale);
+      const flowCount = flowSignatures.length;
+      if (flowCount > 0) {
+        const singleBlockWidth = 140;
+        const gap = 24;
+        const totalFlowWidth = flowCount * singleBlockWidth + (flowCount - 1) * gap;
+        const startX = (width - totalFlowWidth) / 2;
+
+        for (let index = 0; index < flowCount; index += 1) {
+          const { signature, image } = flowSignatures[index];
+          const centerX = startX + index * (singleBlockWidth + gap) + singleBlockWidth / 2;
+          const scale = signature.scale != null ? Number(signature.scale) : 1;
+          drawSignatureBlock(signature, image, centerX, signatureTop + 8, singleBlockWidth, scale);
+        }
       }
 
       for (const { signature, image } of pinnedSignatures) {
@@ -876,13 +915,13 @@ async function generatePdf(event, registration, organization) {
 }
 
 async function organizerOrganization(event) {
+  if (event.certificateShowOrganization === false) return "";
   const customOrg = String(event.certificateOrganization || "").trim();
   if (customOrg) return customOrg;
-  if (event.certificateShowOrganization === false) return "";
   const organizer = await User.findById(event.organizerId).select("organization").lean();
   const org = String(organizer?.organization || "").trim();
   if (org) return org;
-  return "EVENTRA";
+  return "";
 }
 
 function certificatePayload(certificate) {

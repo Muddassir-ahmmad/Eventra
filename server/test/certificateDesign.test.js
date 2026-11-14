@@ -278,3 +278,45 @@ test("normalizeCertificateSettings trims and clamps certificateOrganizationTagli
   });
   assert.equal(normalized.certificateOrganizationTagline.length, 200);
 });
+
+test("renderCertificate omits top header completely when skipped or unticked, without fallback to EVENTRA or CERTIFICATE OF EXCELLENCE", async () => {
+  const pdfBuffer = await renderCertificate(
+    {
+      title: "AI Innovation Challenge 2026",
+      date: new Date("2026-11-12T00:00:00.000Z"),
+      certificateTemplate: "modern",
+      certificateTitle: "Certificate of Engineering Excellence",
+      certificateDescription: "Awarded to {name} for completing {event}.",
+      certificateShowOrganization: false,
+      certificateOrganization: "",
+      certificateOrganizationTagline: "",
+      signatures: [],
+    },
+    { name: "Mudassir Ahmmad" },
+    "",
+    { logo: null, signatures: [] }
+  );
+
+  assert.ok(Buffer.isBuffer(pdfBuffer));
+  const rawPdf = pdfBuffer.toString("latin1");
+  const streams = [];
+  const regex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  let m;
+  while ((m = regex.exec(rawPdf)) !== null) {
+    try {
+      streams.push(zlib.inflateSync(Buffer.from(m[1], "latin1")).toString("latin1"));
+    } catch {
+      streams.push(m[1]);
+    }
+  }
+  const text = streams
+    .join("\n")
+    .replace(/>\s*-?\d+(?:\.\d+)?\s*</g, "")
+    .replace(/<([0-9a-fA-F]+)>/g, (_, hex) => Buffer.from(hex, "hex").toString("latin1"));
+
+  assert.ok(!text.includes("CERTIFICATE OF EXCELLENCE"), "Must not fall back to CERTIFICATE OF EXCELLENCE when organization is skipped");
+  assert.ok(!text.includes("SAHYADRI"), "Must not contain unconfigured organization");
+  assert.ok(text.includes("OFFICIAL RECOGNITION"), "Should render brand kicker matching template");
+  assert.ok(text.includes("Certificate of Engineering Excellence"), "Should render certificate title");
+  assert.ok(text.includes("Mudassir Ahmmad"), "Should render recipient name");
+});

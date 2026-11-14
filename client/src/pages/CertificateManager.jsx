@@ -132,8 +132,10 @@ function certificateSettings(event) {
       requiredSessionIds: [],
     },
     certificateEventTitle: event.certificateEventTitle || "",
-    certificateShowOrganization: event.certificateShowOrganization === true || Boolean(savedOrg) || !event.certificateUpdatedAt,
-    certificateOrganization: savedOrg || "EVENTRA",
+    certificateShowOrganization: typeof event.certificateShowOrganization === "boolean"
+      ? event.certificateShowOrganization
+      : Boolean(savedOrg),
+    certificateOrganization: savedOrg || "",
     certificateOrganizationTagline: String(event.certificateOrganizationTagline || "").trim(),
     certificateOrganizationSize: orgSize,
     certificateOrganizationAlign: orgAlign,
@@ -698,179 +700,209 @@ export default function CertificateManager() {
                 setNotice("");
               }}
             />
-            <label className="certificate-field">
-              <span>Certificate Top Header (Organization / Brand)</span>
-              <input
-                maxLength="100"
-                value={settings.certificateOrganization}
-                onChange={(change) => update("certificateOrganization", change.target.value)}
-                placeholder="EVENTRA"
-              />
-              <small style={{ color: "#94a3b8", fontSize: "0.72rem" }}>
-                Displays at the very top of the certificate (defaults to "EVENTRA", can be changed to your organization or institution).
-              </small>
-            </label>
-            <label className="certificate-field">
-              <span>Header Tagline / Sub-details (Optional — Address, Pin Code, Phone, Affiliation…)</span>
-              <input
-                maxLength="200"
-                value={settings.certificateOrganizationTagline || ""}
-                onChange={(change) => update("certificateOrganizationTagline", change.target.value)}
-                placeholder="e.g. Sahyadri Campus, Adyar, Mangaluru - 575007 · Ph: 0824-2277222"
-              />
-              <small style={{ color: "#94a3b8", fontSize: "0.72rem" }}>
-                Printed neatly below the top header on the certificate (leave blank to omit).
-              </small>
-            </label>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                padding: "8px 12px",
-                background: "#F8FAFC",
-                border: "1px solid #E2E8F0",
-                borderRadius: 8,
-                marginTop: 4,
-                marginBottom: 14,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Font:</span>
-                <select
-                  className="certificate-inline-select"
-                  value={settings.certificateTextStyles?.organization?.font || "theme"}
-                  onChange={(e) => {
-                    const font = e.target.value;
-                    setSettings((curr) => ({
-                      ...curr,
-                      certificateTextStyles: {
-                        ...curr.certificateTextStyles,
-                        organization: { ...curr.certificateTextStyles?.organization, font },
-                      },
-                    }));
-                    setNotice("");
-                  }}
-                  style={{
-                    padding: "4px 8px",
-                    fontSize: "0.76rem",
-                    borderRadius: 6,
-                    border: "1px solid #CBD5E1",
-                    background: "#FFFFFF",
-                    color: "#0F172A",
-                    cursor: "pointer",
-                  }}
-                >
-                  {CERTIFICATE_FONTS.map((f) => (
-                    <option key={f.id} value={f.id}>{f.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Size:</span>
-                <div style={{ display: "flex", gap: 4 }}>
-                  {[
-                    { id: "sm", label: "S" },
-                    { id: "md", label: "M" },
-                    { id: "lg", label: "L" },
-                    { id: "xl", label: "XL" },
-                  ].map((item) => {
-                    const isSel = (settings.certificateOrganizationSize || "md") === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          const presetPt = TEXT_ELEMENT_CONFIG.organization.presets[item.id];
-                          setSettings((curr) => ({
-                            ...curr,
-                            certificateOrganizationSize: item.id,
-                            certificateTextStyles: {
-                              ...curr.certificateTextStyles,
-                              organization: { ...curr.certificateTextStyles?.organization, fontSize: presetPt },
-                            },
-                          }));
-                          setNotice("");
-                        }}
-                        style={{
-                          padding: "3px 8px",
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          borderRadius: 5,
-                          border: `1px solid ${isSel ? "#059669" : "#CBD5E1"}`,
-                          background: isSel ? "#059669" : "#FFFFFF",
-                          color: isSel ? "#FFFFFF" : "#334155",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Align:</span>
-                <div style={{ display: "flex", gap: 4 }}>
-                  {[
-                    { id: "left", label: "Left" },
-                    { id: "center", label: "Mid" },
-                    { id: "right", label: "Right" },
-                  ].map((item) => {
-                    const isSel = (settings.certificateOrganizationAlign || "center") === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setSettings((curr) => ({
-                            ...curr,
-                            certificateOrganizationAlign: item.id,
-                            certificateTextStyles: {
-                              ...curr.certificateTextStyles,
-                              organization: { ...curr.certificateTextStyles?.organization, align: item.id },
-                            },
-                          }));
-                          setNotice("");
-                        }}
-                        style={{
-                          padding: "3px 8px",
-                          fontSize: "0.72rem",
-                          fontWeight: 600,
-                          borderRadius: 5,
-                          border: `1px solid ${isSel ? "#059669" : "#CBD5E1"}`,
-                          background: isSel ? "#059669" : "#FFFFFF",
-                          color: isSel ? "#FFFFFF" : "#334155",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => update("certificateOrganizationUppercase", !settings.certificateOrganizationUppercase)}
+            <div style={{ marginBottom: 12 }}>
+              <label
                 style={{
-                  padding: "3px 10px",
-                  fontSize: "0.72rem",
-                  fontWeight: 700,
-                  borderRadius: 5,
-                  border: `1px solid ${settings.certificateOrganizationUppercase ? "#059669" : "#CBD5E1"}`,
-                  background: settings.certificateOrganizationUppercase ? "#ECFDF5" : "#FFFFFF",
-                  color: settings.certificateOrganizationUppercase ? "#059669" : "#64748B",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
                   cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  color: "#0F172A",
+                  marginBottom: 6,
                 }}
               >
-                {settings.certificateOrganizationUppercase ? "CAPS ON ✓" : "Caps Off"}
-              </button>
+                <input
+                  type="checkbox"
+                  checked={settings.certificateShowOrganization !== false}
+                  onChange={(e) => update("certificateShowOrganization", e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: "#059669", cursor: "pointer" }}
+                />
+                <span>Include Top Header (Organization / Institution Name)</span>
+              </label>
+              {settings.certificateShowOrganization === false ? (
+                <p style={{ margin: "4px 0 0 24px", color: "#64748B", fontSize: "0.78rem" }}>
+                  Top header is excluded. No organization heading or placeholder will appear on the certificate.
+                </p>
+              ) : (
+                <>
+                  <label className="certificate-field" style={{ marginTop: 8 }}>
+                    <span>Organization / Institution Name</span>
+                    <input
+                      maxLength="100"
+                      value={settings.certificateOrganization || ""}
+                      onChange={(change) => update("certificateOrganization", change.target.value)}
+                      placeholder="e.g. Sahyadri College of Engineering"
+                    />
+                    <small style={{ color: "#94a3b8", fontSize: "0.72rem" }}>
+                      Displays at the top of the certificate (leave blank or uncheck above if not needed).
+                    </small>
+                  </label>
+                  <label className="certificate-field">
+                    <span>Header Tagline / Sub-details (Optional — Address, Affiliation…)</span>
+                    <input
+                      maxLength="200"
+                      value={settings.certificateOrganizationTagline || ""}
+                      onChange={(change) => update("certificateOrganizationTagline", change.target.value)}
+                      placeholder="e.g. Sahyadri Campus, Adyar, Mangaluru - 575007 · Ph: 0824-2277222"
+                    />
+                    <small style={{ color: "#94a3b8", fontSize: "0.72rem" }}>
+                      Printed below the top header on the certificate (leave blank to omit).
+                    </small>
+                  </label>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      padding: "8px 12px",
+                      background: "#F8FAFC",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 8,
+                      marginTop: 4,
+                      marginBottom: 14,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Font:</span>
+                      <select
+                        className="certificate-inline-select"
+                        value={settings.certificateTextStyles?.organization?.font || "theme"}
+                        onChange={(e) => {
+                          const font = e.target.value;
+                          setSettings((curr) => ({
+                            ...curr,
+                            certificateTextStyles: {
+                              ...curr.certificateTextStyles,
+                              organization: { ...curr.certificateTextStyles?.organization, font },
+                            },
+                          }));
+                          setNotice("");
+                        }}
+                        style={{
+                          padding: "4px 8px",
+                          fontSize: "0.76rem",
+                          borderRadius: 6,
+                          border: "1px solid #CBD5E1",
+                          background: "#FFFFFF",
+                          color: "#0F172A",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {CERTIFICATE_FONTS.map((f) => (
+                          <option key={f.id} value={f.id}>{f.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Size:</span>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        {[
+                          { id: "sm", label: "S" },
+                          { id: "md", label: "M" },
+                          { id: "lg", label: "L" },
+                          { id: "xl", label: "XL" },
+                        ].map((item) => {
+                          const isSel = (settings.certificateOrganizationSize || "md") === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                const presetPt = TEXT_ELEMENT_CONFIG.organization.presets[item.id];
+                                setSettings((curr) => ({
+                                  ...curr,
+                                  certificateOrganizationSize: item.id,
+                                  certificateTextStyles: {
+                                    ...curr.certificateTextStyles,
+                                    organization: { ...curr.certificateTextStyles?.organization, fontSize: presetPt },
+                                  },
+                                }));
+                                setNotice("");
+                              }}
+                              style={{
+                                padding: "3px 8px",
+                                fontSize: "0.72rem",
+                                fontWeight: 700,
+                                borderRadius: 5,
+                                border: `1px solid ${isSel ? "#059669" : "#CBD5E1"}`,
+                                background: isSel ? "#059669" : "#FFFFFF",
+                                color: isSel ? "#FFFFFF" : "#334155",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Align:</span>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        {[
+                          { id: "left", label: "Left" },
+                          { id: "center", label: "Mid" },
+                          { id: "right", label: "Right" },
+                        ].map((item) => {
+                          const isSel = (settings.certificateOrganizationAlign || "center") === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                setSettings((curr) => ({
+                                  ...curr,
+                                  certificateOrganizationAlign: item.id,
+                                  certificateTextStyles: {
+                                    ...curr.certificateTextStyles,
+                                    organization: { ...curr.certificateTextStyles?.organization, align: item.id },
+                                  },
+                                }));
+                                setNotice("");
+                              }}
+                              style={{
+                                padding: "3px 8px",
+                                fontSize: "0.72rem",
+                                fontWeight: 600,
+                                borderRadius: 5,
+                                border: `1px solid ${isSel ? "#059669" : "#CBD5E1"}`,
+                                background: isSel ? "#059669" : "#FFFFFF",
+                                color: isSel ? "#FFFFFF" : "#334155",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => update("certificateOrganizationUppercase", !settings.certificateOrganizationUppercase)}
+                      style={{
+                        padding: "3px 10px",
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        borderRadius: 5,
+                        border: `1px solid ${settings.certificateOrganizationUppercase ? "#059669" : "#CBD5E1"}`,
+                        background: settings.certificateOrganizationUppercase ? "#ECFDF5" : "#FFFFFF",
+                        color: settings.certificateOrganizationUppercase ? "#059669" : "#64748B",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {settings.certificateOrganizationUppercase ? "CAPS ON ✓" : "Caps Off"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
             <label className="certificate-field">
               <span>Event type</span>
@@ -2979,8 +3011,9 @@ function CertificatePreview({
   const flowSignatures = indexedSignatures.filter(({ signature }) => signature.x == null || signature.y == null);
   const pinnedSignatures = indexedSignatures.filter(({ signature }) => signature.x != null && signature.y != null);
   const hasCustomLogoPos = settings.certificateLogoX != null && settings.certificateLogoY != null;
-  const organizationDisplay = (settings.certificateOrganization || "EVENTRA").trim();
-  const organizationTaglineDisplay = (settings.certificateOrganizationTagline || "").trim();
+  const showOrgHeader = settings.certificateShowOrganization !== false && Boolean((settings.certificateOrganization || "").trim());
+  const organizationDisplay = showOrgHeader ? settings.certificateOrganization.trim() : "";
+  const organizationTaglineDisplay = showOrgHeader ? (settings.certificateOrganizationTagline || "").trim() : "";
   const orgSize = settings.certificateOrganizationSize || "md";
   const orgAlign = settings.certificateOrganizationAlign || "center";
   const orgUppercase = settings.certificateOrganizationUppercase === true;

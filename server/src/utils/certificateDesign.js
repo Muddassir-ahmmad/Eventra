@@ -125,7 +125,8 @@ export function normalizeCertificateSettings(settings) {
     align: orgAlign,
   });
 
-  const cleanOrg = String(settings.certificateOrganization || "").trim().slice(0, 100);
+  const showOrg = settings.certificateShowOrganization !== false;
+  const cleanOrg = showOrg ? String(settings.certificateOrganization || "").trim().slice(0, 100) : "";
 
   return {
     certificateEnabled: settings.certificateEnabled === true,
@@ -138,7 +139,7 @@ export function normalizeCertificateSettings(settings) {
       settings.certificateDescription || DEFAULT_CERTIFICATE_DESCRIPTION
     ).trim().slice(0, 500),
     certificateEventTitle: String(settings.certificateEventTitle || "").trim().slice(0, 150),
-    certificateShowOrganization: settings.certificateShowOrganization === true || Boolean(cleanOrg),
+    certificateShowOrganization: showOrg && Boolean(cleanOrg),
     certificateOrganization: cleanOrg,
     certificateOrganizationTagline: String(settings.certificateOrganizationTagline || "").trim().slice(0, 200),
     certificateOrganizationSize: orgSize,
