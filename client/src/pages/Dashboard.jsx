@@ -98,7 +98,7 @@ export default function Dashboard() {
                 alignItems: "center",
                 gap: 6,
                 color: "#477C73",
-                borderColor: "#DDD8CF",
+                borderColor: "#DEDCD5",
                 background: "#FFFFFF",
                 fontWeight: 600,
               }}
@@ -156,14 +156,14 @@ export default function Dashboard() {
                       >
                         {meta.label}
                       </span>
-                      <strong style={{ color: "#242B2B", fontSize: "0.95rem" }}>{item.title}</strong>
+                      <strong style={{ color: "#202B36", fontSize: "0.95rem" }}>{item.title}</strong>
                       {item.createdAt && (
-                        <span style={{ fontSize: "0.75rem", color: "#686E6B" }}>
+                        <span style={{ fontSize: "0.75rem", color: "#65717D" }}>
                           · {new Date(item.createdAt).toLocaleDateString()}
                         </span>
                       )}
                     </div>
-                    <p style={{ margin: 0, color: "#242B2B", fontSize: "0.86rem", lineHeight: 1.45 }}>
+                    <p style={{ margin: 0, color: "#202B36", fontSize: "0.86rem", lineHeight: 1.45 }}>
                       {item.message}
                     </p>
                   </div>
@@ -175,7 +175,7 @@ export default function Dashboard() {
                     style={{
                       background: "transparent",
                       border: "none",
-                      color: "#686E6B",
+                      color: "#65717D",
                       cursor: "pointer",
                       fontSize: "1.1rem",
                       lineHeight: 1,

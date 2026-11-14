@@ -9,19 +9,19 @@
   gap: 20px;
   padding: 16px 20px;
   margin: 12px 0;
-  border: 1px solid var(--border-subtle, #DDD8CF);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   border-radius: 12px;
   background: var(--bg-surface, #FFFFFF);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
-  color: var(--text-primary, #242B2B);
+  color: var(--text-primary, #202B36);
 }
 
 .registration-result span {
-  color: var(--text-secondary, #686E6B);
+  color: var(--text-secondary, #65717D);
 }
 
 .registration-table-card {
-  border: 1px solid var(--border-subtle, #DDD8CF);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   background: var(--bg-surface, #FFFFFF);
   border-radius: 16px;
   overflow: hidden;
@@ -43,23 +43,23 @@
 .registration-table td {
   text-align: left;
   padding: 15px 18px;
-  border-bottom: 1px solid var(--border-subtle, #DDD8CF);
+  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
   vertical-align: middle;
 }
 
 .registration-table th {
   background: var(--bg-surface-alt, #FAF8F5);
-  color: var(--text-secondary, #686E6B);
+  color: var(--text-secondary, #65717D);
   font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  border-bottom: 1px solid var(--border-subtle, #DDD8CF);
+  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
   white-space: nowrap;
 }
 
 .registration-table td {
-  color: var(--text-primary, #242B2B);
+  color: var(--text-primary, #202B36);
   font-size: 0.88rem;
   line-height: 1.45;
 }
@@ -69,7 +69,7 @@
 }
 
 .registration-table tbody tr:hover {
-  background: var(--bg-canvas, #F4F1EA);
+  background: var(--bg-canvas, #F4F2ED);
 }
 
 .registration-table tbody tr:last-child td {
@@ -105,7 +105,7 @@
 .registrations-header h1 {
   font-size: clamp(1.9rem, 3.4vw, 2.75rem);
   letter-spacing: -0.04em;
-  color: var(--text-primary, #242B2B);
+  color: var(--text-primary, #202B36);
   font-weight: 800;
   margin: 0;
 }
@@ -116,7 +116,7 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 10px;
-  color: var(--text-secondary, #686E6B);
+  color: var(--text-secondary, #65717D);
   font-size: 0.9rem;
 }
 
@@ -133,7 +133,7 @@
 
 .registrations-toolbar {
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border-subtle, #DDD8CF);
+  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
   background: var(--bg-surface-alt, #FAF8F5);
   display: flex;
   justify-content: space-between;
@@ -146,9 +146,9 @@
   width: min(340px, 100%);
   padding: 10px 14px;
   border-radius: 9px;
-  border: 1px solid var(--border-subtle, #DDD8CF);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-primary, #242B2B);
+  color: var(--text-primary, #202B36);
   font-size: 0.88rem;
 }
 
@@ -168,9 +168,9 @@
 .reg-filter-pill {
   padding: 7px 13px;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle, #DDD8CF);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   background: var(--bg-surface, #FFFFFF);
-  color: var(--text-primary, #242B2B);
+  color: var(--text-primary, #202B36);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -205,21 +205,21 @@
 .reg-tier-label {
   display: block;
   margin-top: 5px;
-  color: var(--text-secondary, #686E6B);
+  color: var(--text-secondary, #65717D);
   font-size: 0.75rem;
   font-weight: 600;
 }
 
 .reg-primary-text {
   display: block;
-  color: var(--text-primary, #242B2B);
+  color: var(--text-primary, #202B36);
   font-weight: 600;
 }
 
 .reg-sub-text {
   display: block;
   margin-top: 3px;
-  color: var(--text-secondary, #686E6B);
+  color: var(--text-secondary, #65717D);
   font-size: 0.78rem;
 }
 
@@ -236,9 +236,9 @@
   gap: 4px;
   padding: 2px 7px;
   border-radius: 6px;
-  background: var(--bg-secondary, #E8E3D9);
-  border: 1px solid var(--border-subtle, #DDD8CF);
-  color: var(--text-primary, #242B2B);
+  background: var(--bg-secondary, #ECE9E2);
+  border: 1px solid var(--border-subtle, #DEDCD5);
+  color: var(--text-primary, #202B36);
   font-size: 0.72rem;
 }
 
@@ -328,7 +328,7 @@
 .reg-empty-filter {
   text-align: center;
   padding: 44px 20px;
-  color: var(--text-secondary, #686E6B);
+  color: var(--text-secondary, #65717D);
 }
 
 @media (max-width: 768px) {

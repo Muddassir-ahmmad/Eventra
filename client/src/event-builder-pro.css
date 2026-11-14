@@ -1,13 +1,13 @@
 /* =========================================================================
    EVENTRA - EVENT BUILDER ENHANCED STYLING
-   Theme: Midnight Luxe & Electric Aurora (Modern, Attractive, High-Converting)
+   Theme: Warm Neutral Editorial System (Manrope + Inter)
    ========================================================================= */
 
 .poster-tabs {
   display: flex;
   gap: 8px;
-  background: rgba(14, 20, 36, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface-secondary, #ECE9E2);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   border-radius: 12px;
   padding: 5px;
   margin-bottom: 22px;
@@ -19,7 +19,8 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-secondary, #65717D);
+  font-family: var(--font-body, 'Inter', sans-serif);
   font-weight: 600;
   font-size: 0.82rem;
   cursor: pointer;
@@ -31,23 +32,23 @@
 }
 
 .poster-tab-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary-heading, #202B36);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .poster-tab-btn.active {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  background: var(--primary, #477C73);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(71, 124, 115, 0.25);
 }
 
 .poster-upload-box {
-  border: 2px dashed rgba(255, 255, 255, 0.16);
+  border: 2px dashed var(--border-subtle, #DEDCD5);
   border-radius: 16px;
   padding: 35px 20px;
   text-align: center;
-  background: rgba(14, 20, 36, 0.6);
-  color: #cbd5e1;
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-body, #465462);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -55,20 +56,20 @@
 }
 
 .poster-upload-box:hover {
-  border-color: #818cf8;
-  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--primary, #477C73);
+  background: var(--brand-soft, #E5EFEB);
 }
 
 .poster-preview-card {
   position: relative;
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #0e1424;
+  border: 1px solid var(--border-subtle, #DEDCD5);
+  background: #FAF9F6;
   aspect-ratio: 16 / 9;
   max-width: 600px;
   margin: 0 auto 16px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px rgba(32, 43, 54, 0.08);
 }
 
 .poster-preview-card img {
@@ -93,28 +94,28 @@
 }
 
 .template-card-btn {
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   border-radius: 12px;
-  padding: 10px;
-  background: rgba(14, 20, 36, 0.7);
-  color: #cbd5e1;
+  padding: 12px;
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-body, #465462);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 8px rgba(32, 43, 54, 0.04);
 }
 
 .template-card-btn:hover {
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: #C8C5BC;
   transform: translateY(-2px);
-  background: rgba(22, 31, 54, 0.85);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  background: #FAF9F6;
+  box-shadow: 0 4px 14px rgba(32, 43, 54, 0.08);
 }
 
 .template-card-btn.active {
-  border-color: #818cf8;
-  background: rgba(99, 102, 241, 0.15);
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
+  border-color: var(--primary, #477C73);
+  background: var(--brand-soft, #E5EFEB);
+  box-shadow: 0 0 0 2px rgba(71, 124, 115, 0.2);
 }
 
 .template-mini-header {
@@ -129,24 +130,27 @@
 
 .template-card-btn strong {
   display: block;
-  font-size: 0.85rem;
+  font-family: var(--font-heading, 'Manrope', sans-serif);
+  font-size: 0.88rem;
+  font-weight: 700;
   margin-bottom: 2px;
-  color: #ffffff;
+  color: var(--text-primary-heading, #202B36);
 }
 
 .template-card-btn small {
   display: block;
-  font-size: 0.7rem;
-  color: #94a3b8;
-  line-height: 1.3;
+  font-size: 0.72rem;
+  color: var(--text-secondary, #65717D);
+  line-height: 1.35;
 }
 
 .template-controls {
-  background: rgba(14, 20, 36, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   border-radius: 14px;
-  padding: 18px;
+  padding: 20px;
   margin-top: 18px;
+  box-shadow: 0 2px 8px rgba(32, 43, 54, 0.04);
 }
 
 .color-pickers-row {
@@ -161,15 +165,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.8rem;
-  color: #cbd5e1;
+  font-size: 0.82rem;
+  color: var(--text-body, #465462);
+  font-weight: 500;
 }
 
 .color-picker-item input[type="color"] {
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   cursor: pointer;
   background: transparent;
   padding: 0;
@@ -180,20 +185,20 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 14px 18px;
   border-radius: 12px;
-  background: rgba(99, 102, 241, 0.14);
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: var(--brand-soft, #E5EFEB);
+  border: 1px solid rgba(71, 124, 115, 0.25);
   margin-bottom: 18px;
-  color: #c7d2fe;
+  color: var(--text-body, #465462);
   font-size: 0.85rem;
   line-height: 1.5;
 }
 
 .ai-notice-banner strong {
   display: block;
-  font-size: 0.9rem;
-  color: #ffffff;
+  font-size: 0.92rem;
+  color: var(--primary-hover, #35665D);
   margin-bottom: 2px;
 }
 
@@ -202,23 +207,23 @@
   border-radius: 20px;
   font-size: 0.78rem;
   font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: #cbd5e1;
+  border: 1px solid var(--border-subtle, #DEDCD5);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-body, #465462);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .mode-pill:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: var(--bg-surface-secondary, #ECE9E2);
+  color: var(--text-primary-heading, #202B36);
 }
 
 .mode-pill.selected {
-  background: rgba(99, 102, 241, 0.22);
-  border-color: #818cf8;
-  color: #ffffff;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+  background: var(--primary, #477C73);
+  border-color: var(--primary, #477C73);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(71, 124, 115, 0.25);
 }
 
 /* Multi-day schedule builder UI */
@@ -230,37 +235,40 @@
 }
 
 .multiday-duration-option {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(14, 20, 36, 0.65);
-  color: #cbd5e1;
+  border: 1px solid var(--border-subtle, #DEDCD5);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-body, #465462);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .multiday-duration-option:hover {
-  border-color: rgba(129, 140, 248, 0.5);
-  color: #ffffff;
+  border-color: #C8C5BC;
+  background: #FAF9F6;
 }
 
 .multiday-duration-option.is-active {
-  background: rgba(79, 70, 229, 0.2);
-  border-color: #818cf8;
-  color: #ffffff;
-  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.25);
+  background: var(--brand-soft, #E5EFEB);
+  border-color: var(--primary, #477C73);
+  color: var(--primary-hover, #35665D);
+  box-shadow: 0 0 0 2px rgba(71, 124, 115, 0.2);
 }
 
 .multiday-duration-option strong {
   display: block;
-  font-size: 0.88rem;
-  margin-bottom: 2px;
+  font-family: var(--font-heading, 'Manrope', sans-serif);
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin-bottom: 3px;
+  color: var(--text-primary-heading, #202B36);
 }
 
 .multiday-duration-option small {
-  font-size: 0.74rem;
-  color: #94a3b8;
+  font-size: 0.76rem;
+  color: var(--text-secondary, #65717D);
 }
 
 .multiday-tabs-bar {
@@ -270,39 +278,40 @@
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
 }
 
 .multiday-tab-btn {
-  padding: 8px 14px;
+  padding: 8px 16px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(14, 20, 36, 0.75);
-  color: #cbd5e1;
-  font-size: 0.8rem;
+  border: 1px solid var(--border-subtle, #DEDCD5);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-secondary-heading, #344454);
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .multiday-tab-btn:hover {
-  border-color: rgba(129, 140, 248, 0.5);
-  color: #ffffff;
+  border-color: #C8C5BC;
+  color: var(--text-primary-heading, #202B36);
 }
 
 .multiday-tab-btn.is-active {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  border-color: transparent;
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  background: var(--primary, #477C73);
+  border-color: var(--primary, #477C73);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(71, 124, 115, 0.25);
 }
 
 .multiday-day-box {
-  background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   border-radius: 14px;
-  padding: 16px;
+  padding: 18px;
   margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(32, 43, 54, 0.04);
 }
 
 .session-reorder-actions {
@@ -314,14 +323,20 @@
 .session-order-btn {
   padding: 4px 8px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
+  border: 1px solid var(--border-subtle, #DEDCD5);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-body, #465462);
   font-size: 0.75rem;
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.session-order-btn:hover:not(:disabled) {
+  border-color: var(--primary, #477C73);
+  color: var(--primary, #477C73);
 }
 
 .session-order-btn:disabled {
-  opacity: 0.35;
+  opacity: 0.4;
   cursor: not-allowed;
 }

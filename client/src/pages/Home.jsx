@@ -59,7 +59,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main style={{ background: "#F4F1EA", color: "#242B2B", minHeight: "100vh", overflowX: "hidden" }}>
+    <main style={{ background: "#F4F2ED", color: "#202B36", minHeight: "100vh", overflowX: "hidden" }}>
       {/* =========================================================================
           1. EDITORIAL HERO SECTION
           ========================================================================= */}
@@ -73,8 +73,8 @@ export default function Home() {
               gap: "8px",
               padding: "6px 16px",
               borderRadius: "9999px",
-              background: "#E8E3D9",
-              border: "1px solid #DDD8CF",
+              background: "#ECE9E2",
+              border: "1px solid #DEDCD5",
               color: "#477C73",
               fontSize: "0.74rem",
               fontWeight: 800,
@@ -94,7 +94,7 @@ export default function Home() {
               fontWeight: 800,
               lineHeight: 1.08,
               letterSpacing: "-0.04em",
-              color: "#242B2B",
+              color: "#202B36",
               margin: "0 0 24px",
             }}
           >
@@ -108,7 +108,7 @@ export default function Home() {
             style={{
               fontSize: "clamp(1.05rem, 1.8vw, 1.25rem)",
               lineHeight: 1.65,
-              color: "#686E6B",
+              color: "#65717D",
               maxWidth: "720px",
               margin: "0 auto 36px",
               fontWeight: 400,
@@ -155,8 +155,8 @@ export default function Home() {
                     fontSize: "0.95rem",
                     borderRadius: "9999px",
                     background: "#FFFFFF",
-                    color: "#242B2B",
-                    border: "1px solid #DDD8CF",
+                    color: "#202B36",
+                    border: "1px solid #DEDCD5",
                     textDecoration: "none",
                   }}
                 >
@@ -189,8 +189,8 @@ export default function Home() {
                     fontSize: "0.95rem",
                     borderRadius: "9999px",
                     background: "#FFFFFF",
-                    color: "#242B2B",
-                    border: "1px solid #DDD8CF",
+                    color: "#202B36",
+                    border: "1px solid #DEDCD5",
                     textDecoration: "none",
                   }}
                 >
@@ -207,7 +207,7 @@ export default function Home() {
               justifyContent: "center",
               gap: "28px",
               marginTop: "44px",
-              color: "#686E6B",
+              color: "#65717D",
               fontSize: "0.85rem",
               fontWeight: 600,
               flexWrap: "wrap",
@@ -234,11 +234,11 @@ export default function Home() {
               justifyContent: "center",
               gap: "8px",
               margin: "0 auto 28px",
-              background: "#E8E3D9",
+              background: "#ECE9E2",
               padding: "6px",
               borderRadius: "9999px",
               width: "fit-content",
-              border: "1px solid #DDD8CF",
+              border: "1px solid #DEDCD5",
               flexWrap: "wrap",
             }}
           >
@@ -250,7 +250,7 @@ export default function Home() {
                 borderRadius: "9999px",
                 border: "none",
                 background: activeTab === "pass" ? "#FFFFFF" : "transparent",
-                color: activeTab === "pass" ? "#242B2B" : "#686E6B",
+                color: activeTab === "pass" ? "#202B36" : "#65717D",
                 fontWeight: activeTab === "pass" ? 700 : 500,
                 fontSize: "0.88rem",
                 cursor: "pointer",
@@ -268,7 +268,7 @@ export default function Home() {
                 borderRadius: "9999px",
                 border: "none",
                 background: activeTab === "agenda" ? "#FFFFFF" : "transparent",
-                color: activeTab === "agenda" ? "#242B2B" : "#686E6B",
+                color: activeTab === "agenda" ? "#202B36" : "#65717D",
                 fontWeight: activeTab === "agenda" ? 700 : 500,
                 fontSize: "0.88rem",
                 cursor: "pointer",
@@ -286,7 +286,7 @@ export default function Home() {
                 borderRadius: "9999px",
                 border: "none",
                 background: activeTab === "scanner" ? "#FFFFFF" : "transparent",
-                color: activeTab === "scanner" ? "#242B2B" : "#686E6B",
+                color: activeTab === "scanner" ? "#202B36" : "#65717D",
                 fontWeight: activeTab === "scanner" ? 700 : 500,
                 fontSize: "0.88rem",
                 cursor: "pointer",
@@ -304,7 +304,7 @@ export default function Home() {
                 borderRadius: "9999px",
                 border: "none",
                 background: activeTab === "cert" ? "#FFFFFF" : "transparent",
-                color: activeTab === "cert" ? "#242B2B" : "#686E6B",
+                color: activeTab === "cert" ? "#202B36" : "#65717D",
                 fontWeight: activeTab === "cert" ? 700 : 500,
                 fontSize: "0.88rem",
                 cursor: "pointer",
@@ -320,7 +320,7 @@ export default function Home() {
           <div
             style={{
               background: "#FFFFFF",
-              border: "1px solid #DDD8CF",
+              border: "1px solid #DEDCD5",
               borderRadius: "24px",
               padding: "40px",
               boxShadow: "0 10px 35px rgba(36, 43, 43, 0.05)",
@@ -333,10 +333,10 @@ export default function Home() {
                   <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
                     PHYSICAL &amp; DIGITAL ADMISSION
                   </span>
-                  <h3 style={{ fontSize: "2rem", color: "#242B2B", fontWeight: 800, letterSpacing: "-0.03em", margin: "10px 0 16px" }}>
+                  <h3 style={{ fontSize: "2rem", color: "#202B36", fontWeight: 800, letterSpacing: "-0.03em", margin: "10px 0 16px" }}>
                     One unified ticket for the complete multi-day journey.
                   </h3>
-                  <p style={{ color: "#686E6B", fontSize: "0.98rem", lineHeight: 1.65, margin: "0 0 24px" }}>
+                  <p style={{ color: "#65717D", fontSize: "0.98rem", lineHeight: 1.65, margin: "0 0 24px" }}>
                     Participants register once and receive an encrypted digital pass with enrolled session chips,
                     real-time attendance checkpoints, and vector PDF download capability.
                   </p>
@@ -347,7 +347,7 @@ export default function Home() {
                     <span style={{ padding: "6px 14px", borderRadius: "9999px", background: "rgba(57, 131, 107, 0.12)", color: "#39836B", fontSize: "0.8rem", fontWeight: 700 }}>
                       ✓ Atomic Check-In
                     </span>
-                    <span style={{ padding: "6px 14px", borderRadius: "9999px", background: "#E8E3D9", color: "#242B2B", fontSize: "0.8rem", fontWeight: 700 }}>
+                    <span style={{ padding: "6px 14px", borderRadius: "9999px", background: "#ECE9E2", color: "#202B36", fontSize: "0.8rem", fontWeight: 700 }}>
                       ✓ Multi-Day All-Access
                     </span>
                   </div>
@@ -357,13 +357,13 @@ export default function Home() {
                 <div
                   style={{
                     background: "#FAF8F5",
-                    border: "1px solid #DDD8CF",
+                    border: "1px solid #DEDCD5",
                     borderRadius: "20px",
                     overflow: "hidden",
                     boxShadow: "0 8px 30px rgba(0, 0, 0, 0.06)",
                   }}
                 >
-                  <div style={{ background: "#E8E3D9", padding: "18px 22px", borderBottom: "2px dashed #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ background: "#ECE9E2", padding: "18px 22px", borderBottom: "2px dashed #DEDCD5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: "0.72rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.1em", textTransform: "uppercase" }}>
                       EVENTRA ADMISSION PASS
                     </span>
@@ -374,10 +374,10 @@ export default function Home() {
                   <div style={{ padding: "24px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
                       <div>
-                        <h4 style={{ margin: "0 0 4px", fontSize: "1.25rem", color: "#242B2B", fontWeight: 800 }}>
+                        <h4 style={{ margin: "0 0 4px", fontSize: "1.25rem", color: "#202B36", fontWeight: 800 }}>
                           TechSummit 2026
                         </h4>
-                        <p style={{ margin: 0, color: "#686E6B", fontSize: "0.82rem" }}>
+                        <p style={{ margin: 0, color: "#65717D", fontSize: "0.82rem" }}>
                           📅 Nov 20 - Nov 22, 2026 · Main Auditorium
                         </p>
                       </div>
@@ -386,17 +386,17 @@ export default function Home() {
                       </span>
                     </div>
 
-                    <div style={{ padding: "14px", borderRadius: "12px", background: "#FFFFFF", border: "1px solid #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                    <div style={{ padding: "14px", borderRadius: "12px", background: "#FFFFFF", border: "1px solid #DEDCD5", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                       <div>
-                        <span style={{ display: "block", color: "#686E6B", fontSize: "0.7rem", fontWeight: 700 }}>
+                        <span style={{ display: "block", color: "#65717D", fontSize: "0.7rem", fontWeight: 700 }}>
                           ATTENDEE
                         </span>
-                        <strong style={{ color: "#242B2B", fontSize: "0.95rem" }}>Alex Morgan</strong>
+                        <strong style={{ color: "#202B36", fontSize: "0.95rem" }}>Alex Morgan</strong>
                         <span style={{ display: "block", color: "#477C73", fontSize: "0.75rem", fontWeight: 600 }}>
                           ID: #EVT-98421
                         </span>
                       </div>
-                      <div style={{ width: "56px", height: "56px", background: "#FFFFFF", borderRadius: "8px", border: "1px solid #DDD8CF", padding: "3px", display: "grid", placeItems: "center" }}>
+                      <div style={{ width: "56px", height: "56px", background: "#FFFFFF", borderRadius: "8px", border: "1px solid #DEDCD5", padding: "3px", display: "grid", placeItems: "center" }}>
                         <img
                           src="https://api.qrserver.com/v1/create-qr-code/?size=56x56&data=EVT-98421"
                           alt="QR Demo"
@@ -406,14 +406,14 @@ export default function Home() {
                     </div>
 
                     <div>
-                      <span style={{ display: "block", color: "#686E6B", fontSize: "0.7rem", fontWeight: 700, marginBottom: "8px" }}>
+                      <span style={{ display: "block", color: "#65717D", fontSize: "0.7rem", fontWeight: 700, marginBottom: "8px" }}>
                         ENROLLED SESSIONS
                       </span>
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                        <span style={{ padding: "4px 10px", borderRadius: "8px", background: "#E8E3D9", color: "#242B2B", fontSize: "0.72rem", fontWeight: 600 }}>
+                        <span style={{ padding: "4px 10px", borderRadius: "8px", background: "#ECE9E2", color: "#202B36", fontSize: "0.72rem", fontWeight: 600 }}>
                           Day 1: AI Keynote
                         </span>
-                        <span style={{ padding: "4px 10px", borderRadius: "8px", background: "#E8E3D9", color: "#242B2B", fontSize: "0.72rem", fontWeight: 600 }}>
+                        <span style={{ padding: "4px 10px", borderRadius: "8px", background: "#ECE9E2", color: "#202B36", fontSize: "0.72rem", fontWeight: 600 }}>
                           Day 2: Fullstack Systems
                         </span>
                         <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(71, 124, 115, 0.12)", color: "#477C73", fontSize: "0.72rem", fontWeight: 600 }}>
@@ -433,10 +433,10 @@ export default function Home() {
                   <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
                     DYNAMIC MULTI-DAY ARCHITECTURE
                   </span>
-                  <h3 style={{ fontSize: "1.9rem", color: "#242B2B", fontWeight: 800, margin: "8px 0 10px" }}>
+                  <h3 style={{ fontSize: "1.9rem", color: "#202B36", fontWeight: 800, margin: "8px 0 10px" }}>
                     Day-Wise Schedules &amp; Track Management
                   </h3>
-                  <p style={{ color: "#686E6B", fontSize: "0.95rem", margin: 0 }}>
+                  <p style={{ color: "#65717D", fontSize: "0.95rem", margin: 0 }}>
                     Build complex conferences with reorderable sessions, speaker rosters, venues, and capacity guards.
                   </p>
                 </div>
@@ -451,9 +451,9 @@ export default function Home() {
                       style={{
                         padding: "8px 20px",
                         borderRadius: "9999px",
-                        border: activeDay === d ? "1px solid #477C73" : "1px solid #DDD8CF",
+                        border: activeDay === d ? "1px solid #477C73" : "1px solid #DEDCD5",
                         background: activeDay === d ? "#477C73" : "#FAF8F5",
-                        color: activeDay === d ? "#FFFFFF" : "#686E6B",
+                        color: activeDay === d ? "#FFFFFF" : "#65717D",
                         fontSize: "0.85rem",
                         fontWeight: 700,
                         cursor: "pointer",
@@ -469,21 +469,21 @@ export default function Home() {
                 <div style={{ display: "grid", gap: "12px", maxWidth: "780px", margin: "0 auto" }}>
                   {activeDay === 1 && (
                     <>
-                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DEDCD5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                           <span style={{ fontSize: "0.75rem", color: "#477C73", fontWeight: 700 }}>09:00 AM – 10:30 AM · MAIN AUDITORIUM</span>
-                          <h4 style={{ margin: "4px 0 2px", color: "#242B2B", fontSize: "1.05rem", fontWeight: 700 }}>Opening Keynote: Autonomous AI Systems</h4>
-                          <span style={{ color: "#686E6B", fontSize: "0.82rem" }}>Speaker: Dr. Elena Vance (Lead AI Researcher)</span>
+                          <h4 style={{ margin: "4px 0 2px", color: "#202B36", fontSize: "1.05rem", fontWeight: 700 }}>Opening Keynote: Autonomous AI Systems</h4>
+                          <span style={{ color: "#65717D", fontSize: "0.82rem" }}>Speaker: Dr. Elena Vance (Lead AI Researcher)</span>
                         </div>
                         <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(57, 131, 107, 0.12)", color: "#39836B", fontSize: "0.75rem", fontWeight: 700 }}>
                           🟢 OPEN
                         </span>
                       </div>
-                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DEDCD5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                           <span style={{ fontSize: "0.75rem", color: "#477C73", fontWeight: 700 }}>11:00 AM – 01:00 PM · LAB 4</span>
-                          <h4 style={{ margin: "4px 0 2px", color: "#242B2B", fontSize: "1.05rem", fontWeight: 700 }}>Hands-on Workshop: Scalable Fullstack Architectures</h4>
-                          <span style={{ color: "#686E6B", fontSize: "0.82rem" }}>Speaker: Marcus Chen (Principal Architect)</span>
+                          <h4 style={{ margin: "4px 0 2px", color: "#202B36", fontSize: "1.05rem", fontWeight: 700 }}>Hands-on Workshop: Scalable Fullstack Architectures</h4>
+                          <span style={{ color: "#65717D", fontSize: "0.82rem" }}>Speaker: Marcus Chen (Principal Architect)</span>
                         </div>
                         <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(71, 124, 115, 0.12)", color: "#477C73", fontSize: "0.75rem", fontWeight: 700 }}>
                           ⚡ POPULAR
@@ -493,11 +493,11 @@ export default function Home() {
                   )}
                   {activeDay === 2 && (
                     <>
-                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DEDCD5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                           <span style={{ fontSize: "0.75rem", color: "#477C73", fontWeight: 700 }}>10:00 AM – 12:30 PM · SEMINAR HALL 1</span>
-                          <h4 style={{ margin: "4px 0 2px", color: "#242B2B", fontSize: "1.05rem", fontWeight: 700 }}>Cybersecurity &amp; Zero-Trust Infrastructure</h4>
-                          <span style={{ color: "#686E6B", fontSize: "0.82rem" }}>Speaker: Sarah Jenkins (CISO)</span>
+                          <h4 style={{ margin: "4px 0 2px", color: "#202B36", fontSize: "1.05rem", fontWeight: 700 }}>Cybersecurity &amp; Zero-Trust Infrastructure</h4>
+                          <span style={{ color: "#65717D", fontSize: "0.82rem" }}>Speaker: Sarah Jenkins (CISO)</span>
                         </div>
                         <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(57, 131, 107, 0.12)", color: "#39836B", fontSize: "0.75rem", fontWeight: 700 }}>
                           🟢 OPEN
@@ -507,11 +507,11 @@ export default function Home() {
                   )}
                   {activeDay === 3 && (
                     <>
-                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DDD8CF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "16px 20px", borderRadius: "14px", background: "#FAF8F5", border: "1px solid #DEDCD5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                           <span style={{ fontSize: "0.75rem", color: "#477C73", fontWeight: 700 }}>09:00 AM – 04:00 PM · GRAND BALLROOM</span>
-                          <h4 style={{ margin: "4px 0 2px", color: "#242B2B", fontSize: "1.05rem", fontWeight: 700 }}>24-Hour Hackathon Demo &amp; Awards Gala</h4>
-                          <span style={{ color: "#686E6B", fontSize: "0.82rem" }}>Judging Panel &amp; Keynote Speakers</span>
+                          <h4 style={{ margin: "4px 0 2px", color: "#202B36", fontSize: "1.05rem", fontWeight: 700 }}>24-Hour Hackathon Demo &amp; Awards Gala</h4>
+                          <span style={{ color: "#65717D", fontSize: "0.82rem" }}>Judging Panel &amp; Keynote Speakers</span>
                         </div>
                         <span style={{ padding: "4px 10px", borderRadius: "9999px", background: "rgba(217, 141, 118, 0.15)", color: "#D98D76", fontSize: "0.75rem", fontWeight: 700 }}>
                           🏆 FINALE
@@ -530,10 +530,10 @@ export default function Home() {
                   <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
                     ATOMIC IDEMPOTENT CHECK-IN
                   </span>
-                  <h3 style={{ fontSize: "2rem", color: "#242B2B", fontWeight: 800, margin: "8px 0 14px", letterSpacing: "-0.03em" }}>
+                  <h3 style={{ fontSize: "2rem", color: "#202B36", fontWeight: 800, margin: "8px 0 14px", letterSpacing: "-0.03em" }}>
                     Sub-second verification. Zero duplicate check-ins.
                   </h3>
-                  <p style={{ color: "#686E6B", fontSize: "0.98rem", lineHeight: 1.65, margin: "0 0 24px" }}>
+                  <p style={{ color: "#65717D", fontSize: "0.98rem", lineHeight: 1.65, margin: "0 0 24px" }}>
                     Built with camera barcode detection, encrypted ticket signatures, and atomic database check-ins.
                     Scan tickets for overall daily admission or track individual session attendance seamlessly.
                   </p>
@@ -553,7 +553,7 @@ export default function Home() {
                       <strong style={{ display: "block", color: "#39836B", fontSize: "0.95rem" }}>
                         Verification Confirmed (0.18s)
                       </strong>
-                      <span style={{ color: "#686E6B", fontSize: "0.82rem" }}>
+                      <span style={{ color: "#65717D", fontSize: "0.82rem" }}>
                         Alex Morgan · Registration #EVT-98421 · Day 1 Checked In
                       </span>
                     </div>
@@ -565,8 +565,8 @@ export default function Home() {
                   style={{
                     padding: "30px",
                     borderRadius: "20px",
-                    background: "#242B2B",
-                    border: "1px solid #DDD8CF",
+                    background: "#202B36",
+                    border: "1px solid #DEDCD5",
                     textAlign: "center",
                   }}
                 >
@@ -600,10 +600,10 @@ export default function Home() {
                   <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#C58A3B", letterSpacing: "0.12em", textTransform: "uppercase" }}>
                     CRYPTOGRAPHIC CERTIFICATE STUDIO
                   </span>
-                  <h3 style={{ fontSize: "2rem", color: "#242B2B", fontWeight: 800, margin: "8px 0 14px", letterSpacing: "-0.03em" }}>
+                  <h3 style={{ fontSize: "2rem", color: "#202B36", fontWeight: 800, margin: "8px 0 14px", letterSpacing: "-0.03em" }}>
                     Zero fraud. Attendance-gated credentials.
                   </h3>
-                  <p style={{ color: "#686E6B", fontSize: "0.98rem", lineHeight: 1.65, margin: "0 0 24px" }}>
+                  <p style={{ color: "#65717D", fontSize: "0.98rem", lineHeight: 1.65, margin: "0 0 24px" }}>
                     Certificates are only issued to participants whose attendance has been physically verified.
                     Choose flexible rules: All days attended, minimum days attended, or required sessions completed.
                   </p>
@@ -623,7 +623,7 @@ export default function Home() {
                     padding: "28px",
                     borderRadius: "18px",
                     background: "#FAF8F5",
-                    border: "2px solid #DDD8CF",
+                    border: "2px solid #DEDCD5",
                     boxShadow: "0 10px 30px rgba(0, 0, 0, 0.05)",
                     textAlign: "center",
                   }}
@@ -631,21 +631,21 @@ export default function Home() {
                   <span style={{ fontSize: "0.72rem", letterSpacing: "0.18em", color: "#477C73", fontWeight: 800, textTransform: "uppercase" }}>
                     CERTIFICATE OF PARTICIPATION
                   </span>
-                  <h4 style={{ margin: "14px 0 6px", fontSize: "1.5rem", color: "#242B2B", fontFamily: "Georgia, serif" }}>
+                  <h4 style={{ margin: "14px 0 6px", fontSize: "1.5rem", color: "#202B36", fontFamily: "Georgia, serif" }}>
                     Alex Morgan
                   </h4>
-                  <p style={{ color: "#686E6B", fontSize: "0.85rem", margin: "0 0 16px" }}>
+                  <p style={{ color: "#65717D", fontSize: "0.85rem", margin: "0 0 16px" }}>
                     Has successfully completed all verified requirements of
                     <br />
-                    <strong style={{ color: "#242B2B" }}>TechSummit 2026</strong>
+                    <strong style={{ color: "#202B36" }}>TechSummit 2026</strong>
                   </p>
-                  <div style={{ display: "flex", justifyContent: "space-around", borderTop: "1px solid #DDD8CF", paddingTop: "14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-around", borderTop: "1px solid #DEDCD5", paddingTop: "14px" }}>
                     <div>
-                      <span style={{ display: "block", fontSize: "0.68rem", color: "#686E6B", fontWeight: 700 }}>DATE</span>
-                      <strong style={{ fontSize: "0.82rem", color: "#242B2B" }}>Nov 22, 2026</strong>
+                      <span style={{ display: "block", fontSize: "0.68rem", color: "#65717D", fontWeight: 700 }}>DATE</span>
+                      <strong style={{ fontSize: "0.82rem", color: "#202B36" }}>Nov 22, 2026</strong>
                     </div>
                     <div>
-                      <span style={{ display: "block", fontSize: "0.68rem", color: "#686E6B", fontWeight: 700 }}>VERIFICATION</span>
+                      <span style={{ display: "block", fontSize: "0.68rem", color: "#65717D", fontWeight: 700 }}>VERIFICATION</span>
                       <strong style={{ fontSize: "0.82rem", color: "#39836B" }}>CR-98421-OK</strong>
                     </div>
                   </div>
@@ -661,9 +661,9 @@ export default function Home() {
           ========================================================================= */}
       <section
         style={{
-          borderTop: "1px solid #DDD8CF",
-          borderBottom: "1px solid #DDD8CF",
-          background: "#E8E3D9",
+          borderTop: "1px solid #DEDCD5",
+          borderBottom: "1px solid #DEDCD5",
+          background: "#ECE9E2",
           padding: "44px 24px",
           margin: "80px 0 60px",
         }}
@@ -679,34 +679,34 @@ export default function Home() {
           }}
         >
           <div>
-            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#242B2B", letterSpacing: "-0.04em" }}>
+            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#202B36", letterSpacing: "-0.04em" }}>
               0.18s
             </strong>
-            <span style={{ color: "#686E6B", fontSize: "0.88rem", fontWeight: 600 }}>
+            <span style={{ color: "#65717D", fontSize: "0.88rem", fontWeight: 600 }}>
               Sub-second QR verification
             </span>
           </div>
           <div>
-            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#242B2B", letterSpacing: "-0.04em" }}>
+            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#202B36", letterSpacing: "-0.04em" }}>
               100%
             </strong>
-            <span style={{ color: "#686E6B", fontSize: "0.88rem", fontWeight: 600 }}>
+            <span style={{ color: "#65717D", fontSize: "0.88rem", fontWeight: 600 }}>
               Anti-fraud certificate gating
             </span>
           </div>
           <div>
-            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#242B2B", letterSpacing: "-0.04em" }}>
+            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#202B36", letterSpacing: "-0.04em" }}>
               12
             </strong>
-            <span style={{ color: "#686E6B", fontSize: "0.88rem", fontWeight: 600 }}>
+            <span style={{ color: "#65717D", fontSize: "0.88rem", fontWeight: 600 }}>
               Section institutional reports
             </span>
           </div>
           <div>
-            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#242B2B", letterSpacing: "-0.04em" }}>
+            <strong style={{ display: "block", fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 900, color: "#202B36", letterSpacing: "-0.04em" }}>
               Single
             </strong>
-            <span style={{ color: "#686E6B", fontSize: "0.88rem", fontWeight: 600 }}>
+            <span style={{ color: "#65717D", fontSize: "0.88rem", fontWeight: 600 }}>
               Pass for multi-day events
             </span>
           </div>
@@ -722,7 +722,7 @@ export default function Home() {
             <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
               FEATURED PLATFORM EVENTS
             </span>
-            <h2 style={{ fontSize: "2.2rem", fontWeight: 800, color: "#242B2B", letterSpacing: "-0.03em", margin: "6px 0 0" }}>
+            <h2 style={{ fontSize: "2.2rem", fontWeight: 800, color: "#202B36", letterSpacing: "-0.03em", margin: "6px 0 0" }}>
               Explore Landmark Gatherings
             </h2>
           </div>
@@ -740,7 +740,7 @@ export default function Home() {
         </div>
 
         {loadingEvents ? (
-          <div style={{ textAlign: "center", padding: "40px", color: "#686E6B" }}>
+          <div style={{ textAlign: "center", padding: "40px", color: "#65717D" }}>
             <div className="spinner" style={{ margin: "0 auto 12px" }} />
             <p>Loading events...</p>
           </div>
@@ -751,7 +751,7 @@ export default function Home() {
                 key={evt._id}
                 style={{
                   background: "#FFFFFF",
-                  border: "1px solid #DDD8CF",
+                  border: "1px solid #DEDCD5",
                   borderRadius: "20px",
                   overflow: "hidden",
                   boxShadow: "0 4px 18px rgba(0, 0, 0, 0.04)",
@@ -760,11 +760,11 @@ export default function Home() {
                   transition: "transform 0.2s ease, box-shadow 0.2s ease",
                 }}
               >
-                <div style={{ height: "160px", background: "#E8E3D9", position: "relative", overflow: "hidden", padding: "20px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                <div style={{ height: "160px", background: "#ECE9E2", position: "relative", overflow: "hidden", padding: "20px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
                   <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.1em", textTransform: "uppercase" }}>
                     {evt.category || "General Event"}
                   </span>
-                  <strong style={{ fontSize: "1.25rem", color: "#242B2B", fontWeight: 800, margin: "4px 0 0", lineHeight: 1.25 }}>
+                  <strong style={{ fontSize: "1.25rem", color: "#202B36", fontWeight: 800, margin: "4px 0 0", lineHeight: 1.25 }}>
                     {evt.title}
                   </strong>
                   <span
@@ -775,7 +775,7 @@ export default function Home() {
                       padding: "4px 10px",
                       borderRadius: "9999px",
                       background: "#FFFFFF",
-                      border: "1px solid #DDD8CF",
+                      border: "1px solid #DEDCD5",
                       fontSize: "0.72rem",
                       fontWeight: 700,
                       color: "#39836B",
@@ -786,11 +786,11 @@ export default function Home() {
                 </div>
 
                 <div style={{ padding: "22px", flex: 1, display: "flex", flexDirection: "column" }}>
-                  <p style={{ margin: "0 0 14px", color: "#686E6B", fontSize: "0.88rem", lineHeight: 1.55 }}>
+                  <p style={{ margin: "0 0 14px", color: "#65717D", fontSize: "0.88rem", lineHeight: 1.55 }}>
                     {evt.description ? evt.description.slice(0, 110) + "…" : "Join this event on EVENTRA."}
                   </p>
 
-                  <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "6px", fontSize: "0.82rem", color: "#686E6B", marginBottom: "18px" }}>
+                  <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "6px", fontSize: "0.82rem", color: "#65717D", marginBottom: "18px" }}>
                     <span>📅 {evt.date ? new Date(evt.date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "TBD"}</span>
                     <span>📍 {evt.venue || "Campus Venue"}</span>
                   </div>
@@ -827,33 +827,33 @@ export default function Home() {
           <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
             THE EVENTRA ECOSYSTEM
           </span>
-          <h2 style={{ fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 800, color: "#242B2B", letterSpacing: "-0.035em", margin: "8px 0 14px" }}>
+          <h2 style={{ fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 800, color: "#202B36", letterSpacing: "-0.035em", margin: "8px 0 14px" }}>
             Engineered for performance.
             <br />
             <span style={{ color: "#477C73" }}>Designed with restraint.</span>
           </h2>
-          <p style={{ color: "#686E6B", fontSize: "1.05rem", maxWidth: "600px", margin: "0 auto" }}>
+          <p style={{ color: "#65717D", fontSize: "1.05rem", maxWidth: "600px", margin: "0 auto" }}>
             Every touchpoint — from participant registration to the final audited executive report — is seamlessly connected.
           </p>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
           {/* Bento 1: Multi-day Studio (Wide) */}
-          <div style={{ gridColumn: "span 2", background: "#FFFFFF", border: "1px solid #DDD8CF", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+          <div style={{ gridColumn: "span 2", background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
             <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>🗓️</div>
-            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#242B2B", margin: "0 0 10px" }}>
+            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#202B36", margin: "0 0 10px" }}>
               Smart Multi-Day Studio
             </h3>
-            <p style={{ color: "#686E6B", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: "#65717D", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
               Manage conferences spanning single or multiple dates with individual day schedules,
               dynamic session builders, speaker profiles, room designations, and capacity controls.
               Never duplicate event records again.
             </p>
             <div style={{ marginTop: "24px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <span style={{ padding: "5px 12px", borderRadius: "8px", background: "#E8E3D9", color: "#242B2B", fontSize: "0.8rem", fontWeight: 600 }}>
+              <span style={{ padding: "5px 12px", borderRadius: "8px", background: "#ECE9E2", color: "#202B36", fontSize: "0.8rem", fontWeight: 600 }}>
                 Auto Day Numbering
               </span>
-              <span style={{ padding: "5px 12px", borderRadius: "8px", background: "#E8E3D9", color: "#242B2B", fontSize: "0.8rem", fontWeight: 600 }}>
+              <span style={{ padding: "5px 12px", borderRadius: "8px", background: "#ECE9E2", color: "#202B36", fontSize: "0.8rem", fontWeight: 600 }}>
                 Session Capacities
               </span>
               <span style={{ padding: "5px 12px", borderRadius: "8px", background: "rgba(71, 124, 115, 0.12)", color: "#477C73", fontSize: "0.8rem", fontWeight: 600 }}>
@@ -863,12 +863,12 @@ export default function Home() {
           </div>
 
           {/* Bento 2: Sub-Second Scanner */}
-          <div style={{ background: "#FFFFFF", border: "1px solid #DDD8CF", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+          <div style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
             <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>⚡</div>
-            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#242B2B", margin: "0 0 10px" }}>
+            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#202B36", margin: "0 0 10px" }}>
               Fast QR Check-In
             </h3>
-            <p style={{ color: "#686E6B", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: "#65717D", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
               Sub-second camera scanning powered by atomic database operations and unique indexes
               to eliminate duplicate check-ins even under heavy gate traffic.
             </p>
@@ -880,12 +880,12 @@ export default function Home() {
           </div>
 
           {/* Bento 3: Digital Wallet Passes */}
-          <div style={{ background: "#FFFFFF", border: "1px solid #DDD8CF", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+          <div style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
             <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>🎫</div>
-            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#242B2B", margin: "0 0 10px" }}>
+            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#202B36", margin: "0 0 10px" }}>
               Digital Passes
             </h3>
-            <p style={{ color: "#686E6B", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: "#65717D", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
               Cryptographic vector PDF passes generated instantly and dispatched to attendee inboxes,
               complete with live enrolled sessions and barcode tokens.
             </p>
@@ -897,12 +897,12 @@ export default function Home() {
           </div>
 
           {/* Bento 4: Attendance-Gated Certificates */}
-          <div style={{ background: "#FFFFFF", border: "1px solid #DDD8CF", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+          <div style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
             <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>🎓</div>
-            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#242B2B", margin: "0 0 10px" }}>
+            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#202B36", margin: "0 0 10px" }}>
               Verified Certificates
             </h3>
-            <p style={{ color: "#686E6B", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: "#65717D", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
               Issue tamper-proof certificates governed by attendance threshold rules:
               all days attended, minimum days attended, or required sessions completed.
             </p>
@@ -914,12 +914,12 @@ export default function Home() {
           </div>
 
           {/* Bento 5: Executive Post-Event Reports */}
-          <div style={{ background: "#FFFFFF", border: "1px solid #DDD8CF", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+          <div style={{ background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
             <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>📄</div>
-            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#242B2B", margin: "0 0 10px" }}>
+            <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#202B36", margin: "0 0 10px" }}>
               12-Section Reports
             </h3>
-            <p style={{ color: "#686E6B", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: "#65717D", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
               Generate audited executive vector PDF reports with running headers, attendance charts,
               session participation breakdown, and sentiment analysis directly from live records.
             </p>
@@ -940,7 +940,7 @@ export default function Home() {
           <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.12em", textTransform: "uppercase" }}>
             WHY ORGANIZERS CHOOSE EVENTRA
           </span>
-          <h2 style={{ fontSize: "2.3rem", fontWeight: 800, color: "#242B2B", letterSpacing: "-0.03em", margin: "8px 0" }}>
+          <h2 style={{ fontSize: "2.3rem", fontWeight: 800, color: "#202B36", letterSpacing: "-0.03em", margin: "8px 0" }}>
             Engineered without compromise.
           </h2>
         </div>
@@ -949,7 +949,7 @@ export default function Home() {
           style={{
             borderRadius: "20px",
             background: "#FFFFFF",
-            border: "1px solid #DDD8CF",
+            border: "1px solid #DEDCD5",
             overflow: "hidden",
             boxShadow: "0 6px 25px rgba(0, 0, 0, 0.04)",
           }}
@@ -960,10 +960,10 @@ export default function Home() {
               gridTemplateColumns: "1.2fr 1fr 1fr",
               padding: "18px 24px",
               background: "#FAF8F5",
-              borderBottom: "1px solid #DDD8CF",
+              borderBottom: "1px solid #DEDCD5",
               fontWeight: 800,
               fontSize: "0.85rem",
-              color: "#686E6B",
+              color: "#65717D",
             }}
           >
             <span>CAPABILITY</span>
@@ -971,28 +971,28 @@ export default function Home() {
             <span>LEGACY PLATFORMS</span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid #DDD8CF", fontSize: "0.9rem" }}>
-            <span style={{ color: "#242B2B", fontWeight: 700 }}>Multi-Day Architecture</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid #DEDCD5", fontSize: "0.9rem" }}>
+            <span style={{ color: "#202B36", fontWeight: 700 }}>Multi-Day Architecture</span>
             <span style={{ color: "#39836B", fontWeight: 700 }}>✓ Unified Event, Single Pass</span>
-            <span style={{ color: "#686E6B" }}>Separate events per day</span>
+            <span style={{ color: "#65717D" }}>Separate events per day</span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid #DDD8CF", fontSize: "0.9rem" }}>
-            <span style={{ color: "#242B2B", fontWeight: 700 }}>QR Attendance Scanning</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid #DEDCD5", fontSize: "0.9rem" }}>
+            <span style={{ color: "#202B36", fontWeight: 700 }}>QR Attendance Scanning</span>
             <span style={{ color: "#39836B", fontWeight: 700 }}>✓ Sub-second atomic verification</span>
-            <span style={{ color: "#686E6B" }}>Slow manual paper check-ins</span>
+            <span style={{ color: "#65717D" }}>Slow manual paper check-ins</span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid #DDD8CF", fontSize: "0.9rem" }}>
-            <span style={{ color: "#242B2B", fontWeight: 700 }}>Certificate Issuance</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", borderBottom: "1px solid #DEDCD5", fontSize: "0.9rem" }}>
+            <span style={{ color: "#202B36", fontWeight: 700 }}>Certificate Issuance</span>
             <span style={{ color: "#39836B", fontWeight: 700 }}>✓ Attendance &amp; feedback gated</span>
-            <span style={{ color: "#686E6B" }}>Unverified mass emailing</span>
+            <span style={{ color: "#65717D" }}>Unverified mass emailing</span>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "18px 24px", fontSize: "0.9rem" }}>
-            <span style={{ color: "#242B2B", fontWeight: 700 }}>Post-Event Reporting</span>
+            <span style={{ color: "#202B36", fontWeight: 700 }}>Post-Event Reporting</span>
             <span style={{ color: "#39836B", fontWeight: 700 }}>✓ 12-section vector PDF studio</span>
-            <span style={{ color: "#686E6B" }}>Basic CSV spreadsheet dumps</span>
+            <span style={{ color: "#65717D" }}>Basic CSV spreadsheet dumps</span>
           </div>
         </div>
       </section>
@@ -1002,8 +1002,8 @@ export default function Home() {
           ========================================================================= */}
       <footer
         style={{
-          borderTop: "1px solid #DDD8CF",
-          background: "#E8E3D9",
+          borderTop: "1px solid #DEDCD5",
+          background: "#ECE9E2",
           padding: "60px 24px 40px",
         }}
       >
@@ -1019,10 +1019,10 @@ export default function Home() {
         >
           {/* Col 1 */}
           <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#242B2B", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
+            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#202B36", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
               Product
             </span>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#686E6B" }}>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#65717D" }}>
               <li><Link to="/create-event" style={{ color: "inherit", textDecoration: "none" }}>Smart Event Studio</Link></li>
               <li><Link to="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Multi-Day Agendas</Link></li>
               <li><Link to="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Fast QR Scanner</Link></li>
@@ -1033,10 +1033,10 @@ export default function Home() {
 
           {/* Col 2 */}
           <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#242B2B", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
+            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#202B36", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
               Participants
             </span>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#686E6B" }}>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#65717D" }}>
               <li><Link to="/participant/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Find My Ticket Pass</Link></li>
               <li><Link to="/participant/dashboard" style={{ color: "inherit", textDecoration: "none" }}>Download Certificate</Link></li>
               <li><Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Participant Guide</Link></li>
@@ -1046,10 +1046,10 @@ export default function Home() {
 
           {/* Col 3 */}
           <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#242B2B", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
+            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#202B36", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
               Platform &amp; Legal
             </span>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#686E6B" }}>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px", fontSize: "0.85rem", color: "#65717D" }}>
               <li><Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Terms &amp; Conditions</Link></li>
               <li><Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Privacy &amp; Data Security</Link></li>
               <li><Link to="/admin/login" style={{ color: "inherit", textDecoration: "none" }}>Super Admin Console</Link></li>
@@ -1059,10 +1059,10 @@ export default function Home() {
 
           {/* Col 4 */}
           <div>
-            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#242B2B", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
+            <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 800, color: "#202B36", letterSpacing: "0.08em", marginBottom: "16px", textTransform: "uppercase" }}>
               EVENTRA Engine
             </span>
-            <p style={{ color: "#686E6B", fontSize: "0.85rem", lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: "#65717D", fontSize: "0.85rem", lineHeight: 1.6, margin: 0 }}>
               The all-in-one platform for modern conferences, symposiums, and college fests.
               Built with React, Vite, Node.js, and MongoDB.
             </p>
@@ -1074,7 +1074,7 @@ export default function Home() {
           style={{
             maxWidth: "1140px",
             margin: "0 auto",
-            borderTop: "1px solid #DDD8CF",
+            borderTop: "1px solid #DEDCD5",
             paddingTop: "24px",
             display: "flex",
             justifyContent: "space-between",
@@ -1082,12 +1082,12 @@ export default function Home() {
             flexWrap: "wrap",
             gap: "14px",
             fontSize: "0.82rem",
-            color: "#686E6B",
+            color: "#65717D",
           }}
         >
           <div>
             Copyright © 2026{" "}
-            <strong style={{ color: "#242B2B" }}>EVENTRA</strong> Inc. All rights reserved.
+            <strong style={{ color: "#202B36" }}>EVENTRA</strong> Inc. All rights reserved.
           </div>
           <div style={{ display: "flex", gap: "16px" }}>
             <Link to="/terms" style={{ color: "inherit", textDecoration: "none" }}>Terms of Use</Link>

@@ -166,7 +166,7 @@ export default function EventRegistration() {
             style={{
               background: "#FFFFFF",
               borderRadius: 20,
-              border: "1px solid #DDD8CF",
+              border: "1px solid #DEDCD5",
               padding: 36,
               textAlign: "center",
               boxShadow: "0 20px 40px -15px rgba(36, 43, 43, 0.08)",
@@ -176,18 +176,18 @@ export default function EventRegistration() {
             <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#39836B", letterSpacing: "0.12em" }}>
               REGISTRATION CONFIRMED
             </span>
-            <h1 style={{ fontSize: "1.8rem", fontWeight: 800, margin: "6px 0 8px", color: "#242B2B" }}>
+            <h1 style={{ fontSize: "1.8rem", fontWeight: 800, margin: "6px 0 8px", color: "#202B36" }}>
               You're In! Welcome.
             </h1>
-            <p style={{ color: "#686E6B", fontSize: "0.95rem", margin: "0 0 24px" }}>
+            <p style={{ color: "#65717D", fontSize: "0.95rem", margin: "0 0 24px" }}>
               Your spot for <strong>{success.eventName || event.title}</strong> has been secured.
             </p>
 
             {/* QR Ticket Preview */}
             <div
               style={{
-                background: "#F4F1EA",
-                border: "1px solid #DDD8CF",
+                background: "#F4F2ED",
+                border: "1px solid #DEDCD5",
                 borderRadius: 16,
                 padding: 24,
                 marginBottom: 24,
@@ -203,24 +203,24 @@ export default function EventRegistration() {
                   margin: "0 auto 16px",
                   display: "grid",
                   placeItems: "center",
-                  border: "1px solid #DDD8CF",
+                  border: "1px solid #DEDCD5",
                 }}
               >
                 <img src={qrUrl} alt="Ticket QR" style={{ width: "100%", height: "100%" }} />
               </div>
 
-              <span style={{ fontSize: "0.75rem", color: "#686E6B", textTransform: "uppercase", fontWeight: 600 }}>
+              <span style={{ fontSize: "0.75rem", color: "#65717D", textTransform: "uppercase", fontWeight: 600 }}>
                 REGISTRATION ID
               </span>
               <strong style={{ display: "block", fontSize: "1.2rem", color: "#477C73", letterSpacing: "0.06em", marginTop: 2 }}>
                 {success.registrationId}
               </strong>
-              <small style={{ color: "#686E6B", display: "block", marginTop: 4 }}>
+              <small style={{ color: "#65717D", display: "block", marginTop: 4 }}>
                 Tier: {success.ticketType || "General Admission"}
               </small>
 
               {Array.isArray(success.selectedSessions) && success.selectedSessions.length > 0 && (
-                <div style={{ marginTop: 14, textAlign: "left", background: "#FFFFFF", border: "1px solid #DDD8CF", borderRadius: 10, padding: "12px 14px" }}>
+                <div style={{ marginTop: 14, textAlign: "left", background: "#FFFFFF", border: "1px solid #DEDCD5", borderRadius: 10, padding: "12px 14px" }}>
                   <span style={{ fontSize: "0.72rem", color: "#477C73", fontWeight: 800, textTransform: "uppercase", display: "block", marginBottom: 6 }}>
                     Enrolled Sessions ({success.selectedSessions.length})
                   </span>
@@ -228,7 +228,7 @@ export default function EventRegistration() {
                     {success.selectedSessions.map((sid) => {
                       const matched = liveSessions.find((s) => s.sessionId === sid);
                       return (
-                        <span key={sid} style={{ fontSize: "0.76rem", padding: "3px 8px", background: "#E8E3D9", borderRadius: 6, color: "#242B2B", fontWeight: 600 }}>
+                        <span key={sid} style={{ fontSize: "0.76rem", padding: "3px 8px", background: "#ECE9E2", borderRadius: 6, color: "#202B36", fontWeight: 600 }}>
                           ✓ {matched?.title || sid}
                         </span>
                       );
@@ -248,9 +248,9 @@ export default function EventRegistration() {
                 style={{
                   justifyContent: "center",
                   textDecoration: "none",
-                  background: "#E8E3D9",
-                  borderColor: "#DDD8CF",
-                  color: "#242B2B",
+                  background: "#ECE9E2",
+                  borderColor: "#DEDCD5",
+                  color: "#202B36",
                   fontWeight: 700,
                 }}
                 to="/participant/dashboard"
@@ -263,7 +263,7 @@ export default function EventRegistration() {
               </Link>
             </div>
 
-            <p style={{ fontSize: "0.78rem", color: "#686E6B", marginTop: 20 }}>
+            <p style={{ fontSize: "0.78rem", color: "#65717D", marginTop: 20 }}>
               A confirmation email with your digital ticket pass and QR entry code has also been dispatched to{" "}
               <strong>{success.email}</strong>.
             </p>
@@ -294,7 +294,7 @@ export default function EventRegistration() {
   return (
     <main className="public-page-root" style={{ padding: "40px 20px 80px", "--event-heading-font": getEventFontConfig(event?.eventFont).headingFont, "--event-body-font": getEventFontConfig(event?.eventFont).bodyFont }}>
       <div style={{ maxWidth: 620, margin: "0 auto" }}>
-        <Link to={`/events/${slug}`} style={{ color: "#686E6B", textDecoration: "none", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
+        <Link to={`/events/${slug}`} style={{ color: "#65717D", textDecoration: "none", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
           ← Back to Event Details
         </Link>
 
@@ -302,19 +302,19 @@ export default function EventRegistration() {
           style={{
             background: "#FFFFFF",
             borderRadius: 20,
-            border: "1px solid #DDD8CF",
+            border: "1px solid #DEDCD5",
             padding: 32,
             boxShadow: "0 20px 40px -15px rgba(36, 43, 43, 0.08)",
           }}
         >
-          <div style={{ borderBottom: "1px solid #DDD8CF", paddingBottom: 20, marginBottom: 24 }}>
+          <div style={{ borderBottom: "1px solid #DEDCD5", paddingBottom: 20, marginBottom: 24 }}>
             <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#477C73", letterSpacing: "0.1em" }}>
               FAST-TRACK REGISTRATION
             </span>
-            <h1 style={{ fontSize: "1.75rem", fontWeight: 800, margin: "6px 0 6px", color: "#242B2B", fontFamily: "var(--event-heading-font, inherit)" }}>
+            <h1 style={{ fontSize: "1.75rem", fontWeight: 800, margin: "6px 0 6px", color: "#202B36", fontFamily: "var(--event-heading-font, inherit)" }}>
               {event.title}
             </h1>
-            <p style={{ color: "#686E6B", fontSize: "0.9rem", margin: 0 }}>
+            <p style={{ color: "#65717D", fontSize: "0.9rem", margin: 0 }}>
               📅 {formatEventDateDisplay(event)}
               {event.eventDurationType === "multi_day" ? ` (${getEventTotalDays(event)} Days All-Access Pass)` : ""}
               {" "}· 📍 {event.venue}
@@ -331,7 +331,7 @@ export default function EventRegistration() {
             {/* Ticket Tier Selection (Only for Paid Events with multiple tiers) */}
             {event.ticketMode === "paid" && event.ticketTypes?.length > 1 && (
               <div>
-                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#242B2B", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#202B36", marginBottom: 6 }}>
                   Select Admission Tier *
                 </label>
                 <div style={{ display: "grid", gap: 8 }}>
@@ -344,7 +344,7 @@ export default function EventRegistration() {
                         justifyContent: "space-between",
                         padding: "12px 16px",
                         borderRadius: 10,
-                        border: form.ticketType === tier.name ? "1.5px solid #477C73" : "1px solid #DDD8CF",
+                        border: form.ticketType === tier.name ? "1.5px solid #477C73" : "1px solid #DEDCD5",
                         background: form.ticketType === tier.name ? "rgba(71, 124, 115, 0.08)" : "#FFFFFF",
                         cursor: "pointer",
                       }}
@@ -358,7 +358,7 @@ export default function EventRegistration() {
                           onChange={(e) => update("ticketType", e.target.value)}
                           style={{ accentColor: "#477C73" }}
                         />
-                        <strong style={{ color: "#242B2B" }}>{tier.name}</strong>
+                        <strong style={{ color: "#202B36" }}>{tier.name}</strong>
                       </span>
                       <span style={{ color: "#477C73", fontWeight: 700 }}>
                         {tier.price > 0 ? `₹${tier.price}` : "Free"}
@@ -371,7 +371,7 @@ export default function EventRegistration() {
 
             {/* Dynamic Identity: Full Name */}
             <div>
-              <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#242B2B", marginBottom: 6 }}>
+              <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#202B36", marginBottom: 6 }}>
                 {nameField.label || "Full Name"} {nameField.required && "*"}
               </label>
               <input
@@ -384,9 +384,9 @@ export default function EventRegistration() {
                   width: "100%",
                   padding: "12px 14px",
                   borderRadius: 10,
-                  border: "1px solid #DDD8CF",
+                  border: "1px solid #DEDCD5",
                   background: "#FFFFFF",
-                  color: "#242B2B",
+                  color: "#202B36",
                   fontSize: "0.95rem",
                   boxSizing: "border-box",
                 }}
@@ -396,7 +396,7 @@ export default function EventRegistration() {
             {/* Dynamic Identity: Email & Phone */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
-                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#242B2B", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#202B36", marginBottom: 6 }}>
                   {emailField.label || "Email Address"} {emailField.required && "*"}
                 </label>
                 <input
@@ -409,9 +409,9 @@ export default function EventRegistration() {
                     width: "100%",
                     padding: "12px 14px",
                     borderRadius: 10,
-                    border: "1px solid #DDD8CF",
+                    border: "1px solid #DEDCD5",
                     background: "#FFFFFF",
-                    color: "#242B2B",
+                    color: "#202B36",
                     fontSize: "0.95rem",
                     boxSizing: "border-box",
                   }}
@@ -419,7 +419,7 @@ export default function EventRegistration() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#242B2B", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#202B36", marginBottom: 6 }}>
                   {phoneField.label || "Phone Number"} {phoneField.required && "*"}
                 </label>
                 <input
@@ -432,9 +432,9 @@ export default function EventRegistration() {
                     width: "100%",
                     padding: "12px 14px",
                     borderRadius: 10,
-                    border: "1px solid #DDD8CF",
+                    border: "1px solid #DEDCD5",
                     background: "#FFFFFF",
-                    color: "#242B2B",
+                    color: "#202B36",
                     fontSize: "0.95rem",
                     boxSizing: "border-box",
                   }}
@@ -447,7 +447,7 @@ export default function EventRegistration() {
               <div style={{ display: "grid", gridTemplateColumns: (collegeField && deptField) ? "1fr 1fr" : "1fr", gap: 14 }}>
                 {collegeField && (
                   <div>
-                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#242B2B", marginBottom: 6 }}>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#202B36", marginBottom: 6 }}>
                       {collegeField.label || "College / Institution"} {collegeField.required && "*"}
                     </label>
                     <input
@@ -460,9 +460,9 @@ export default function EventRegistration() {
                         width: "100%",
                         padding: "12px 14px",
                         borderRadius: 10,
-                        border: "1px solid #DDD8CF",
+                        border: "1px solid #DEDCD5",
                         background: "#FFFFFF",
-                        color: "#242B2B",
+                        color: "#202B36",
                         fontSize: "0.95rem",
                         boxSizing: "border-box",
                       }}
@@ -472,7 +472,7 @@ export default function EventRegistration() {
 
                 {deptField && (
                   <div>
-                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#242B2B", marginBottom: 6 }}>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#202B36", marginBottom: 6 }}>
                       {deptField.label || "Department / Branch"} {deptField.required && "*"}
                     </label>
                     <input
@@ -485,9 +485,9 @@ export default function EventRegistration() {
                         width: "100%",
                         padding: "12px 14px",
                         borderRadius: 10,
-                        border: "1px solid #DDD8CF",
+                        border: "1px solid #DEDCD5",
                         background: "#FFFFFF",
-                        color: "#242B2B",
+                        color: "#202B36",
                         fontSize: "0.95rem",
                         boxSizing: "border-box",
                       }}
@@ -500,7 +500,7 @@ export default function EventRegistration() {
             {/* Custom Questions Configured by Organizer */}
             {customFields.map((field) => (
               <div key={field.key}>
-                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#242B2B", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#202B36", marginBottom: 6 }}>
                   {field.label} {field.required && "*"}
                 </label>
                 <input
@@ -513,9 +513,9 @@ export default function EventRegistration() {
                     width: "100%",
                     padding: "12px 14px",
                     borderRadius: 10,
-                    border: "1px solid #DDD8CF",
+                    border: "1px solid #DEDCD5",
                     background: "#FFFFFF",
-                    color: "#242B2B",
+                    color: "#202B36",
                     fontSize: "0.95rem",
                     boxSizing: "border-box",
                   }}
@@ -528,10 +528,10 @@ export default function EventRegistration() {
               <div style={{ marginTop: 20, textAlign: "left" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.88rem", fontWeight: 700, color: "#242B2B", margin: 0 }}>
+                    <label style={{ display: "block", fontSize: "0.88rem", fontWeight: 700, color: "#202B36", margin: 0 }}>
                       Select Sessions to Attend *
                     </label>
-                    <small style={{ color: "#686E6B", fontSize: "0.78rem" }}>
+                    <small style={{ color: "#65717D", fontSize: "0.78rem" }}>
                       Choose which tracks, workshops, or competitions you will participate in.
                     </small>
                   </div>
@@ -542,9 +542,9 @@ export default function EventRegistration() {
                       style={{
                         padding: "4px 10px",
                         fontSize: "0.75rem",
-                        background: "#E8E3D9",
-                        border: "1px solid #DDD8CF",
-                        color: "#242B2B",
+                        background: "#ECE9E2",
+                        border: "1px solid #DEDCD5",
+                        color: "#202B36",
                         borderRadius: 6,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -559,8 +559,8 @@ export default function EventRegistration() {
                         padding: "4px 10px",
                         fontSize: "0.75rem",
                         background: "#FFFFFF",
-                        border: "1px solid #DDD8CF",
-                        color: "#686E6B",
+                        border: "1px solid #DEDCD5",
+                        color: "#65717D",
                         borderRadius: 6,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -590,11 +590,11 @@ export default function EventRegistration() {
                           borderRadius: 10,
                           border: isSelected
                             ? "1.5px solid #477C73"
-                            : "1px solid #DDD8CF",
+                            : "1px solid #DEDCD5",
                           background: isSelected
                             ? "rgba(71, 124, 115, 0.06)"
                             : isUnavailable
-                            ? "#F4F1EA"
+                            ? "#F4F2ED"
                             : "#FFFFFF",
                           opacity: isUnavailable ? 0.6 : 1,
                           cursor: isUnavailable ? "not-allowed" : "pointer",
@@ -617,7 +617,7 @@ export default function EventRegistration() {
                         />
                         <div style={{ flex: 1 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                            <strong style={{ fontSize: "0.92rem", color: isUnavailable ? "#686E6B" : "#242B2B" }}>
+                            <strong style={{ fontSize: "0.92rem", color: isUnavailable ? "#65717D" : "#202B36" }}>
                               {ses.title}
                             </strong>
                             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -638,20 +638,20 @@ export default function EventRegistration() {
                                   {ses.remainingCapacity !== null ? `${ses.remainingCapacity} seats left` : `Cap: ${ses.capacity}`}
                                 </span>
                               ) : null}
-                              <span style={{ fontSize: "0.72rem", color: "#242B2B", background: "#E8E3D9", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>
+                              <span style={{ fontSize: "0.72rem", color: "#202B36", background: "#ECE9E2", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>
                                 {ses.dayTitle || `Day ${ses.dayNumber}`}
                               </span>
                             </div>
                           </div>
 
-                          <div style={{ fontSize: "0.78rem", color: "#686E6B", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                          <div style={{ fontSize: "0.78rem", color: "#65717D", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
                             {ses.startTime && <span>⏱ {ses.startTime}{ses.endTime ? ` - ${ses.endTime}` : ""}</span>}
                             {ses.venue && <span>📍 {ses.venue}</span>}
                             {ses.speaker && <span>👤 {ses.speaker}</span>}
                           </div>
 
                           {ses.description && (
-                            <p style={{ margin: "4px 0 0", fontSize: "0.78rem", color: "#686E6B", lineHeight: 1.4 }}>
+                            <p style={{ margin: "4px 0 0", fontSize: "0.78rem", color: "#65717D", lineHeight: 1.4 }}>
                               {ses.description}
                             </p>
                           )}
@@ -672,7 +672,7 @@ export default function EventRegistration() {
                 required
                 style={{ width: 18, height: 18, marginTop: 2, accentColor: "#477C73", cursor: "pointer", flexShrink: 0 }}
               />
-              <label htmlFor="attendeeAgreeTerms" style={{ fontSize: "0.82rem", color: "#686E6B", cursor: "pointer", lineHeight: 1.45 }}>
+              <label htmlFor="attendeeAgreeTerms" style={{ fontSize: "0.82rem", color: "#65717D", cursor: "pointer", lineHeight: 1.45 }}>
                 I agree to the{" "}
                 <Link to="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#477C73", fontWeight: 700, textDecoration: "underline" }}>
                   Terms and Conditions

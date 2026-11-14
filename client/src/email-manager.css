@@ -1,12 +1,13 @@
 /* =========================================================================
    EVENTRA - EMAIL MANAGER STYLES
-   Theme: Midnight Luxe & Electric Aurora (Modern, Attractive, High-Converting)
+   Theme: Warm Neutral Canvas, Deep Navy Charcoal, Muted Teal & Restrained Coral
    ========================================================================= */
 
 .email-manager-page {
   max-width: 1240px;
   margin: 0 auto;
   padding: 36px 24px 80px;
+  font-family: var(--font-body, 'Inter', sans-serif);
 }
 
 .email-dash-header {
@@ -19,24 +20,26 @@
 }
 
 .email-dash-header h1 {
-  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.04em;
+  font-family: var(--font-heading, 'Manrope', sans-serif);
+  font-size: clamp(28px, 3.2vw, 38px);
+  font-weight: 700;
+  color: var(--text-primary-heading, #202B36);
+  letter-spacing: -0.025em;
   margin: 0.5rem 0 0.35rem 0;
 }
 
 .brand-pill {
   display: inline-block;
-  padding: 5px 12px;
-  border-radius: 9999px;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  padding: 4px 12px;
+  border-radius: var(--radius-full, 9999px);
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  background: rgba(99, 102, 241, 0.16) !important;
-  color: #c7d2fe !important;
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: var(--bg-soft-green, #E5EFEB) !important;
+  color: var(--primary, #477C73) !important;
+  border: 1px solid var(--border-accent, rgba(71, 124, 115, 0.35));
 }
 
 .email-kpi-grid {
@@ -47,48 +50,49 @@
 }
 
 .email-kpi-card {
-  background: rgba(14, 20, 36, 0.72);
+  background: var(--bg-surface, #FFFFFF);
   border-radius: var(--radius-md, 12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   padding: 1.25rem;
-  backdrop-filter: blur(14px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
 }
 
 .email-kpi-card:hover {
-  border-color: rgba(99, 102, 241, 0.4);
-  background: rgba(22, 31, 54, 0.85);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  border-color: var(--border-medium, #CDCAC0);
+  box-shadow: var(--shadow-hover);
   transform: translateY(-2px);
 }
 
 .email-kpi-card .kpi-title {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  color: #94a3b8;
-  letter-spacing: 0.06em;
+  color: var(--text-muted-meta, #84909B);
+  letter-spacing: 0.05em;
   margin-bottom: 0.5rem;
 }
 
 .email-kpi-card .kpi-metric {
-  font-size: 1.9rem;
-  font-weight: 800;
-  color: #ffffff;
+  font-family: var(--font-heading, 'Manrope', sans-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary-heading, #202B36);
   line-height: 1;
   margin-bottom: 0.4rem;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
 .email-kpi-card .kpi-subtext {
-  font-size: 0.8rem;
-  color: #64748b;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 13px;
+  color: var(--text-secondary, #65717D);
 }
 
 .email-provider-card {
-  background: rgba(14, 20, 36, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   border-radius: var(--radius-md, 12px);
   padding: 1.25rem 1.5rem;
   margin-bottom: 2rem;
@@ -97,49 +101,51 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
-  backdrop-filter: blur(14px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .provider-info h4 {
   margin: 0 0 0.35rem 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #ffffff;
+  font-family: var(--font-heading, 'Manrope', sans-serif);
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--text-primary-heading, #202B36);
 }
 
 .provider-info p {
   margin: 0;
-  font-size: 0.85rem;
-  color: #94a3b8;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 14px;
+  color: var(--text-secondary, #65717D);
 }
 
 .provider-badge {
   display: inline-block;
   padding: 0.25rem 0.65rem;
-  border-radius: 9999px;
-  font-size: 0.72rem;
-  font-weight: 700;
+  border-radius: var(--radius-full, 9999px);
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .provider-badge.is-connected {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: var(--color-success-bg, rgba(40, 122, 89, 0.1));
+  color: var(--color-success, #287A59);
+  border: 1px solid var(--color-success-border, rgba(40, 122, 89, 0.28));
 }
 
 .provider-badge.is-disconnected {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: var(--color-warning-bg, rgba(169, 109, 32, 0.1));
+  color: var(--color-warning, #A96D20);
+  border: 1px solid var(--color-warning-border, rgba(169, 109, 32, 0.28));
 }
 
 /* Email Filters Bar */
 .email-filter-bar {
-  background: rgba(14, 20, 36, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   border-radius: var(--radius-md, 12px) var(--radius-md, 12px) 0 0;
   padding: 1.25rem;
   display: flex;
@@ -147,7 +153,6 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
-  backdrop-filter: blur(14px);
 }
 
 .filter-inputs-group {
@@ -158,59 +163,61 @@
 }
 
 .filter-input {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   padding: 0.55rem 0.85rem;
   border-radius: var(--radius-sm, 8px);
-  font-size: 0.875rem;
-  color: #ffffff;
-  background: rgba(14, 20, 36, 0.85);
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  font-size: 14px;
+  color: var(--text-primary-heading, #202B36);
+  background: var(--bg-surface, #FFFFFF);
   outline: none;
   transition: all 0.15s ease;
 }
 
 .filter-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  border-color: var(--primary, #477C73);
+  box-shadow: 0 0 0 3px rgba(71, 124, 115, 0.15);
 }
 
 /* Table */
 .email-table-container {
-  background: rgba(14, 20, 36, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #DEDCD5);
   border-top: none;
   border-radius: 0 0 var(--radius-md, 12px) var(--radius-md, 12px);
   overflow-x: auto;
-  backdrop-filter: blur(14px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .email-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 0.875rem;
+  font-size: 14px;
 }
 
 .email-table th {
-  background: rgba(14, 20, 36, 0.9);
+  background: var(--bg-secondary, #ECE9E2);
   padding: 0.85rem 1.25rem;
-  font-weight: 700;
-  color: #94a3b8;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 0.75rem;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  font-weight: 600;
+  color: var(--text-secondary-heading, #344454);
+  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .email-table td {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-subtle, #DEDCD5);
   vertical-align: middle;
-  color: #cbd5e1;
+  color: var(--text-body, #465462);
+  font-family: var(--font-body, 'Inter', sans-serif);
 }
 
 .email-table tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card-hover, #FAF9F6);
 }
 
 .email-table tr:last-child td {
@@ -220,52 +227,55 @@
 .email-type-pill {
   display: inline-block;
   padding: 0.2rem 0.55rem;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  font-weight: 700;
+  border-radius: var(--radius-xs, 4px);
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  font-size: 11.5px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
-.type-registration { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); }
-.type-ticket { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); }
-.type-certificate { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); }
-.type-feedback { background: rgba(168, 85, 247, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.25); }
-.type-alert { background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); }
-.type-test { background: rgba(99, 102, 241, 0.12); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.25); }
+.type-registration { background: var(--bg-soft-green, #E5EFEB); color: var(--primary, #477C73); border: 1px solid var(--border-accent, rgba(71, 124, 115, 0.35)); }
+.type-ticket { background: rgba(40, 122, 89, 0.1); color: #287A59; border: 1px solid rgba(40, 122, 89, 0.28); }
+.type-certificate { background: rgba(169, 109, 32, 0.1); color: #A96D20; border: 1px solid rgba(169, 109, 32, 0.28); }
+.type-feedback { background: var(--bg-secondary, #ECE9E2); color: var(--text-primary-heading, #202B36); border: 1px solid var(--border-subtle, #DEDCD5); }
+.type-alert { background: rgba(189, 78, 78, 0.1); color: #BD4E4E; border: 1px solid rgba(189, 78, 78, 0.28); }
+.type-test { background: rgba(66, 108, 146, 0.1); color: #426C92; border: 1px solid rgba(66, 108, 146, 0.28); }
 
 .status-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   padding: 0.2rem 0.55rem;
-  border-radius: 9999px;
-  font-size: 0.72rem;
-  font-weight: 700;
+  border-radius: var(--radius-full, 9999px);
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  font-size: 11.5px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
-.status-sent { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-.status-failed { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
-.status-pending { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.status-sent { background: rgba(40, 122, 89, 0.1); color: #287A59; border: 1px solid rgba(40, 122, 89, 0.28); }
+.status-failed { background: rgba(189, 78, 78, 0.1); color: #BD4E4E; border: 1px solid rgba(189, 78, 78, 0.28); }
+.status-pending { background: rgba(169, 109, 32, 0.1); color: #A96D20; border: 1px solid rgba(169, 109, 32, 0.28); }
 
 .retry-action-btn {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #cbd5e1;
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #DEDCD5);
+  color: var(--text-primary-heading, #202B36);
   padding: 0.35rem 0.75rem;
   border-radius: var(--radius-sm, 8px);
-  font-size: 0.775rem;
-  font-weight: 700;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  font-size: 12.5px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .retry-action-btn:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.16);
-  border-color: #6366f1;
-  color: #ffffff;
+  background: var(--bg-soft-green, #E5EFEB);
+  border-color: var(--primary, #477C73);
+  color: var(--primary, #477C73);
 }
 
 .retry-action-btn:disabled {
