@@ -102,10 +102,10 @@ export default function AdminParticipants() {
               onChange={(e) => setSearch(e.target.value)}
               style={{
                 padding: "9px 14px",
-                background: "rgba(18, 24, 40, 0.8)",
-                border: "1px solid var(--admin-border)",
+                background: "#FFFFFF",
+                border: "1px solid #CBD5E1",
                 borderRadius: 8,
-                color: "#FFF",
+                color: "#0F172A",
                 fontSize: "0.85rem",
                 width: 260,
                 outline: "none",
@@ -125,10 +125,10 @@ export default function AdminParticipants() {
               }}
               style={{
                 padding: "9px 14px",
-                background: "rgba(18, 24, 40, 0.8)",
-                border: "1px solid var(--admin-border)",
+                background: "#FFFFFF",
+                border: "1px solid #CBD5E1",
                 borderRadius: 8,
-                color: "#FFF",
+                color: "#0F172A",
                 fontSize: "0.85rem",
                 outline: "none",
               }}
@@ -185,7 +185,7 @@ export default function AdminParticipants() {
                   return (
                     <tr key={p._id}>
                       <td>
-                        <strong style={{ color: "#FFF" }}>{p.name}</strong>
+                        <strong style={{ color: "#0F172A" }}>{p.name}</strong>
                         <div style={{ fontSize: "0.76rem", color: "var(--admin-text-sub)" }}>ID: {p._id}</div>
                       </td>
                       <td>

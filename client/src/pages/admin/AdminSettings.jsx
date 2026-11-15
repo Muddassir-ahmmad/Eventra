@@ -90,35 +90,42 @@ export default function AdminSettings() {
         {successMsg && (
           <div
             style={{
-              background: "rgba(16, 185, 129, 0.15)",
-              border: "1px solid rgba(16, 185, 129, 0.3)",
-              color: "#34D399",
+              background: "#ECFDF5",
+              border: "1px solid #A7F3D0",
+              color: "#065F46",
               padding: "12px 18px",
-              borderRadius: 8,
+              borderRadius: 10,
               fontSize: "0.88rem",
+              fontWeight: 600,
               marginBottom: 20,
               display: "flex",
               alignItems: "center",
               gap: 10,
+              boxShadow: "0 2px 8px rgba(5, 150, 105, 0.08)",
             }}
           >
-            <span>✅</span> {successMsg}
+            <span style={{ fontSize: "1.1rem" }}>✓</span> {successMsg}
           </div>
         )}
 
         {errorMsg && (
           <div
             style={{
-              background: "rgba(239, 68, 68, 0.15)",
-              border: "1px solid rgba(239, 68, 68, 0.3)",
-              color: "#F87171",
+              background: "#FEF2F2",
+              border: "1px solid #FECACA",
+              color: "#991B1B",
               padding: "12px 18px",
-              borderRadius: 8,
+              borderRadius: 10,
               fontSize: "0.88rem",
+              fontWeight: 600,
               marginBottom: 20,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              boxShadow: "0 2px 8px rgba(220, 38, 38, 0.08)",
             }}
           >
-            {errorMsg}
+            <span style={{ fontSize: "1.1rem" }}>✕</span> {errorMsg}
           </div>
         )}
 
@@ -137,15 +144,16 @@ export default function AdminSettings() {
                 </h3>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
                 <div>
                   <label
                     style={{
                       display: "block",
                       fontSize: "0.78rem",
-                      fontWeight: 600,
-                      color: "var(--admin-text-muted)",
+                      fontWeight: 700,
+                      color: "#475569",
                       marginBottom: 6,
+                      letterSpacing: "0.03em",
                     }}
                   >
                     PLATFORM BRAND NAME
@@ -157,12 +165,14 @@ export default function AdminSettings() {
                     onChange={(e) => setForm({ ...form, platformName: e.target.value })}
                     style={{
                       width: "100%",
-                      padding: "10px 12px",
-                      background: "rgba(9, 13, 22, 0.6)",
-                      border: "1px solid var(--admin-border)",
+                      padding: "10px 14px",
+                      background: "#FFFFFF",
+                      border: "1px solid #CBD5E1",
                       borderRadius: 8,
-                      color: "#FFF",
+                      color: "#0F172A",
+                      fontSize: "0.88rem",
                       boxSizing: "border-box",
+                      outline: "none",
                     }}
                   />
                 </div>
@@ -172,9 +182,10 @@ export default function AdminSettings() {
                     style={{
                       display: "block",
                       fontSize: "0.78rem",
-                      fontWeight: 600,
-                      color: "var(--admin-text-muted)",
+                      fontWeight: 700,
+                      color: "#475569",
                       marginBottom: 6,
+                      letterSpacing: "0.03em",
                     }}
                   >
                     OFFICIAL SUPPORT EMAIL
@@ -186,12 +197,14 @@ export default function AdminSettings() {
                     onChange={(e) => setForm({ ...form, supportEmail: e.target.value })}
                     style={{
                       width: "100%",
-                      padding: "10px 12px",
-                      background: "rgba(9, 13, 22, 0.6)",
-                      border: "1px solid var(--admin-border)",
+                      padding: "10px 14px",
+                      background: "#FFFFFF",
+                      border: "1px solid #CBD5E1",
                       borderRadius: 8,
-                      color: "#FFF",
+                      color: "#0F172A",
+                      fontSize: "0.88rem",
                       boxSizing: "border-box",
+                      outline: "none",
                     }}
                   />
                 </div>
@@ -201,9 +214,10 @@ export default function AdminSettings() {
                     style={{
                       display: "block",
                       fontSize: "0.78rem",
-                      fontWeight: 600,
-                      color: "var(--admin-text-muted)",
+                      fontWeight: 700,
+                      color: "#475569",
                       marginBottom: 6,
+                      letterSpacing: "0.03em",
                     }}
                   >
                     SUPPORT CONTACT PHONE
@@ -214,12 +228,14 @@ export default function AdminSettings() {
                     onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
                     style={{
                       width: "100%",
-                      padding: "10px 12px",
-                      background: "rgba(9, 13, 22, 0.6)",
-                      border: "1px solid var(--admin-border)",
+                      padding: "10px 14px",
+                      background: "#FFFFFF",
+                      border: "1px solid #CBD5E1",
                       borderRadius: 8,
-                      color: "#FFF",
+                      color: "#0F172A",
+                      fontSize: "0.88rem",
                       boxSizing: "border-box",
+                      outline: "none",
                     }}
                   />
                 </div>
@@ -229,9 +245,10 @@ export default function AdminSettings() {
                     style={{
                       display: "block",
                       fontSize: "0.78rem",
-                      fontWeight: 600,
-                      color: "var(--admin-text-muted)",
+                      fontWeight: 700,
+                      color: "#475569",
                       marginBottom: 6,
+                      letterSpacing: "0.03em",
                     }}
                   >
                     DEFAULT ORGANIZER PLAN
@@ -241,12 +258,14 @@ export default function AdminSettings() {
                     onChange={(e) => setForm({ ...form, defaultPlanSlug: e.target.value })}
                     style={{
                       width: "100%",
-                      padding: "10px 12px",
-                      background: "rgba(9, 13, 22, 0.6)",
-                      border: "1px solid var(--admin-border)",
+                      padding: "10px 14px",
+                      background: "#FFFFFF",
+                      border: "1px solid #CBD5E1",
                       borderRadius: 8,
-                      color: "#FFF",
+                      color: "#0F172A",
+                      fontSize: "0.88rem",
                       boxSizing: "border-box",
+                      outline: "none",
                     }}
                   >
                     <option value="free">Free Starter Plan</option>
@@ -261,19 +280,20 @@ export default function AdminSettings() {
             <div className="admin-card" style={{ marginBottom: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: "1.3rem" }}>🛡️</span>
-                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0 }}>
+                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0, color: "#0F172A" }}>
                   Event Moderation &amp; Governance Policy
                 </h3>
               </div>
 
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 20 }}>
                 <label
                   style={{
                     display: "block",
                     fontSize: "0.78rem",
-                    fontWeight: 600,
-                    color: "var(--admin-text-muted)",
-                    marginBottom: 8,
+                    fontWeight: 700,
+                    color: "#475569",
+                    marginBottom: 10,
+                    letterSpacing: "0.03em",
                   }}
                 >
                   EVENT PUBLISHING WORKFLOW
@@ -281,60 +301,78 @@ export default function AdminSettings() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                   <label
                     style={{
-                      padding: "14px",
-                      borderRadius: 10,
+                      padding: "16px",
+                      borderRadius: 12,
                       border:
                         form.eventModerationPolicy === "AUTO_APPROVE"
-                          ? "2px solid var(--admin-primary)"
-                          : "1px solid var(--admin-border)",
+                          ? "2px solid #059669"
+                          : "1px solid #E2E8F0",
                       background:
                         form.eventModerationPolicy === "AUTO_APPROVE"
-                          ? "rgba(99, 102, 241, 0.1)"
-                          : "rgba(9, 13, 22, 0.5)",
+                          ? "#ECFDF5"
+                          : "#FFFFFF",
                       cursor: "pointer",
                       display: "block",
+                      boxShadow:
+                        form.eventModerationPolicy === "AUTO_APPROVE"
+                          ? "0 4px 12px rgba(5, 150, 105, 0.08)"
+                          : "none",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <input
-                      type="radio"
-                      name="moderationPolicy"
-                      value="AUTO_APPROVE"
-                      checked={form.eventModerationPolicy === "AUTO_APPROVE"}
-                      onChange={(e) => setForm({ ...form, eventModerationPolicy: e.target.value })}
-                      style={{ marginRight: 8 }}
-                    />
-                    <strong style={{ color: "#FFF" }}>Automatic Approval (Default)</strong>
-                    <p style={{ margin: "6px 0 0", fontSize: "0.8rem", color: "var(--admin-text-muted)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <input
+                        type="radio"
+                        name="moderationPolicy"
+                        value="AUTO_APPROVE"
+                        checked={form.eventModerationPolicy === "AUTO_APPROVE"}
+                        onChange={(e) => setForm({ ...form, eventModerationPolicy: e.target.value })}
+                        style={{ accentColor: "#059669", width: 16, height: 16, cursor: "pointer" }}
+                      />
+                      <strong style={{ color: "#0F172A", fontSize: "0.92rem", fontWeight: 700 }}>
+                        Automatic Approval (Default)
+                      </strong>
+                    </div>
+                    <p style={{ margin: "8px 0 0", fontSize: "0.82rem", color: "#64748B", lineHeight: 1.5, paddingLeft: 26 }}>
                       Events published by verified organizers go live instantly. Admin can flag or unpublish post-launch.
                     </p>
                   </label>
 
                   <label
                     style={{
-                      padding: "14px",
-                      borderRadius: 10,
+                      padding: "16px",
+                      borderRadius: 12,
                       border:
                         form.eventModerationPolicy === "MANUAL_REVIEW"
-                          ? "2px solid var(--admin-primary)"
-                          : "1px solid var(--admin-border)",
+                          ? "2px solid #059669"
+                          : "1px solid #E2E8F0",
                       background:
                         form.eventModerationPolicy === "MANUAL_REVIEW"
-                          ? "rgba(99, 102, 241, 0.1)"
-                          : "rgba(9, 13, 22, 0.5)",
+                          ? "#ECFDF5"
+                          : "#FFFFFF",
                       cursor: "pointer",
                       display: "block",
+                      boxShadow:
+                        form.eventModerationPolicy === "MANUAL_REVIEW"
+                          ? "0 4px 12px rgba(5, 150, 105, 0.08)"
+                          : "none",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <input
-                      type="radio"
-                      name="moderationPolicy"
-                      value="MANUAL_REVIEW"
-                      checked={form.eventModerationPolicy === "MANUAL_REVIEW"}
-                      onChange={(e) => setForm({ ...form, eventModerationPolicy: e.target.value })}
-                      style={{ marginRight: 8 }}
-                    />
-                    <strong style={{ color: "#FFF" }}>Mandatory Admin Review</strong>
-                    <p style={{ margin: "6px 0 0", fontSize: "0.8rem", color: "var(--admin-text-muted)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <input
+                        type="radio"
+                        name="moderationPolicy"
+                        value="MANUAL_REVIEW"
+                        checked={form.eventModerationPolicy === "MANUAL_REVIEW"}
+                        onChange={(e) => setForm({ ...form, eventModerationPolicy: e.target.value })}
+                        style={{ accentColor: "#059669", width: 16, height: 16, cursor: "pointer" }}
+                      />
+                      <strong style={{ color: "#0F172A", fontSize: "0.92rem", fontWeight: 700 }}>
+                        Mandatory Admin Review
+                      </strong>
+                    </div>
+                    <p style={{ margin: "8px 0 0", fontSize: "0.82rem", color: "#64748B", lineHeight: 1.5, paddingLeft: 26 }}>
                       Every new event requires Super Admin approval in the moderation queue before becoming visible to participants.
                     </p>
                   </label>
@@ -346,33 +384,38 @@ export default function AdminSettings() {
                   style={{
                     display: "block",
                     fontSize: "0.78rem",
-                    fontWeight: 600,
-                    color: "var(--admin-text-muted)",
+                    fontWeight: 700,
+                    color: "#475569",
                     marginBottom: 6,
+                    letterSpacing: "0.03em",
                   }}
                 >
                   SUBSCRIPTION EXPIRY GRACE PERIOD (DAYS)
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="60"
-                  value={form.subscriptionGracePeriodDays}
-                  onChange={(e) =>
-                    setForm({ ...form, subscriptionGracePeriodDays: Number(e.target.value) })
-                  }
-                  style={{
-                    width: 200,
-                    padding: "10px 12px",
-                    background: "rgba(9, 13, 22, 0.6)",
-                    border: "1px solid var(--admin-border)",
-                    borderRadius: 8,
-                    color: "#FFF",
-                  }}
-                />
-                <span style={{ fontSize: "0.78rem", color: "var(--admin-text-muted)", marginLeft: 12 }}>
-                  Organizers retain event access during grace period before restrictions apply.
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <input
+                    type="number"
+                    min="0"
+                    max="60"
+                    value={form.subscriptionGracePeriodDays}
+                    onChange={(e) =>
+                      setForm({ ...form, subscriptionGracePeriodDays: Number(e.target.value) })
+                    }
+                    style={{
+                      width: 160,
+                      padding: "10px 14px",
+                      background: "#FFFFFF",
+                      border: "1px solid #CBD5E1",
+                      borderRadius: 8,
+                      color: "#0F172A",
+                      fontSize: "0.88rem",
+                      outline: "none",
+                    }}
+                  />
+                  <span style={{ fontSize: "0.82rem", color: "#64748B" }}>
+                    Organizers retain event access during grace period before restrictions apply.
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -382,21 +425,22 @@ export default function AdminSettings() {
               style={{
                 marginBottom: 24,
                 border: form.maintenanceMode
-                  ? "1px solid rgba(239, 68, 68, 0.5)"
+                  ? "1.5px solid #FECDD3"
                   : "1px solid var(--admin-border)",
                 background: form.maintenanceMode
-                  ? "rgba(239, 68, 68, 0.05)"
+                  ? "#FFF1F2"
                   : "var(--admin-card-bg)",
+                transition: "all 0.2s ease",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: "1.3rem" }}>🚨</span>
                   <div>
-                    <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0 }}>
+                    <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0, color: "#0F172A" }}>
                       Emergency Maintenance Mode
                     </h3>
-                    <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "var(--admin-text-muted)" }}>
+                    <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#64748B" }}>
                       Temporarily block public registration and show platform maintenance banner.
                     </p>
                   </div>
@@ -407,9 +451,9 @@ export default function AdminSettings() {
                     type="checkbox"
                     checked={form.maintenanceMode}
                     onChange={(e) => setForm({ ...form, maintenanceMode: e.target.checked })}
-                    style={{ width: 20, height: 20, cursor: "pointer" }}
+                    style={{ width: 20, height: 20, cursor: "pointer", accentColor: "#E11D48" }}
                   />
-                  <strong style={{ color: form.maintenanceMode ? "#F87171" : "#94A3B8" }}>
+                  <strong style={{ color: form.maintenanceMode ? "#E11D48" : "#94A3B8", fontSize: "0.85rem" }}>
                     {form.maintenanceMode ? "ENABLED (ACTIVE)" : "DISABLED"}
                   </strong>
                 </label>
@@ -421,9 +465,10 @@ export default function AdminSettings() {
                     style={{
                       display: "block",
                       fontSize: "0.78rem",
-                      fontWeight: 600,
-                      color: "#F87171",
+                      fontWeight: 700,
+                      color: "#9F1239",
                       marginBottom: 6,
+                      letterSpacing: "0.03em",
                     }}
                   >
                     PUBLIC MAINTENANCE NOTICE BROADCAST
@@ -434,12 +479,14 @@ export default function AdminSettings() {
                     onChange={(e) => setForm({ ...form, maintenanceMessage: e.target.value })}
                     style={{
                       width: "100%",
-                      padding: "10px 12px",
-                      background: "rgba(9, 13, 22, 0.8)",
-                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                      padding: "10px 14px",
+                      background: "#FFFFFF",
+                      border: "1.5px solid #FDA4AF",
                       borderRadius: 8,
-                      color: "#FFF",
+                      color: "#881337",
+                      fontSize: "0.88rem",
                       boxSizing: "border-box",
+                      outline: "none",
                     }}
                   />
                 </div>
@@ -450,20 +497,21 @@ export default function AdminSettings() {
             <div className="admin-card" style={{ marginBottom: 32 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: "1.3rem" }}>💳</span>
-                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0 }}>
+                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0, color: "#0F172A" }}>
                   Payment Gateway Integration
                 </h3>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
                 <div>
                   <label
                     style={{
                       display: "block",
                       fontSize: "0.78rem",
-                      fontWeight: 600,
-                      color: "var(--admin-text-muted)",
+                      fontWeight: 700,
+                      color: "#475569",
                       marginBottom: 6,
+                      letterSpacing: "0.03em",
                     }}
                   >
                     PAYMENT PROVIDER
@@ -474,12 +522,14 @@ export default function AdminSettings() {
                     value={form.paymentGateway.provider}
                     style={{
                       width: "100%",
-                      padding: "10px 12px",
-                      background: "rgba(9, 13, 22, 0.4)",
-                      border: "1px solid var(--admin-border)",
+                      padding: "10px 14px",
+                      background: "#F1F5F9",
+                      border: "1px solid #CBD5E1",
                       borderRadius: 8,
-                      color: "#94A3B8",
+                      color: "#475569",
+                      fontSize: "0.88rem",
                       boxSizing: "border-box",
+                      fontWeight: 600,
                     }}
                   />
                 </div>
@@ -489,9 +539,10 @@ export default function AdminSettings() {
                     style={{
                       display: "block",
                       fontSize: "0.78rem",
-                      fontWeight: 600,
-                      color: "var(--admin-text-muted)",
+                      fontWeight: 700,
+                      color: "#475569",
                       marginBottom: 6,
+                      letterSpacing: "0.03em",
                     }}
                   >
                     ENVIRONMENT MODE
@@ -509,12 +560,14 @@ export default function AdminSettings() {
                     }
                     style={{
                       width: "100%",
-                      padding: "10px 12px",
-                      background: "rgba(9, 13, 22, 0.6)",
-                      border: "1px solid var(--admin-border)",
+                      padding: "10px 14px",
+                      background: "#FFFFFF",
+                      border: "1px solid #CBD5E1",
                       borderRadius: 8,
-                      color: "#FFF",
+                      color: "#0F172A",
+                      fontSize: "0.88rem",
                       boxSizing: "border-box",
+                      outline: "none",
                     }}
                   >
                     <option value="sandbox">Sandbox / Test Mode (Simulated)</option>

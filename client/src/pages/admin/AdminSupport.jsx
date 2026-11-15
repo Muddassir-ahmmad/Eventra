@@ -22,6 +22,17 @@ export default function AdminSupport() {
     fetchTickets(1);
   }, [statusFilter, priorityFilter]);
 
+  // Close active ticket modal on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setActiveTicket(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   async function fetchTickets(page = 1) {
     try {
       setLoading(true);
@@ -272,27 +283,58 @@ export default function AdminSupport() {
 
       {/* Ticket Conversation Modal / Drawer */}
       {activeTicket && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal" style={{ maxWidth: 680 }}>
-            <div className="admin-modal-header">
-              <div>
-                <span className="admin-badge admin-badge-verified">{activeTicket.category}</span>
-                <h3 style={{ margin: "6px 0 0", fontSize: "1.2rem" }}>
-                  {activeTicket.ticketNumber}: {activeTicket.subject}
-                </h3>
-                <div style={{ fontSize: "0.78rem", color: "var(--admin-text-sub)", marginTop: 2 }}>
-                  From: {activeTicket.organizer?.name} ({activeTicket.organizer?.email})
-                </div>
-              </div>
+        <div
+          className="admin-modal-backdrop"
+          onClick={() => setActiveTicket(null)}
+        >
+          <div
+            className="admin-modal"
+            style={{ maxWidth: 720, borderRadius: 16 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top Bar with 'Back to Support Tickets' & 'Close (✕)' */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "16px 24px 0",
+              }}
+            >
               <button
+                type="button"
                 onClick={() => setActiveTicket(null)}
-                style={{ background: "transparent", border: "none", color: "#FFF", cursor: "pointer", fontSize: "1.2rem" }}
+                className="admin-modal-back-btn"
+                title="Back to support tickets list"
+              >
+                <span>←</span>
+                <span>Back to All Tickets</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTicket(null)}
+                className="admin-modal-close-btn"
+                aria-label="Close ticket dialog"
+                title="Close modal (Esc)"
               >
                 ✕
               </button>
             </div>
 
-            <div className="admin-modal-body" style={{ maxHeight: "65vh", overflowY: "auto" }}>
+            <div className="admin-modal-header" style={{ paddingTop: 14 }}>
+              <div>
+                <span className="admin-badge admin-badge-verified">{activeTicket.category}</span>
+                <h3 style={{ margin: "6px 0 0", fontSize: "1.25rem", color: "#0F172A", fontWeight: 800 }}>
+                  {activeTicket.ticketNumber}: {activeTicket.subject}
+                </h3>
+                <div style={{ fontSize: "0.82rem", color: "var(--admin-text-muted)", marginTop: 4 }}>
+                  From: <strong style={{ color: "#0F172A" }}>{activeTicket.organizer?.name}</strong> ({activeTicket.organizer?.email})
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-modal-body" style={{ maxHeight: "60vh", overflowY: "auto" }}>
               {/* Conversation Messages */}
               <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 24 }}>
                 {(activeTicket.replies || []).map((msg, i) => {
@@ -301,23 +343,24 @@ export default function AdminSupport() {
                     <div
                       key={i}
                       style={{
-                        padding: 14,
-                        borderRadius: 10,
-                        background: isAdmin ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.05)",
-                        border: isAdmin ? "1px solid rgba(99, 102, 241, 0.3)" : "1px solid var(--admin-border)",
+                        padding: "14px 16px",
+                        borderRadius: 12,
+                        background: isAdmin ? "#ECFDF5" : "#F8FAFC",
+                        border: isAdmin ? "1px solid #A7F3D0" : "1px solid #E2E8F0",
                         marginLeft: isAdmin ? 40 : 0,
                         marginRight: isAdmin ? 0 : 40,
+                        boxShadow: "0 2px 6px rgba(15, 23, 42, 0.03)",
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                        <span style={{ fontWeight: 700, fontSize: "0.85rem", color: isAdmin ? "var(--admin-primary)" : "#FFF" }}>
+                        <span style={{ fontWeight: 700, fontSize: "0.85rem", color: isAdmin ? "#059669" : "#0F172A" }}>
                           {isAdmin ? "🛡️ Super Admin Support" : `👤 ${msg.senderName || "Organizer"}`}
                         </span>
-                        <span style={{ fontSize: "0.72rem", color: "var(--admin-text-sub)" }}>
+                        <span style={{ fontSize: "0.74rem", color: "var(--admin-text-sub)" }}>
                           {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
-                      <p style={{ margin: 0, fontSize: "0.88rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                      <p style={{ margin: 0, fontSize: "0.88rem", color: "#334155", lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
                         {msg.message}
                       </p>
                     </div>
@@ -326,13 +369,13 @@ export default function AdminSupport() {
               </div>
 
               {/* Status Actions */}
-              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 18, flexWrap: "wrap" }}>
-                <span style={{ fontSize: "0.8rem", color: "var(--admin-text-sub)", fontWeight: 700 }}>UPDATE STATUS:</span>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 20, flexWrap: "wrap", padding: "12px 14px", background: "#F8FAFC", borderRadius: 10, border: "1px solid #E2E8F0" }}>
+                <span style={{ fontSize: "0.78rem", color: "#64748B", fontWeight: 800, letterSpacing: "0.04em" }}>UPDATE STATUS:</span>
                 <button
                   type="button"
                   onClick={() => updateTicketStatus("IN_PROGRESS")}
                   className="admin-btn admin-btn-secondary"
-                  style={{ padding: "4px 8px", fontSize: "0.74rem" }}
+                  style={{ padding: "5px 12px", fontSize: "0.78rem" }}
                 >
                   In Progress
                 </button>
@@ -340,7 +383,7 @@ export default function AdminSupport() {
                   type="button"
                   onClick={() => updateTicketStatus("WAITING_FOR_USER")}
                   className="admin-btn admin-btn-secondary"
-                  style={{ padding: "4px 8px", fontSize: "0.74rem" }}
+                  style={{ padding: "5px 12px", fontSize: "0.78rem" }}
                 >
                   Wait for Organizer
                 </button>
@@ -348,7 +391,7 @@ export default function AdminSupport() {
                   type="button"
                   onClick={() => updateTicketStatus("RESOLVED")}
                   className="admin-btn admin-btn-success"
-                  style={{ padding: "4px 8px", fontSize: "0.74rem" }}
+                  style={{ padding: "5px 12px", fontSize: "0.78rem" }}
                 >
                   ✓ Mark Resolved
                 </button>
@@ -356,7 +399,7 @@ export default function AdminSupport() {
                   type="button"
                   onClick={() => updateTicketStatus("CLOSED")}
                   className="admin-btn admin-btn-danger"
-                  style={{ padding: "4px 8px", fontSize: "0.74rem" }}
+                  style={{ padding: "5px 12px", fontSize: "0.78rem" }}
                 >
                   ✕ Close Ticket
                 </button>
@@ -364,8 +407,10 @@ export default function AdminSupport() {
 
               {/* Reply Form */}
               <form onSubmit={handleSendReply}>
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Send Official Reply</label>
+                <div className="admin-form-group" style={{ marginBottom: 14 }}>
+                  <label className="admin-form-label" style={{ fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>
+                    Send Official Reply
+                  </label>
                   <textarea
                     className="admin-form-textarea"
                     rows="3"
@@ -373,16 +418,36 @@ export default function AdminSupport() {
                     placeholder="Type official response to the organizer..."
                     value={replyMessage}
                     onChange={(e) => setReplyMessage(e.target.value)}
+                    style={{
+                      background: "#FFFFFF",
+                      color: "#0F172A",
+                      border: "1px solid #CBD5E1",
+                      borderRadius: "8px",
+                      padding: "10px 14px",
+                      fontSize: "0.88rem",
+                      width: "100%",
+                      boxSizing: "border-box",
+                    }}
                   />
                 </div>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="admin-btn admin-btn-primary"
-                  style={{ width: "100%", justifyContent: "center" }}
-                >
-                  {actionLoading ? "Sending..." : "📤 Send Reply to Organizer"}
-                </button>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="admin-btn admin-btn-primary"
+                    style={{ flex: 1, justifyContent: "center", padding: "10px 18px", fontSize: "0.9rem" }}
+                  >
+                    {actionLoading ? "Sending..." : "📤 Send Reply to Organizer"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTicket(null)}
+                    className="admin-btn admin-btn-secondary"
+                    style={{ padding: "10px 18px", fontSize: "0.9rem" }}
+                  >
+                    Close Window
+                  </button>
+                </div>
               </form>
             </div>
           </div>

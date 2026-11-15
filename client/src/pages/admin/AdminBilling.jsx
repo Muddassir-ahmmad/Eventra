@@ -23,6 +23,17 @@ export default function AdminBilling() {
     fetchBillingData(1);
   }, [statusFilter]);
 
+  // Close modal on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setRefundModal({ open: false, txn: null, reason: "" });
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   async function fetchBillingData(page = 1) {
     try {
       setLoading(true);
@@ -313,15 +324,20 @@ export default function AdminBilling() {
 
       {/* Refund Modal */}
       {refundModal.open && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal">
+        <div
+          className="admin-modal-backdrop"
+          onClick={() => setRefundModal({ open: false, txn: null, reason: "" })}
+        >
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3 style={{ margin: 0, fontSize: "1.1rem" }}>
                 ↩️ Process Refund: ₹{refundModal.txn?.amount}
               </h3>
               <button
+                type="button"
+                className="admin-modal-close-btn"
                 onClick={() => setRefundModal({ open: false, txn: null, reason: "" })}
-                style={{ background: "transparent", border: "none", color: "#FFF", cursor: "pointer", fontSize: "1.2rem" }}
+                title="Close dialog (Esc)"
               >
                 ✕
               </button>

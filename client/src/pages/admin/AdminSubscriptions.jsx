@@ -40,6 +40,18 @@ export default function AdminSubscriptions() {
     fetchData();
   }, []);
 
+  // Close modals on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setPlanModal((prev) => ({ ...prev, open: false }));
+        setAssignModal((prev) => ({ ...prev, open: false }));
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   async function fetchData() {
     try {
       setLoading(true);
@@ -396,15 +408,20 @@ export default function AdminSubscriptions() {
 
       {/* Plan Edit / Create Modal */}
       {planModal.open && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal">
+        <div
+          className="admin-modal-backdrop"
+          onClick={() => setPlanModal({ ...planModal, open: false })}
+        >
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3 style={{ margin: 0, fontSize: "1.1rem" }}>
                 {planModal.isEdit ? `✏️ Edit Plan: ${planModal.name}` : "＋ Create New Plan"}
               </h3>
               <button
+                type="button"
+                className="admin-modal-close-btn"
                 onClick={() => setPlanModal({ ...planModal, open: false })}
-                style={{ background: "transparent", border: "none", color: "#FFF", cursor: "pointer", fontSize: "1.2rem" }}
+                title="Close dialog (Esc)"
               >
                 ✕
               </button>
@@ -530,13 +547,18 @@ export default function AdminSubscriptions() {
 
       {/* Assign Plan Modal */}
       {assignModal.open && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal">
+        <div
+          className="admin-modal-backdrop"
+          onClick={() => setAssignModal({ ...assignModal, open: false })}
+        >
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3 style={{ margin: 0, fontSize: "1.1rem" }}>🎁 Assign Complimentary Subscription</h3>
               <button
+                type="button"
+                className="admin-modal-close-btn"
                 onClick={() => setAssignModal({ ...assignModal, open: false })}
-                style={{ background: "transparent", border: "none", color: "#FFF", cursor: "pointer", fontSize: "1.2rem" }}
+                title="Close dialog (Esc)"
               >
                 ✕
               </button>

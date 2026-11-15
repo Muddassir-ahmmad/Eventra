@@ -25,6 +25,17 @@ export default function AdminEvents() {
     fetchEvents(1);
   }, [statusFilter, moderationFilter]);
 
+  // Close modal on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setModal({ open: false, event: null, action: "", reason: "" });
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   async function fetchEvents(page = 1) {
     try {
       setLoading(true);
@@ -315,15 +326,20 @@ export default function AdminEvents() {
 
       {/* Moderate Reason Modal */}
       {modal.open && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal">
+        <div
+          className="admin-modal-backdrop"
+          onClick={() => setModal({ open: false, event: null, action: "", reason: "" })}
+        >
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3 style={{ margin: 0, fontSize: "1.1rem" }}>
                 {modal.action === "REJECT" ? "✕ Reject Event" : "🚩 Flag Suspicious Event"}: {modal.event?.title}
               </h3>
               <button
+                type="button"
+                className="admin-modal-close-btn"
                 onClick={() => setModal({ open: false, event: null, action: "", reason: "" })}
-                style={{ background: "transparent", border: "none", color: "#FFF", cursor: "pointer", fontSize: "1.2rem" }}
+                title="Close dialog (Esc)"
               >
                 ✕
               </button>

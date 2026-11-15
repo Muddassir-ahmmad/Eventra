@@ -35,6 +35,18 @@ export default function AdminOrganizers() {
     fetchOrganizers(1);
   }, [statusFilter, verificationFilter]);
 
+  // Close modals on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setSuspendModal({ open: false, organizer: null, reason: "", notes: "", durationDays: "" });
+        setDeleteModal({ open: false, organizer: null, reason: "", loading: false });
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   async function fetchOrganizers(page = 1) {
     try {
       setLoading(true);
@@ -386,15 +398,20 @@ export default function AdminOrganizers() {
 
       {/* Suspend Confirmation Modal */}
       {suspendModal.open && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal">
+        <div
+          className="admin-modal-backdrop"
+          onClick={() => setSuspendModal({ open: false, organizer: null, reason: "", notes: "", durationDays: "" })}
+        >
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3 style={{ margin: 0, fontSize: "1.1rem" }}>
                 ⛔ Suspend Organizer: {suspendModal.organizer?.name}
               </h3>
               <button
+                type="button"
+                className="admin-modal-close-btn"
                 onClick={() => setSuspendModal({ open: false, organizer: null, reason: "", notes: "", durationDays: "" })}
-                style={{ background: "transparent", border: "none", color: "#FFF", cursor: "pointer", fontSize: "1.2rem" }}
+                title="Close dialog (Esc)"
               >
                 ✕
               </button>
@@ -474,33 +491,38 @@ export default function AdminOrganizers() {
 
       {/* Permanent Delete Confirmation Modal */}
       {deleteModal.open && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal" style={{ maxWidth: 480 }}>
-            <div className="admin-modal-header" style={{ borderColor: "rgba(244, 63, 94, 0.3)" }}>
-              <h3 style={{ margin: 0, fontSize: "1.1rem", color: "#fb7185", display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          className="admin-modal-backdrop"
+          onClick={() => setDeleteModal({ open: false, organizer: null, reason: "", loading: false })}
+        >
+          <div className="admin-modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header" style={{ borderColor: "#FECDD3" }}>
+              <h3 style={{ margin: 0, fontSize: "1.1rem", color: "#E11D48", display: "flex", alignItems: "center", gap: 8 }}>
                 <span>⚠️</span> Permanently Delete Organizer
               </h3>
               <button
+                type="button"
+                className="admin-modal-close-btn"
                 onClick={() => setDeleteModal({ open: false, organizer: null, reason: "", loading: false })}
-                style={{ background: "transparent", border: "none", color: "#FFF", cursor: "pointer", fontSize: "1.2rem" }}
+                title="Close dialog (Esc)"
               >
                 ✕
               </button>
             </div>
 
             <div className="admin-modal-body">
-              <p style={{ color: "#fca5a5", fontSize: "0.88rem", lineHeight: 1.5, marginBottom: 16 }}>
+              <p style={{ color: "#0F172A", fontSize: "0.9rem", lineHeight: 1.5, marginBottom: 16 }}>
                 Are you sure you want to delete organizer <strong>{deleteModal.organizer?.name}</strong> (<em>{deleteModal.organizer?.email}</em>)?
               </p>
               <div
                 style={{
-                  background: "rgba(244, 63, 94, 0.08)",
-                  border: "1px solid rgba(244, 63, 94, 0.2)",
+                  background: "#FFF1F2",
+                  border: "1px solid #FECDD3",
                   borderRadius: 8,
-                  padding: 12,
+                  padding: 14,
                   marginBottom: 16,
                   fontSize: "0.82rem",
-                  color: "#cbd5e1",
+                  color: "#9F1239",
                   lineHeight: 1.5,
                 }}
               >

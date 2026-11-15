@@ -589,6 +589,51 @@
   justify-content: space-between;
 }
 
+.admin-modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #F1F5F9;
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text-main);
+  cursor: pointer;
+  font-size: 1.05rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.16s ease;
+  line-height: 1;
+}
+
+.admin-modal-close-btn:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #FCA5A5;
+  transform: scale(1.05);
+}
+
+.admin-modal-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--admin-radius-sm);
+  background: #F1F5F9;
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text-main);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.admin-modal-back-btn:hover {
+  background: #E2E8F0;
+  color: var(--admin-primary);
+  border-color: #CBD5E1;
+}
+
 .admin-modal-header h3 {
   margin: 0;
   font-family: var(--admin-font-heading);

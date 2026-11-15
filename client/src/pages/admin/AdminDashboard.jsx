@@ -230,8 +230,8 @@ export default function AdminDashboard() {
                 style={{
                   padding: "10px 14px",
                   borderRadius: 8,
-                  background: "rgba(255, 255, 255, 0.03)",
-                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                  background: "#F8FAFC",
+                  border: "1px solid #E2E8F0",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",

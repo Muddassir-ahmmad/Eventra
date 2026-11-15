@@ -145,7 +145,7 @@ export default function AdminNotifications() {
                   style={{
                     padding: 14,
                     borderRadius: 8,
-                    background: "rgba(255, 255, 255, 0.03)",
+                    background: "#F8FAFC",
                     border: "1px solid var(--admin-border)",
                   }}
                 >

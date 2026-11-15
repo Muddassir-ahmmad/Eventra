@@ -144,7 +144,7 @@ export default function AdminOrganizerDetail() {
           style={{
             padding: 16,
             borderRadius: 10,
-            background: "rgba(255, 255, 255, 0.04)",
+            background: "#F8FAFC",
             border: "1px solid var(--admin-border)",
             minWidth: 220,
           }}
@@ -290,8 +290,8 @@ export default function AdminOrganizerDetail() {
                   style={{
                     padding: 10,
                     borderRadius: 6,
-                    background: "rgba(255, 255, 255, 0.02)",
-                    border: "1px solid rgba(255, 255, 255, 0.05)",
+                    background: "#F8FAFC",
+                    border: "1px solid #E2E8F0",
                     fontSize: "0.82rem",
                   }}
                 >

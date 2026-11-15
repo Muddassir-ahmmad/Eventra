@@ -153,8 +153,8 @@ export default function AdminAnalytics() {
                         justifyContent: "space-between",
                         padding: "10px 14px",
                         borderRadius: 8,
-                        background: "rgba(255, 255, 255, 0.02)",
-                        border: "1px solid rgba(255, 255, 255, 0.05)",
+                        background: "#F8FAFC",
+                        border: "1px solid #E2E8F0",
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -162,7 +162,7 @@ export default function AdminAnalytics() {
                           #{i + 1}
                         </span>
                         <div>
-                          <strong style={{ fontSize: "0.9rem", color: "#FFF", display: "block" }}>{ev.title}</strong>
+                          <strong style={{ fontSize: "0.9rem", color: "#0F172A", display: "block" }}>{ev.title}</strong>
                           <span style={{ fontSize: "0.75rem", color: "var(--admin-text-sub)" }}>{ev.category}</span>
                         </div>
                       </div>
@@ -199,8 +199,8 @@ export default function AdminAnalytics() {
                         justifyContent: "space-between",
                         padding: "10px 14px",
                         borderRadius: 8,
-                        background: "rgba(255, 255, 255, 0.02)",
-                        border: "1px solid rgba(255, 255, 255, 0.05)",
+                        background: "#F8FAFC",
+                        border: "1px solid #E2E8F0",
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -208,7 +208,7 @@ export default function AdminAnalytics() {
                           #{i + 1}
                         </span>
                         <div>
-                          <strong style={{ fontSize: "0.9rem", color: "#FFF", display: "block" }}>{org.name}</strong>
+                          <strong style={{ fontSize: "0.9rem", color: "#0F172A", display: "block" }}>{org.name}</strong>
                           <span style={{ fontSize: "0.75rem", color: "var(--admin-text-sub)" }}>
                             {org.organization || org.email}
                           </span>
@@ -239,13 +239,13 @@ export default function AdminAnalytics() {
                   🎧 Support &amp; Complaint Resolution Efficiency
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
-                  <div style={{ padding: "14px", background: "rgba(255,255,255,0.03)", borderRadius: 10 }}>
+                  <div style={{ padding: "14px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10 }}>
                     <div style={{ fontSize: "0.78rem", color: "var(--admin-text-sub)" }}>AVERAGE RESOLUTION TIME</div>
-                    <div style={{ fontSize: "1.6rem", fontWeight: 800, color: "#6366F1", marginTop: 4 }}>
+                    <div style={{ fontSize: "1.6rem", fontWeight: 800, color: "#059669", marginTop: 4 }}>
                       {supportAnalytics.avgResolutionHours || 0}h
                     </div>
                   </div>
-                  <div style={{ padding: "14px", background: "rgba(255,255,255,0.03)", borderRadius: 10 }}>
+                  <div style={{ padding: "14px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10 }}>
                     <div style={{ fontSize: "0.78rem", color: "var(--admin-text-sub)" }}>RESOLVED COMPLAINTS</div>
                     <div style={{ fontSize: "1.6rem", fontWeight: 800, color: "#10B981", marginTop: 4 }}>
                       {supportAnalytics.totalResolvedSample || 0}
@@ -270,10 +270,10 @@ export default function AdminAnalytics() {
                       style={{
                         padding: "8px 14px",
                         borderRadius: 20,
-                        background: "rgba(99, 102, 241, 0.12)",
-                        border: "1px solid rgba(99, 102, 241, 0.25)",
+                        background: "#ECFDF5",
+                        border: "1px solid #A7F3D0",
                         fontSize: "0.85rem",
-                        color: "#F8FAFC",
+                        color: "#0F172A",
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
