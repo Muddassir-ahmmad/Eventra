@@ -2348,20 +2348,47 @@ function FeedbackQuestionBuilder({ form, update }) {
   }
 
   return (
-    <div style={{ marginTop: 20, padding: 18, borderRadius: 12, border: "1px solid rgba(124, 77, 255, 0.25)", background: "rgba(15, 23, 42, 0.45)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+    <div
+      style={{
+        marginTop: 20,
+        padding: "clamp(14px, 3vw, 20px)",
+        borderRadius: 14,
+        border: "1px solid #E2E8F0",
+        background: "#F8FAFC",
+        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 16,
+          flexWrap: "wrap",
+          gap: 10,
+        }}
+      >
         <div>
-          <h4 style={{ margin: "0 0 4px", fontSize: "0.98rem", fontWeight: 700, color: "#f8fafc" }}>
+          <h4 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 700, color: "#0F172A" }}>
             📋 Attendee Feedback Questionnaire
           </h4>
-          <p style={{ margin: 0, fontSize: "0.8rem", color: "#94a3b8" }}>
+          <p style={{ margin: 0, fontSize: "0.82rem", color: "#64748B" }}>
             Configure questions for attendees. Choose between <strong>⭐ 5-Star Rating</strong> or <strong>💬 Text Reply</strong>.
           </p>
         </div>
         <button
           type="button"
           className="button button-ghost small"
-          style={{ fontSize: "0.76rem", padding: "4px 10px" }}
+          style={{
+            fontSize: "0.76rem",
+            padding: "5px 12px",
+            borderRadius: "9999px",
+            background: "#FFFFFF",
+            border: "1px solid #CBD5E1",
+            color: "#475569",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
           onClick={resetDefaults}
         >
           ↺ Reset Defaults
@@ -2373,46 +2400,99 @@ function FeedbackQuestionBuilder({ form, update }) {
           <div
             key={q.id || idx}
             style={{
-              padding: 14,
-              borderRadius: 10,
-              background: "rgba(30, 41, 59, 0.65)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
+              padding: "clamp(12px, 2.5vw, 16px)",
+              borderRadius: 12,
+              background: "#FFFFFF",
+              border: "1px solid #E2E8F0",
+              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 10,
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "rgba(124, 77, 255, 0.2)", color: "#c084fc" }}>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    padding: "3px 9px",
+                    borderRadius: 9999,
+                    background: "#ECFDF5",
+                    color: "#059669",
+                    border: "1px solid #A7F3D0",
+                  }}
+                >
                   Question #{idx + 1}
                 </span>
-                <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 500 }}>
                   {q.type === "rating" ? "⭐ 5-Star Rating" : "💬 Text Reply"}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => removeQuestion(idx)}
-                style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "0.8rem", padding: "2px 6px" }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#DC2626",
+                  cursor: "pointer",
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                  padding: "2px 8px",
+                  borderRadius: 6,
+                  transition: "background 0.16s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#FEE2E2")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 title="Remove Question"
               >
                 ✕ Remove
               </button>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 10, alignItems: "center", marginBottom: 8 }}>
+            {/* Scalable, mobile-responsive input controls */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 10,
+                alignItems: "center",
+                marginBottom: 10,
+              }}
+            >
               <input
                 type="text"
                 value={q.label}
                 onChange={(e) => updateQuestion(idx, "label", e.target.value)}
                 placeholder="Type your question prompt..."
                 style={{
+                  flex: "1 1 260px",
+                  minWidth: "0",
                   width: "100%",
                   padding: "9px 12px",
                   borderRadius: 8,
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
-                  background: "rgba(0, 0, 0, 0.3)",
-                  color: "#ffffff",
+                  border: "1px solid #CBD5E1",
+                  background: "#FFFFFF",
+                  color: "#0F172A",
                   fontSize: "0.88rem",
                   boxSizing: "border-box",
+                  outline: "none",
+                  transition: "border-color 0.16s ease, box-shadow 0.16s ease",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "#059669";
+                  e.currentTarget.style.boxShadow = "0 0 0 3px rgba(5, 150, 105, 0.15)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "#CBD5E1";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               />
 
@@ -2420,33 +2500,63 @@ function FeedbackQuestionBuilder({ form, update }) {
                 value={q.type}
                 onChange={(e) => updateQuestion(idx, "type", e.target.value)}
                 style={{
+                  flex: "0 1 180px",
+                  minWidth: "150px",
                   padding: "9px 10px",
                   borderRadius: 8,
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
-                  background: "rgba(15, 23, 42, 0.9)",
-                  color: "#ffffff",
+                  border: "1px solid #CBD5E1",
+                  background: "#FFFFFF",
+                  color: "#0F172A",
                   fontSize: "0.82rem",
+                  fontWeight: 500,
                   cursor: "pointer",
+                  outline: "none",
                 }}
               >
                 <option value="rating">⭐ 5-Star Rating</option>
                 <option value="text">💬 Text Reply</option>
               </select>
 
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", color: "#cbd5e1", cursor: "pointer", whiteSpace: "nowrap" }}>
+              <label
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  color: "#334155",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  padding: "6px 8px",
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={q.required}
                   onChange={(e) => updateQuestion(idx, "required", e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: "#059669", cursor: "pointer" }}
                 />
                 Required
               </label>
             </div>
 
-            <div style={{ padding: "6px 10px", borderRadius: 6, background: "rgba(0,0,0,0.2)", fontSize: "0.75rem", color: "#94a3b8", display: "flex", alignItems: "center", gap: 8 }}>
+            <div
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                background: "#F1F5F9",
+                border: "1px solid #E2E8F0",
+                fontSize: "0.78rem",
+                color: "#64748B",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
               {q.type === "rating" ? (
                 <>
-                  <span style={{ color: "#f59e0b", letterSpacing: 2 }}>★ ★ ★ ★ ★</span>
+                  <span style={{ color: "#D97706", letterSpacing: 2, fontWeight: 700 }}>★ ★ ★ ★ ★</span>
                   <span>(Attendees select 1 to 5 stars)</span>
                 </>
               ) : (
@@ -2457,18 +2567,54 @@ function FeedbackQuestionBuilder({ form, update }) {
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
         <button
           type="button"
           className="button button-ghost small"
+          style={{
+            background: "#FFFFFF",
+            border: "1px solid #CBD5E1",
+            color: "#0F172A",
+            fontWeight: 600,
+            padding: "8px 14px",
+            borderRadius: 8,
+            cursor: "pointer",
+            transition: "all 0.16s ease",
+          }}
           onClick={() => addQuestion("rating")}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "#059669";
+            e.currentTarget.style.color = "#059669";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "#CBD5E1";
+            e.currentTarget.style.color = "#0F172A";
+          }}
         >
           + Add 5-Star Rating Question
         </button>
         <button
           type="button"
           className="button button-ghost small"
+          style={{
+            background: "#FFFFFF",
+            border: "1px solid #CBD5E1",
+            color: "#0F172A",
+            fontWeight: 600,
+            padding: "8px 14px",
+            borderRadius: 8,
+            cursor: "pointer",
+            transition: "all 0.16s ease",
+          }}
           onClick={() => addQuestion("text")}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "#059669";
+            e.currentTarget.style.color = "#059669";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "#CBD5E1";
+            e.currentTarget.style.color = "#0F172A";
+          }}
         >
           + Add Text Question
         </button>

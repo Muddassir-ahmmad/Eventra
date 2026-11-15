@@ -1,0 +1,422 @@
+/* =========================================================================
+   EVENTRA - CINEMATIC BRAND INTRO ANIMATION
+   Sequence:
+     Scene 1: Floating Event Emojis Orbital Movement (0.0s - 1.5s)
+     Scene 2: Emojis Converge & EVENTRA Brand Reveal with Light Sweep (1.5s - 2.8s)
+     Scene 3: Zoom-Out & Seamless Homepage Reveal (2.8s - 3.8s)
+   ========================================================================= */
+
+.eventra-intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: radial-gradient(circle at 50% 45%, #062822 0%, #031512 45%, #020706 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.eventra-intro-overlay.is-exiting {
+  opacity: 0;
+  transform: scale(1.06);
+  pointer-events: none;
+}
+
+/* Background Ambient Orbs */
+.intro-ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  opacity: 0.6;
+  animation: introOrbPulse 6s ease-in-out infinite alternate;
+}
+
+.intro-ambient-orb-1 {
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(5, 150, 105, 0.35) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.intro-ambient-orb-2 {
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.22) 0%, transparent 70%);
+  top: 40%;
+  left: 60%;
+  animation-delay: -3s;
+}
+
+@keyframes introOrbPulse {
+  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.45; }
+  100% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.7; }
+}
+
+/* Skip Intro Button */
+.intro-skip-btn {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #E2E8F0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.intro-skip-btn:hover {
+  background: rgba(5, 150, 105, 0.2);
+  border-color: #34D399;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3);
+}
+
+/* Central Stage Container */
+.intro-stage-center {
+  position: relative;
+  width: 380px;
+  height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .intro-stage-center {
+    width: 290px;
+    height: 290px;
+  }
+}
+
+/* =========================================================================
+   SCENE 1: EMOJI ORBITAL RING
+   ========================================================================= */
+
+.intro-orbital-system {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: introSystemSpin 10s linear infinite;
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+}
+
+@keyframes introSystemSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Emojis Converge inwards */
+.intro-orbital-system.is-converging {
+  transform: scale(0.15) rotate(180deg) !important;
+  opacity: 0;
+  transition: transform 0.6s cubic-bezier(0.55, 0, 1, 0.45), opacity 0.4s ease 0.15s;
+}
+
+.intro-orbit-track {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 1px dashed rgba(52, 211, 153, 0.18);
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .intro-orbit-track {
+    width: 220px;
+    height: 220px;
+  }
+}
+
+.intro-emoji-item {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -30px;
+  margin-left: -30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 16px rgba(5, 150, 105, 0.35);
+  transform: translate(var(--tx), var(--ty)) scale(0);
+  opacity: 0;
+  animation: introEmojiSpawn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: var(--delay);
+}
+
+@media (max-width: 640px) {
+  .intro-emoji-item {
+    width: 48px;
+    height: 48px;
+    margin-top: -24px;
+    margin-left: -24px;
+    font-size: 1.4rem;
+  }
+}
+
+/* Counter-rotate individual emojis so they stay upright */
+.intro-emoji-inner {
+  display: inline-block;
+  animation: introEmojiCounterSpin 10s linear infinite;
+}
+
+@keyframes introEmojiCounterSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+
+@keyframes introEmojiSpawn {
+  0% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(0.1) rotate(-30deg);
+  }
+  70% {
+    transform: translate(var(--tx), var(--ty)) scale(1.18) rotate(6deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(var(--tx), var(--ty)) scale(1) rotate(0deg);
+  }
+}
+
+/* Subtle floating pulse once spawned */
+.intro-emoji-item.has-spawned {
+  animation: introEmojiFloat 3s ease-in-out infinite alternate;
+}
+
+@keyframes introEmojiFloat {
+  0% {
+    transform: translate(var(--tx), var(--ty)) scale(1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 16px rgba(5, 150, 105, 0.35);
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(1.08);
+    box-shadow: 0 6px 26px rgba(0, 0, 0, 0.5), 0 0 24px rgba(5, 150, 105, 0.6);
+  }
+}
+
+/* Energy Burst when converging */
+.intro-energy-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 140px;
+  height: 140px;
+  margin-top: -70px;
+  margin-left: -70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.7) 0%, rgba(5, 150, 105, 0.2) 50%, transparent 75%);
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-energy-burst.is-firing {
+  animation: introEnergyBurst 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes introEnergyBurst {
+  0% {
+    transform: scale(0.2);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(2.2);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(3.5);
+    opacity: 0;
+  }
+}
+
+/* =========================================================================
+   SCENE 2: EVENTRA BRAND REVEAL WITH LIGHT SWEEP
+   ========================================================================= */
+
+.intro-brand-reveal {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.85);
+  pointer-events: none;
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.intro-brand-reveal.is-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Cinematic Logo Title with Emerald Gradient & Shimmer */
+.intro-logo-title {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', 'Manrope', -apple-system, sans-serif;
+  font-size: clamp(3rem, 7.5vw, 5.2rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #FFFFFF 0%, #D1FAE5 35%, #34D399 65%, #FFFFFF 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: introShimmer 2.4s linear infinite;
+  position: relative;
+  display: inline-block;
+  text-shadow: 0 0 35px rgba(5, 150, 105, 0.45);
+}
+
+@keyframes introShimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Light beam sweep across wordmark */
+.intro-logo-title::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
+  transform: skewX(-24deg);
+  animation: introLightBeam 1.8s ease-in-out forwards;
+  animation-delay: 0.2s;
+  pointer-events: none;
+}
+
+@keyframes introLightBeam {
+  0% { left: -100%; }
+  100% { left: 220%; }
+}
+
+/* Tagline */
+.intro-logo-tagline {
+  margin: 14px 0 0 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(0.72rem, 1.4vw, 0.88rem);
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #A7F3D0;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: introTaglineIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.35s;
+}
+
+@keyframes introTaglineIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+    letter-spacing: 0.15em;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    letter-spacing: 0.28em;
+  }
+}
+
+/* Category Badge below tagline */
+.intro-badge-pill {
+  margin-top: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  background: rgba(5, 150, 105, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  color: #34D399;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: introBadgeIn 0.5s ease forwards 0.5s;
+}
+
+@keyframes introBadgeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================================
+   SCENE 3: ZOOM-OUT HOMEPAGE REVEAL WRAPPER
+   ========================================================================= */
+
+.homepage-reveal-wrapper {
+  transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.homepage-reveal-wrapper.is-entering-reveal {
+  animation: homepageScaleIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes homepageScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.965);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  .eventra-intro-overlay {
+    display: none !important;
+  }
+  .homepage-reveal-wrapper {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}

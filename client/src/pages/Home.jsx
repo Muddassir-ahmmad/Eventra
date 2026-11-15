@@ -1,13 +1,32 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import IntroAnimation from "../components/IntroAnimation";
 
 export default function Home() {
   const token = typeof window !== "undefined" ? localStorage.getItem("eventra_token") : null;
   const [activeTab, setActiveTab] = useState("pass");
   const [activeDay, setActiveDay] = useState(1);
+  const [showIntro, setShowIntro] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return false;
+    }
+    return !sessionStorage.getItem("eventra_intro_seen");
+  });
+  const [hasRevealed, setHasRevealed] = useState(false);
+
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+    setHasRevealed(true);
+  };
 
   return (
-    <main style={{ background: "#F8F9FA", color: "#0F172A", minHeight: "100vh", overflowX: "hidden" }}>
+    <>
+      {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
+      <main
+        className={`homepage-reveal-wrapper${hasRevealed ? " is-entering-reveal" : ""}`}
+        style={{ background: "#F8F9FA", color: "#0F172A", minHeight: "100vh", overflowX: "hidden" }}
+      >
       {/* =========================================================================
           1. EDITORIAL HERO SECTION
           ========================================================================= */}
@@ -57,6 +76,39 @@ export default function Home() {
           >
             <span className="live-pulse-indicator" />
             <span>EVENTRA · PREMIER EVENT MANAGEMENT &amp; PASS SYSTEM</span>
+            <button
+              type="button"
+              onClick={() => {
+                setHasRevealed(false);
+                setShowIntro(true);
+              }}
+              style={{
+                marginLeft: "6px",
+                padding: "2px 8px",
+                borderRadius: "9999px",
+                background: "#FFFFFF",
+                border: "1px solid #CBD5E1",
+                color: "#64748B",
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                transition: "all 0.16s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "#059669";
+                e.currentTarget.style.color = "#059669";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "#CBD5E1";
+                e.currentTarget.style.color = "#64748B";
+              }}
+              title="Watch brand intro animation again"
+            >
+              <span style={{ fontSize: "0.6rem" }}>▶</span> Replay Intro
+            </button>
           </div>
 
           {/* Cinematic Headline */}
@@ -901,5 +953,6 @@ export default function Home() {
         </div>
       </footer>
     </main>
-  );
+  </>
+);
 }

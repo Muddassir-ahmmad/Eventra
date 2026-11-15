@@ -178,7 +178,7 @@
 /* Star Rating Controls */
 .feedback-rating-group,
 .rating-field-group {
-  background: var(--bg-card-hover, #FAF9F6);
+  background: var(--bg-surface-secondary, #F8FAFC);
   border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: var(--radius-md, 12px);
   padding: 1.15rem 1.35rem;
@@ -294,7 +294,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  background: var(--bg-card-hover, #FAF9F6);
+  background: var(--bg-surface-secondary, #F8FAFC);
   border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: var(--radius-md, 12px);
   padding: 1.15rem 1.35rem;
@@ -338,21 +338,39 @@
 }
 
 @media (max-width: 600px) {
+  .feedback-public-shell {
+    padding: 1.25rem 0.65rem;
+  }
   .feedback-card-header,
   .feedback-participant-strip,
   .feedback-form-body,
   .feedback-card-body {
-    padding-left: 1.25rem;
-    padding-right: 1.25rem;
+    padding-left: clamp(1rem, 3.5vw, 1.25rem);
+    padding-right: clamp(1rem, 3.5vw, 1.25rem);
   }
   .rating-field-group,
   .feedback-textarea-group {
-    padding: 1rem;
+    padding: 1rem 0.85rem;
+  }
+  .stars-selector {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+  .stars-row {
+    width: 100%;
+    justify-content: space-between;
+    gap: 4px;
   }
   .star-btn {
-    width: 40px;
-    height: 40px;
-    font-size: 1.18rem;
+    flex: 1;
+    min-width: 38px;
+    max-width: 52px;
+    height: 42px;
+    font-size: 1.2rem;
+  }
+  .rating-score-pill {
+    align-self: flex-start;
   }
 }
 
