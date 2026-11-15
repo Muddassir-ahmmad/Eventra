@@ -148,8 +148,8 @@
 }
 
 .participant-card-cover {
-  height: 140px;
-  background: var(--bg-secondary, #F1F5F9);
+  height: 160px;
+  background: #0B0F17;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -158,13 +158,83 @@
   border-bottom: 1px solid var(--border-subtle, #E2E8F0);
 }
 
-.participant-card-cover img {
+.participant-card-cover img.participant-cover-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.25;
+  opacity: 0.65;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.participant-card:hover .participant-card-cover img.participant-cover-img {
+  transform: scale(1.04);
+  opacity: 0.8;
+}
+
+.participant-cover-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 15, 23, 0.25) 0%, rgba(11, 15, 23, 0.85) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.participant-cover-view-btn {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 2;
+  background: rgba(11, 15, 23, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.participant-cover-view-btn:hover {
+  background: var(--primary, #059669);
+  border-color: var(--primary, #059669);
+  transform: translateY(-1px);
+}
+
+.participant-cover-placeholder {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 60%, #064E3B 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 16px;
+}
+
+.participant-cover-placeholder span {
+  font-size: 0.65rem;
+  color: #34D399;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.participant-cover-placeholder strong {
+  font-size: 0.95rem;
+  color: #FFFFFF;
+  line-height: 1.2;
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .participant-card-status-badge {

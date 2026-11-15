@@ -15,8 +15,63 @@ export default function ParticipantDashboard() {
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState("");
   const [downloadingId, setDownloadingId] = useState(null);
+  const [selectedPoster, setSelectedPoster] = useState(null);
+  const [shareToast, setShareToast] = useState("");
+  const [sharingId, setSharingId] = useState(null);
 
   const organizerToken = typeof window !== "undefined" ? localStorage.getItem("eventra_token") : null;
+
+  async function handleShareEvent(event) {
+    if (!event) return;
+    setSharingId(event._id);
+    const eventUrl = `${window.location.origin}/events/${event.slug || event._id}`;
+    const posterLine = event.posterUrl ? `\n🖼️ Official Flyer: ${event.posterUrl}\n` : "";
+    const shareText = `🌟 Join me at *${event.title || "this event"}*!\n📍 Venue: ${event.venue || (event.mode === "online" ? "Virtual Online" : "Venue Announced Soon")}${posterLine}\n🎟️ Claim your attendee pass:\n${eventUrl}`;
+
+    try {
+      let posterFile = null;
+      if (event.posterUrl && typeof navigator !== "undefined" && navigator.canShare) {
+        try {
+          const res = await fetch(event.posterUrl);
+          const blob = await res.blob();
+          const cleanTitle = (event.slug || event.title || "event").replace(/[^a-zA-Z0-9_-]/g, "_");
+          const ext = blob.type.includes("png") ? "png" : "jpg";
+          posterFile = new File([blob], `${cleanTitle}-poster.${ext}`, { type: blob.type || "image/jpeg" });
+        } catch (_) {}
+      }
+
+      if (posterFile && navigator.canShare && navigator.canShare({ files: [posterFile] })) {
+        await navigator.share({
+          title: event.title,
+          text: shareText,
+          url: eventUrl,
+          files: [posterFile],
+        });
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: event.title,
+          text: shareText,
+          url: eventUrl,
+        });
+        return;
+      }
+
+      navigator.clipboard?.writeText(shareText);
+      setShareToast("✓ Event invite & link copied to clipboard!");
+      setTimeout(() => setShareToast(""), 3000);
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        navigator.clipboard?.writeText(shareText);
+        setShareToast("✓ Event invite & link copied to clipboard!");
+        setTimeout(() => setShareToast(""), 3000);
+      }
+    } finally {
+      setSharingId(null);
+    }
+  }
 
   useEffect(() => {
     if (initialQuery.trim()) {
@@ -295,7 +350,29 @@ export default function ParticipantDashboard() {
                   <article key={reg._id} className="participant-card">
                     {/* Cover Banner */}
                     <div className="participant-card-cover">
-                      {event.posterUrl && <img src={event.posterUrl} alt={event.title} />}
+                      {event.posterUrl ? (
+                        <>
+                          <img
+                            src={event.posterUrl}
+                            alt={event.title}
+                            className="participant-cover-img"
+                          />
+                          <div className="participant-cover-overlay" />
+                          <button
+                            type="button"
+                            className="participant-cover-view-btn"
+                            onClick={() => setSelectedPoster({ url: event.posterUrl, title: event.title })}
+                            title="Click to view full event poster"
+                          >
+                            🔍 View Flyer
+                          </button>
+                        </>
+                      ) : (
+                        <div className="participant-cover-placeholder">
+                          <span>EVENTRA</span>
+                          <strong>{event.title}</strong>
+                        </div>
+                      )}
                       <span className={`participant-card-status-badge ${isCheckedIn ? "attended" : isExpired ? "expired" : "upcoming"}`}>
                         {isCheckedIn ? "✓ Attended" : isExpired ? "🛑 Event Ended · Expired" : "Confirmed Pass"}
                       </span>
@@ -395,6 +472,28 @@ export default function ParticipantDashboard() {
                           {isExpired ? "📋 View Ticket Details (Pass Expired)" : "🎟️ View Digital QR Pass"}
                         </Link>
 
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                          <Link
+                            to={`/events/${event.slug || event._id}`}
+                            className="button button-ghost"
+                            style={{ textAlign: "center", textDecoration: "none", fontSize: "0.82rem", padding: "8px 10px" }}
+                            title="View public event page and flyer"
+                          >
+                            🌐 Event Page
+                          </Link>
+
+                          <button
+                            type="button"
+                            className="button button-ghost"
+                            onClick={() => handleShareEvent(event)}
+                            disabled={sharingId === event._id}
+                            style={{ textAlign: "center", fontSize: "0.82rem", padding: "8px 10px" }}
+                            title="Share event and poster with friends"
+                          >
+                            {sharingId === event._id ? "Sharing…" : "🔗 Share"}
+                          </button>
+                        </div>
+
                         <button
                           type="button"
                           className="button button-ghost"
@@ -470,6 +569,75 @@ export default function ParticipantDashboard() {
         </Link>{" "}
         Inc. All rights reserved.
       </footer>
+
+      {/* POSTER LIGHTBOX MODAL */}
+      {selectedPoster && (
+        <div
+          className="poster-lightbox-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedPoster(null);
+          }}
+        >
+          <header className="poster-lightbox-header">
+            <div className="poster-lightbox-title">
+              <span>OFFICIAL FLYER</span>
+              <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {selectedPoster.title}
+              </strong>
+            </div>
+
+            <div className="poster-lightbox-actions">
+              <button
+                type="button"
+                className="poster-lightbox-close"
+                onClick={() => setSelectedPoster(null)}
+                aria-label="Close poster view"
+              >
+                ✕
+              </button>
+            </div>
+          </header>
+
+          <div
+            className="poster-lightbox-viewport"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setSelectedPoster(null);
+            }}
+          >
+            <img
+              src={selectedPoster.url}
+              alt={selectedPoster.title}
+              className="poster-lightbox-image"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* SHARE TOAST NOTIFICATION */}
+      {shareToast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#0F172A",
+            color: "#34D399",
+            border: "1px solid rgba(52, 211, 153, 0.3)",
+            borderRadius: 9999,
+            padding: "10px 22px",
+            fontSize: "0.88rem",
+            fontWeight: 700,
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          {shareToast}
+        </div>
+      )}
     </main>
   );
 }

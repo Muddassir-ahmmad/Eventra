@@ -43,13 +43,62 @@ export default function PublicEvent() {
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showPosterLightbox, setShowPosterLightbox] = useState(false);
+  const [lightboxZoom, setLightboxZoom] = useState(false);
+  const [downloadingPoster, setDownloadingPoster] = useState(false);
+  const [copyingPoster, setCopyingPoster] = useState(false);
+  const [copiedPosterSuccess, setCopiedPosterSuccess] = useState(false);
+  const [sharingPoster, setSharingPoster] = useState(false);
+
+  // Keyboard shortcut listener to close modals
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape") {
+        setShowPosterLightbox(false);
+        setLightboxZoom(false);
+        setShowShareModal(false);
+        setShowLookup(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Dynamic OpenGraph & Twitter meta tags for rich social sharing previews
+  useEffect(() => {
+    if (!event) return;
+    document.title = `${event.title} | EVENTRA`;
+
+    const updateMeta = (prop, content, isName = false) => {
+      if (!content) return;
+      const attr = isName ? `name="${prop}"` : `property="${prop}"`;
+      let el = document.querySelector(`meta[${attr}]`);
+      if (!el) {
+        el = document.createElement("meta");
+        if (isName) el.setAttribute("name", prop);
+        else el.setAttribute("property", prop);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+
+    updateMeta("og:title", event.title);
+    updateMeta("og:description", event.shortDescription || event.description?.slice(0, 160) || "Join us on EVENTRA");
+    updateMeta("og:url", window.location.href);
+    if (event.posterUrl) {
+      updateMeta("og:image", event.posterUrl);
+      updateMeta("twitter:image", event.posterUrl);
+      updateMeta("twitter:card", "summary_large_image", true);
+    }
+  }, [event]);
 
   function handleShare() {
     setShowShareModal(true);
   }
 
   function getShareMessage() {
-    return `🌟 Join me at ${event?.title || "this event"}!\n\n📅 Date: ${formattedDate}\n⏰ Time: ${timeString}\n📍 Venue: ${event?.venue || (event?.mode === "online" ? "Virtual Platform" : "Venue TBA")}\n\n🎟️ View details & claim your pass:\n${window.location.href}`;
+    const posterLine = event?.posterUrl ? `\n🖼️ Official Event Flyer: ${event.posterUrl}\n` : "";
+    return `🌟 Join me at *${event?.title || "this event"}*!\n\n📅 Date: ${formattedDate}\n⏰ Time: ${timeString}\n📍 Venue: ${event?.venue || (event?.mode === "online" ? "Virtual Online Platform" : "Venue TBA")}\n${posterLine}\n🎟️ Claim your verified attendee pass:\n${window.location.href}`;
   }
 
   function copyShareInvite() {
@@ -58,18 +107,130 @@ export default function PublicEvent() {
     setTimeout(() => setShareCopied(false), 2500);
   }
 
-  async function handleNativeShare() {
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: event?.title || "Event",
-          text: getShareMessage(),
-          url: window.location.href,
-        });
-      } catch (_) {}
-    } else {
-      copyShareInvite();
+  // Download high-resolution poster
+  async function downloadPosterFile() {
+    if (!event?.posterUrl) return;
+    try {
+      setDownloadingPoster(true);
+      const res = await fetch(event.posterUrl);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const cleanTitle = (event.slug || event.title || "event").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+      link.download = `${cleanTitle}-official-poster.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      window.open(event.posterUrl, "_blank");
+    } finally {
+      setDownloadingPoster(false);
     }
+  }
+
+  // Convert poster URL to File object for Web Share API Level 2 file attachment
+  async function getPosterFile() {
+    if (!event?.posterUrl) return null;
+    try {
+      const response = await fetch(event.posterUrl);
+      const blob = await response.blob();
+      const cleanTitle = (event.slug || event.title || "event").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+      const filename = `${cleanTitle}-poster.${ext}`;
+      return new File([blob], filename, { type: blob.type || "image/jpeg" });
+    } catch (err) {
+      console.warn("Could not fetch poster file:", err);
+      return null;
+    }
+  }
+
+  // Native share with attached poster file if supported
+  async function handleNativeShareWithPoster() {
+    setSharingPoster(true);
+    try {
+      const shareData = {
+        title: `${event?.title || "Event"} | EVENTRA`,
+        text: getShareMessage(),
+        url: window.location.href,
+      };
+
+      if (event?.posterUrl && typeof navigator !== "undefined" && navigator.canShare) {
+        const file = await getPosterFile();
+        if (file && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            ...shareData,
+            files: [file],
+          });
+          return;
+        }
+      }
+
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      setShowShareModal(true);
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        setShowShareModal(true);
+      }
+    } finally {
+      setSharingPoster(false);
+    }
+  }
+
+  // Copy poster image directly to clipboard for instant pasting
+  async function copyPosterImage() {
+    if (!event?.posterUrl) return;
+    try {
+      setCopyingPoster(true);
+      const res = await fetch(event.posterUrl);
+      const blob = await res.blob();
+
+      let pngBlob = blob;
+      if (!blob.type.includes("png")) {
+        pngBlob = await new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob((b) => resolve(b || blob), "image/png");
+          };
+          img.onerror = () => resolve(blob);
+          img.src = event.posterUrl;
+        });
+      }
+
+      if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": pngBlob }),
+        ]);
+        setCopiedPosterSuccess(true);
+        setTimeout(() => setCopiedPosterSuccess(false), 2500);
+      } else {
+        navigator.clipboard?.writeText(event.posterUrl);
+        setCopiedPosterSuccess(true);
+        setTimeout(() => setCopiedPosterSuccess(false), 2500);
+      }
+    } catch (err) {
+      navigator.clipboard?.writeText(event.posterUrl);
+      setCopiedPosterSuccess(true);
+      setTimeout(() => setCopiedPosterSuccess(false), 2500);
+    } finally {
+      setCopyingPoster(false);
+    }
+  }
+
+  async function handleNativeShare() {
+    return handleNativeShareWithPoster();
   }
 
   async function downloadTicketPdf(regId) {
@@ -333,19 +494,208 @@ export default function PublicEvent() {
             </div>
           </div>
 
-          {/* Visual Poster Frame */}
-          <div className="hero-poster-frame">
+          {/* 1b. THEATER-GRADE POSTER SHOWCASE */}
+          <div className="hero-poster-showcase">
             {event.posterUrl ? (
-              <img src={event.posterUrl} alt={event.title} />
+              <div className="poster-showcase-inner">
+                {/* Atmospheric Ambient Glow matching the poster colors */}
+                <div
+                  className="poster-ambient-glow"
+                  style={{ backgroundImage: `url(${event.posterUrl})` }}
+                  aria-hidden="true"
+                />
+
+                {/* Framing Canvas Wrapper */}
+                <div
+                  className="poster-canvas-wrapper"
+                  onClick={() => setShowPosterLightbox(true)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") setShowPosterLightbox(true);
+                  }}
+                  title="Click to view full-resolution poster"
+                >
+                  <img
+                    src={event.posterUrl}
+                    alt={`${event.title} Official Poster`}
+                    className="hero-poster-image"
+                    loading="eager"
+                  />
+
+                  {/* Top Badge: Official Flyer */}
+                  <div className="poster-top-badge">
+                    <span>✦ Official Event Flyer</span>
+                  </div>
+
+                  {/* Hover / Tap Quick Action Pills */}
+                  <div className="poster-hover-actions">
+                    <button
+                      type="button"
+                      className="poster-action-pill"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowPosterLightbox(true);
+                      }}
+                      title="Open full-resolution lightbox"
+                    >
+                      🔍 Enlarge
+                    </button>
+                    <button
+                      type="button"
+                      className="poster-action-pill"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadPosterFile();
+                      }}
+                      title="Download high-resolution poster"
+                    >
+                      📥 Download
+                    </button>
+                    <button
+                      type="button"
+                      className="poster-action-pill"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNativeShareWithPoster();
+                      }}
+                      title="Share with poster attached"
+                    >
+                      🚀 Share with Image
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bottom Action Strip */}
+                <div className="poster-toolbar-strip">
+                  <button
+                    type="button"
+                    className="poster-strip-btn"
+                    onClick={() => setShowPosterLightbox(true)}
+                    title="View full poster in high resolution"
+                  >
+                    🔍 View Full Poster
+                  </button>
+                  <button
+                    type="button"
+                    className="poster-strip-btn"
+                    onClick={downloadPosterFile}
+                    disabled={downloadingPoster}
+                    title="Save poster to your device"
+                  >
+                    {downloadingPoster ? "Saving…" : "📥 Save Flyer"}
+                  </button>
+                  <button
+                    type="button"
+                    className="poster-strip-btn highlight"
+                    onClick={handleNativeShareWithPoster}
+                    title="Share event and poster"
+                  >
+                    🔗 Share Event &amp; Flyer
+                  </button>
+                </div>
+              </div>
             ) : (
-              <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #1e1b4b, #312e81)", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: 32 }}>
-                <span style={{ fontSize: "0.75rem", letterSpacing: "0.14em", color: "#a5b4fc", fontWeight: 800 }}>EVENTRA</span>
-                <strong style={{ fontSize: "2rem", marginTop: 6 }}>{event.title}</strong>
+              <div className="poster-showcase-fallback">
+                <div className="poster-fallback-decor" />
+                <div className="poster-fallback-body">
+                  <span className="poster-fallback-brand">EVENTRA · OFFICIAL EVENT</span>
+                  <h3 className="poster-fallback-title">{event.title}</h3>
+                  <div className="poster-fallback-meta">
+                    <span>📅 {formattedDate}</span>
+                    <span>📍 {event.venue || (event.mode === "online" ? "Virtual Online" : "Venue Announced Soon")}</span>
+                  </div>
+                  <span className="poster-fallback-badge">
+                    {canRegister ? "✦ Verified Attendee Pass Open" : "Event Concluded"}
+                  </span>
+                </div>
               </div>
             )}
           </div>
         </div>
       </header>
+
+      {/* POSTER LIGHTBOX MODAL */}
+      {showPosterLightbox && event.posterUrl && (
+        <div
+          className="poster-lightbox-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowPosterLightbox(false);
+              setLightboxZoom(false);
+            }
+          }}
+        >
+          <header className="poster-lightbox-header">
+            <div className="poster-lightbox-title">
+              <span>OFFICIAL FLYER</span>
+              <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {event.title}
+              </strong>
+            </div>
+
+            <div className="poster-lightbox-actions">
+              <button
+                type="button"
+                className="poster-lightbox-btn btn-ghost"
+                onClick={() => setLightboxZoom(!lightboxZoom)}
+                title={lightboxZoom ? "Reset zoom" : "Zoom in"}
+              >
+                {lightboxZoom ? "🔍 Reset Zoom" : "🔍 Zoom In"}
+              </button>
+
+              <button
+                type="button"
+                className="poster-lightbox-btn btn-ghost"
+                onClick={downloadPosterFile}
+                disabled={downloadingPoster}
+                title="Download high-resolution poster"
+              >
+                {downloadingPoster ? "Downloading…" : "📥 Download High-Res"}
+              </button>
+
+              <button
+                type="button"
+                className="poster-lightbox-btn btn-primary"
+                onClick={handleNativeShareWithPoster}
+                title="Share event with poster image"
+              >
+                🚀 Share with Poster
+              </button>
+
+              <button
+                type="button"
+                className="poster-lightbox-close"
+                onClick={() => {
+                  setShowPosterLightbox(false);
+                  setLightboxZoom(false);
+                }}
+                aria-label="Close poster view"
+              >
+                ✕
+              </button>
+            </div>
+          </header>
+
+          <div
+            className="poster-lightbox-viewport"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowPosterLightbox(false);
+                setLightboxZoom(false);
+              }
+            }}
+          >
+            <img
+              src={event.posterUrl}
+              alt={`${event.title} Poster Full`}
+              className={`poster-lightbox-image${lightboxZoom ? " is-zoomed" : ""}`}
+              onClick={() => setLightboxZoom(!lightboxZoom)}
+              title="Click to toggle zoom"
+            />
+          </div>
+        </div>
+      )}
 
       {/* 2. SHARE EVENT MODAL (Poster, Details, Website Link & Direct Channels) */}
       {showShareModal && (
@@ -364,20 +714,27 @@ export default function PublicEvent() {
               ✕
             </button>
 
-            <span className="category-pill" style={{ marginBottom: 10 }}>
-              ✦ EVENT SHARING
+            <span className="category-pill" style={{ marginBottom: 10, background: "rgba(5, 150, 105, 0.12)", color: "#059669", borderColor: "rgba(5, 150, 105, 0.3)" }}>
+              ✦ EVENT &amp; FLYER SHARING
             </span>
-            <h2 style={{ fontSize: "1.45rem", fontWeight: 800, margin: "6px 0 4px", color: "#ffffff" }}>
+            <h2 style={{ fontSize: "1.45rem", fontWeight: 800, margin: "6px 0 4px", color: "#0F172A" }}>
               Share {event.title}
             </h2>
-            <p style={{ color: "#94a3b8", fontSize: "0.88rem", margin: "0 0 16px" }}>
-              Invite attendees with the event poster preview, verified schedule, venue, and pass link.
+            <p style={{ color: "#64748B", fontSize: "0.88rem", margin: "0 0 16px" }}>
+              Invite attendees with the official event flyer, verified schedule, venue location, and direct pass link.
             </p>
 
             {/* Poster & Details Card Preview */}
             <div className="share-card-preview">
               {event.posterUrl ? (
-                <img src={event.posterUrl} alt={event.title} className="share-poster-thumb" />
+                <div
+                  className="share-poster-thumb-wrapper"
+                  onClick={() => setShowPosterLightbox(true)}
+                  title="Click to view full poster"
+                >
+                  <img src={event.posterUrl} alt={event.title} className="share-poster-thumb" />
+                  <span className="share-poster-badge">Attached</span>
+                </div>
               ) : (
                 <div className="share-poster-placeholder">
                   <span>EVENTRA</span>
@@ -389,27 +746,70 @@ export default function PublicEvent() {
                 <div className="share-card-meta">
                   <span>📅 {formattedDate}</span>
                   <span>⏱ {timeString}</span>
-                  <span>📍 {event.venue || (event.mode === "online" ? "Virtual Online" : "Venue TBA")}</span>
-                  <span style={{ color: "#34d399", fontWeight: 700, marginTop: 2 }}>
-                    {event.ticketMode === "free" ? "✦ Free Admission" : "Verified Ticket Admission"}
-                  </span>
+                  <span>📍 {event.venue || (event.mode === "online" ? "Virtual Online Platform" : "Venue TBA")}</span>
+                  <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                    <span style={{ color: "#059669", fontWeight: 700, fontSize: "0.78rem" }}>
+                      {event.ticketMode === "free" ? "✦ Free Admission" : "Verified Ticket Admission"}
+                    </span>
+                    {event.posterUrl && (
+                      <span style={{ color: "#2563EB", fontWeight: 700, fontSize: "0.78rem" }}>
+                        ✓ Official Flyer Attached
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* One-Click Copy Full Invite */}
+            {/* Main Action: Native Share with File (attaches poster file to WhatsApp/Apps) */}
             <button
               type="button"
               className="btn-hero-primary"
-              style={{ width: "100%", justifyContent: "center", fontSize: "0.95rem", padding: "12px 20px" }}
+              style={{ width: "100%", justifyContent: "center", fontSize: "0.96rem", padding: "13px 20px", gap: 8 }}
+              onClick={handleNativeShareWithPoster}
+              disabled={sharingPoster}
+            >
+              {sharingPoster ? "Preparing Poster File…" : "🚀 Share Event with Poster (WhatsApp / Apps)"}
+            </button>
+
+            {/* Secondary Action Grid: Download Poster & Copy Image */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+              <button
+                type="button"
+                className="btn-hero-secondary"
+                style={{ justifyContent: "center", fontSize: "0.82rem", padding: "10px 14px", gap: 6 }}
+                onClick={downloadPosterFile}
+                disabled={downloadingPoster || !event.posterUrl}
+                title="Download high-resolution poster file"
+              >
+                {downloadingPoster ? "Downloading…" : "📥 Download Poster"}
+              </button>
+
+              <button
+                type="button"
+                className="btn-hero-secondary"
+                style={{ justifyContent: "center", fontSize: "0.82rem", padding: "10px 14px", gap: 6 }}
+                onClick={copyPosterImage}
+                disabled={copyingPoster || !event.posterUrl}
+                title="Copy poster image directly to clipboard"
+              >
+                {copyingPoster ? "Copying…" : copiedPosterSuccess ? "✓ Image Copied!" : "📋 Copy Poster Image"}
+              </button>
+            </div>
+
+            {/* One-Click Copy Full Text Invite + Web Link */}
+            <button
+              type="button"
+              className="btn-hero-secondary"
+              style={{ width: "100%", justifyContent: "center", fontSize: "0.85rem", padding: "11px 16px", marginTop: 10 }}
               onClick={copyShareInvite}
             >
-              {shareCopied ? "✓ Full Invite & Link Copied to Clipboard!" : "📋 Copy Event Invite + Website Link"}
+              {shareCopied ? "✓ Full Invite & Pass Link Copied to Clipboard!" : "🔗 Copy Full Invite + Website Link"}
             </button>
 
             {/* Direct Social Share Channels */}
             <div style={{ marginTop: 18 }}>
-              <span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, display: "block", marginBottom: 8 }}>
+              <span style={{ fontSize: "0.75rem", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, display: "block", marginBottom: 8 }}>
                 Share Directly to
               </span>
               <div className="share-channels-grid">
@@ -418,6 +818,7 @@ export default function PublicEvent() {
                   target="_blank"
                   rel="noreferrer"
                   className="share-channel-btn whatsapp"
+                  title="Share to WhatsApp with pass link and flyer"
                 >
                   💬 WhatsApp
                 </a>
@@ -426,6 +827,7 @@ export default function PublicEvent() {
                   target="_blank"
                   rel="noreferrer"
                   className="share-channel-btn linkedin"
+                  title="Share to LinkedIn"
                 >
                   💼 LinkedIn
                 </a>
@@ -434,6 +836,7 @@ export default function PublicEvent() {
                   target="_blank"
                   rel="noreferrer"
                   className="share-channel-btn twitter"
+                  title="Share to X (Twitter)"
                 >
                   🐦 X / Twitter
                 </a>
@@ -442,20 +845,23 @@ export default function PublicEvent() {
                   target="_blank"
                   rel="noreferrer"
                   className="share-channel-btn telegram"
+                  title="Share to Telegram"
                 >
                   ✈️ Telegram
                 </a>
                 <a
                   href={`mailto:?subject=${encodeURIComponent(`Invitation: ${event.title}`)}&body=${encodeURIComponent(getShareMessage())}`}
                   className="share-channel-btn email"
+                  title="Share via Email"
                 >
                   ✉️ Email
                 </a>
                 {typeof navigator !== "undefined" && navigator.share && (
                   <button
                     type="button"
-                    onClick={handleNativeShare}
+                    onClick={handleNativeShareWithPoster}
                     className="share-channel-btn native"
+                    title="Open device share menu"
                   >
                     📱 More Apps
                   </button>
