@@ -2,6 +2,12 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import IntroAnimation from "../components/IntroAnimation";
 
+// Module-level tracking to ensure the cinematic intro animation only runs once per initial
+// browser page load or page reload of the home page, and is bypassed when navigating internally (e.g. from Dashboard).
+let hasPlayedInitialHomeIntro = false;
+const isDirectPageLoadOnHome =
+  typeof window !== "undefined" && window.location.pathname === "/";
+
 export default function Home() {
   const token = typeof window !== "undefined" ? localStorage.getItem("eventra_token") : null;
   const [activeTab, setActiveTab] = useState("pass");
@@ -11,9 +17,15 @@ export default function Home() {
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       return false;
     }
-    return true; // Automatically plays intro on page load and on every page refresh
+    // Only play intro when the page was opened directly or reloaded at "/"
+    // and hasn't already been displayed in the current SPA runtime.
+    if (isDirectPageLoadOnHome && !hasPlayedInitialHomeIntro) {
+      hasPlayedInitialHomeIntro = true;
+      return true;
+    }
+    return false;
   });
-  const [hasRevealed, setHasRevealed] = useState(false);
+  const [hasRevealed, setHasRevealed] = useState(() => !showIntro);
   const [isRevealing, setIsRevealing] = useState(false);
 
   const handleZoomOut = () => {
