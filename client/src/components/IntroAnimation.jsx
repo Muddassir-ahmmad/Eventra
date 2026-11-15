@@ -128,7 +128,7 @@ export default function IntroAnimation({ onComplete, onZoomOut }) {
   function handleComplete() {
     document.body.classList.remove("eventra-intro-active");
     try {
-      sessionStorage.setItem("eventra_intro_seen", "true");
+      sessionStorage.removeItem("eventra_intro_seen");
     } catch {}
     if (onComplete) onComplete();
   }

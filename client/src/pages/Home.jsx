@@ -11,7 +11,7 @@ export default function Home() {
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       return false;
     }
-    return !sessionStorage.getItem("eventra_intro_seen");
+    return true; // Automatically plays intro on page load and on every page refresh
   });
   const [hasRevealed, setHasRevealed] = useState(false);
   const [isRevealing, setIsRevealing] = useState(false);
@@ -82,43 +82,6 @@ export default function Home() {
           >
             <span className="live-pulse-indicator" />
             <span>EVENTRA · PREMIER EVENT MANAGEMENT &amp; PASS SYSTEM</span>
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.scrollTo({ top: 0, behavior: "instant" });
-                }
-                setHasRevealed(false);
-                setIsRevealing(false);
-                setShowIntro(true);
-              }}
-              style={{
-                marginLeft: "6px",
-                padding: "2px 8px",
-                borderRadius: "9999px",
-                background: "#FFFFFF",
-                border: "1px solid #CBD5E1",
-                color: "#64748B",
-                fontSize: "0.68rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                transition: "all 0.16s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#059669";
-                e.currentTarget.style.color = "#059669";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#CBD5E1";
-                e.currentTarget.style.color = "#64748B";
-              }}
-              title="Watch brand intro animation again"
-            >
-              <span style={{ fontSize: "0.6rem" }}>▶</span> Replay Intro
-            </button>
           </div>
 
           {/* Cinematic Headline */}
