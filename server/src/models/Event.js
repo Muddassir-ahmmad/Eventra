@@ -637,6 +637,42 @@ const eventSchema = new mongoose.Schema(
       max: 30,
     },
 
+    certificateStampUrl: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    certificateStampPath: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    certificateStampX: {
+      type: Number,
+      default: null,
+    },
+
+    certificateStampY: {
+      type: Number,
+      default: null,
+    },
+
+    certificateStampSize: {
+      type: Number,
+      default: 12,
+      min: 4,
+      max: 40,
+    },
+
+    certificateStampOpacity: {
+      type: Number,
+      default: 0.85,
+      min: 0.05,
+      max: 1.0,
+    },
+
     certificateShowOrganization: {
       type: Boolean,
       default: false,

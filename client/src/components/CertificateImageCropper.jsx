@@ -67,8 +67,8 @@ export default function CertificateImageCropper({ file, kind, onCancel, onConfir
   const [imageUrl, setImageUrl] = useState("");
   const [natSize, setNatSize] = useState({ w: 0, h: 0 });
   const [crop, setCrop] = useState({ x: 0.06, y: 0.08, w: 0.88, h: 0.84 });
-  const [aspectId, setAspectId] = useState(kind === "signature" ? "signature" : "free");
-  const [removeWhiteBg, setRemoveWhiteBg] = useState(kind === "signature");
+  const [aspectId, setAspectId] = useState(kind === "signature" ? "signature" : kind === "stamp" ? "1:1" : "free");
+  const [removeWhiteBg, setRemoveWhiteBg] = useState(kind === "signature" || kind === "stamp");
   const [whiteThreshold, setWhiteThreshold] = useState(215);
   const [darkModeInk, setDarkModeInk] = useState(false);
   const [previewDataUrl, setPreviewDataUrl] = useState("");
@@ -245,7 +245,7 @@ export default function CertificateImageCropper({ file, kind, onCancel, onConfir
         <div className="crop-modal-header">
           <div>
             <p className="certificate-kicker">IMAGE CROPPER</p>
-            <h3>Crop {kind === "signature" ? "Signature Image" : "Organization Logo"}</h3>
+            <h3>Crop {kind === "signature" ? "Signature Image" : kind === "stamp" ? "Official Seal or Stamp" : "Organization Logo"}</h3>
           </div>
           <button type="button" className="remove-signatory" onClick={onCancel} aria-label="Close cropper">
             ×

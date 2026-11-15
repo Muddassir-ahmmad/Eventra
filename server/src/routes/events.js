@@ -581,6 +581,12 @@ router.put("/:eventId", requireAuth, async (req, res) => {
       certificateOrganizationUppercase,
       certificateLogoUrl,
       certificateLogoPath,
+      certificateStampUrl,
+      certificateStampPath,
+      certificateStampX,
+      certificateStampY,
+      certificateStampSize,
+      certificateStampOpacity,
       completedAt,
       feedbackDeadline,
       requireFeedbackForCertificate,
@@ -714,6 +720,12 @@ router.put("/:eventId", requireAuth, async (req, res) => {
     }
     if (certificateLogoUrl !== undefined) event.certificateLogoUrl = certificateLogoUrl;
     if (certificateLogoPath !== undefined) event.certificateLogoPath = certificateLogoPath;
+    if (certificateStampUrl !== undefined) event.certificateStampUrl = certificateStampUrl;
+    if (certificateStampPath !== undefined) event.certificateStampPath = certificateStampPath;
+    if (certificateStampX !== undefined) event.certificateStampX = certificateStampX;
+    if (certificateStampY !== undefined) event.certificateStampY = certificateStampY;
+    if (certificateStampSize !== undefined) event.certificateStampSize = certificateStampSize;
+    if (certificateStampOpacity !== undefined) event.certificateStampOpacity = certificateStampOpacity;
     if (hasCertificateSettingsChange) {
       event.certificateUpdatedAt = new Date();
     }

@@ -114,6 +114,11 @@ export function normalizeCertificateSettings(settings) {
   const logoY = parseOptionalNumber(settings.certificateLogoY, 2, 98);
   const hasLogoPos = logoX !== null && logoY !== null;
 
+  const stampX = parseOptionalNumber(settings.certificateStampX, 2, 98);
+  const stampY = parseOptionalNumber(settings.certificateStampY, 2, 98);
+  const hasStampPos = stampX !== null && stampY !== null;
+  const stampOpacity = parseOptionalNumber(settings.certificateStampOpacity, 0.05, 1.0) ?? 0.85;
+
   const orgSize = CERTIFICATE_ORG_SIZES.includes(settings.certificateOrganizationSize)
     ? settings.certificateOrganizationSize
     : "md";
@@ -151,6 +156,12 @@ export function normalizeCertificateSettings(settings) {
     certificateLogoX: hasLogoPos ? logoX : null,
     certificateLogoY: hasLogoPos ? logoY : null,
     certificateLogoSize: parseOptionalNumber(settings.certificateLogoSize, 4, 30) ?? 8,
+    certificateStampUrl: String(settings.certificateStampUrl || "").trim(),
+    certificateStampPath: String(settings.certificateStampPath || "").trim(),
+    certificateStampX: hasStampPos ? stampX : null,
+    certificateStampY: hasStampPos ? stampY : null,
+    certificateStampSize: parseOptionalNumber(settings.certificateStampSize, 4, 40) ?? 12,
+    certificateStampOpacity: stampOpacity,
     eventType: String(settings.eventType || "").trim().slice(0, 80),
     signatures: Array.isArray(settings.signatures)
       ? settings.signatures.slice(0, 4).map((signature) => {

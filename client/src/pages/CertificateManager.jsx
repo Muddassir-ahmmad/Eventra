@@ -146,6 +146,12 @@ function certificateSettings(event) {
     certificateLogoX: event.certificateLogoX ?? null,
     certificateLogoY: event.certificateLogoY ?? null,
     certificateLogoSize: event.certificateLogoSize ?? 8,
+    certificateStampUrl: event.certificateStampUrl || "",
+    certificateStampPath: event.certificateStampPath || "",
+    certificateStampX: event.certificateStampX ?? null,
+    certificateStampY: event.certificateStampY ?? null,
+    certificateStampSize: event.certificateStampSize ?? 12,
+    certificateStampOpacity: event.certificateStampOpacity ?? 0.85,
     eventType: event.eventType || "",
     signatures: (event.signatures || []).map((signature) => ({
       ...signature,
@@ -344,6 +350,17 @@ export default function CertificateManager() {
           certificateLogoPath: data.imagePath,
         }));
         setSelectedCanvasItem({ type: "logo" });
+      } else if (kind === "stamp") {
+        setSettings((current) => ({
+          ...current,
+          certificateStampUrl: data.imageUrl,
+          certificateStampPath: data.imagePath,
+          certificateStampX: current.certificateStampX ?? 80,
+          certificateStampY: current.certificateStampY ?? 78,
+          certificateStampSize: current.certificateStampSize ?? 12,
+          certificateStampOpacity: current.certificateStampOpacity ?? 0.85,
+        }));
+        setSelectedCanvasItem({ type: "stamp" });
       } else {
         setSettings((current) => {
           const signatures = [...current.signatures];
@@ -1163,6 +1180,93 @@ export default function CertificateManager() {
                 })}>Remove logo</button>
               )}
             </div>
+
+            <div className="certificate-logo-control" style={{ marginTop: 12 }}>
+              <div>
+                <strong>Official Brand Seal / Stamp</strong>
+                <small>Authentic organization rubber stamp or watermark. Drag & resize directly on the canvas.</small>
+              </div>
+              {settings.certificateStampUrl && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "8px 0" }}>
+                  <img
+                    src={settings.certificateStampUrl}
+                    alt="Stamp preview"
+                    style={{
+                      maxHeight: 52,
+                      maxWidth: 64,
+                      objectFit: "contain",
+                      opacity: settings.certificateStampOpacity ?? 0.85,
+                      background: "repeating-conic-gradient(#f1f5f9 0% 25%, #fff 0% 50%) 50% / 12px 12px",
+                      borderRadius: 6,
+                      border: "1px solid #E2E8F0",
+                      padding: 2,
+                    }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.76rem", color: "#475569", marginBottom: 3 }}>
+                      <span>Ink Opacity</span>
+                      <strong>{Math.round((settings.certificateStampOpacity ?? 0.85) * 100)}%</strong>
+                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value={Math.round((settings.certificateStampOpacity ?? 0.85) * 100)}
+                      onChange={(e) => {
+                        const val = Math.max(0.1, Math.min(1, Number(e.target.value) / 100));
+                        setSettings((cur) => ({ ...cur, certificateStampOpacity: val }));
+                      }}
+                      style={{ width: "100%", accentColor: "#059669", cursor: "pointer" }}
+                    />
+                  </div>
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <label className="cert-button upload-label" style={{ flex: 1, minWidth: 120 }}>
+                  {working ? "Working…" : settings.certificateStampUrl ? "Crop / replace stamp" : "Upload & crop stamp"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,.png,.jpg,.jpeg"
+                    disabled={!storageAvailable || working}
+                    onChange={(change) => {
+                      const picked = change.target.files?.[0];
+                      change.target.value = "";
+                      openCropper("stamp", picked);
+                    }}
+                  />
+                </label>
+                {settings.certificateStampUrl && (
+                  <>
+                    <button
+                      type="button"
+                      className="cert-button cert-button-secondary"
+                      onClick={() => setSelectedCanvasItem({ type: "stamp" })}
+                      style={{ padding: "6px 10px", fontSize: "0.78rem" }}
+                    >
+                      Select on Canvas
+                    </button>
+                    <button
+                      type="button"
+                      className="text-action"
+                      disabled={working}
+                      onClick={() => removeImage(settings.certificateStampPath, () => {
+                        setSettings((current) => ({
+                          ...current,
+                          certificateStampUrl: "",
+                          certificateStampPath: "",
+                          certificateStampX: null,
+                          certificateStampY: null,
+                        }));
+                        if (selectedCanvasItem?.type === "stamp") setSelectedCanvasItem(null);
+                      })}
+                    >
+                      Remove stamp
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
             {!storageAvailable && <p className="certificate-inline-warning">Image uploads are unavailable. Configure Cloudinary in production.</p>}
 
             {/* AI Certificate Studio */}
@@ -1466,6 +1570,14 @@ export default function CertificateManager() {
                 setSettings((curr) => ({ ...curr, ...patch }));
                 setNotice("");
               }}
+              onMoveStamp={(x, y) => {
+                setSettings((curr) => ({ ...curr, certificateStampX: x, certificateStampY: y }));
+                setNotice("");
+              }}
+              onUpdateStamp={(patch) => {
+                setSettings((curr) => ({ ...curr, ...patch }));
+                setNotice("");
+              }}
               onUpdateSignature={(sigIndex, patch) => {
                 setSettings((curr) => {
                   const signatures = [...curr.signatures];
@@ -1490,6 +1602,10 @@ export default function CertificateManager() {
                 setNotice("");
               }}
               onUpdateLogo={(patch) => {
+                setSettings((curr) => ({ ...curr, ...patch }));
+                setNotice("");
+              }}
+              onUpdateStamp={(patch) => {
                 setSettings((curr) => ({ ...curr, ...patch }));
                 setNotice("");
               }}
@@ -2169,6 +2285,7 @@ function CertificatePlacementDock({
   onSelectItem,
   onUpdateField,
   onUpdateLogo,
+  onUpdateStamp,
   onUpdateSignature,
   onUpdateTextStyle,
 }) {
@@ -2181,6 +2298,9 @@ function CertificatePlacementDock({
   ];
   if (settings.certificateLogoUrl) {
     dockItems.push({ type: "logo", label: "Logo" });
+  }
+  if (settings.certificateStampUrl) {
+    dockItems.push({ type: "stamp", label: "Stamp" });
   }
   (settings.signatures || []).forEach((sig, index) => {
     if (sig.name || sig.imageUrl) {
@@ -2203,6 +2323,7 @@ function CertificatePlacementDock({
 
   const isText = active.type === "text";
   const isLogo = active.type === "logo";
+  const isStamp = active.type === "stamp";
   const isSignature = active.type === "signature";
 
   const textCfg = isText ? TEXT_ELEMENT_CONFIG[active.key] : null;
@@ -2213,10 +2334,12 @@ function CertificatePlacementDock({
     ? textStyle?.x != null && textStyle?.y != null
     : isLogo
       ? settings.certificateLogoX != null && settings.certificateLogoY != null
-      : activeSig?.x != null && activeSig?.y != null;
+      : isStamp
+        ? settings.certificateStampX != null && settings.certificateStampY != null
+        : activeSig?.x != null && activeSig?.y != null;
 
-  const curX = isText ? textStyle?.x : isLogo ? settings.certificateLogoX : activeSig?.x;
-  const curY = isText ? textStyle?.y : isLogo ? settings.certificateLogoY : activeSig?.y;
+  const curX = isText ? textStyle?.x : isLogo ? settings.certificateLogoX : isStamp ? (settings.certificateStampX ?? 80) : activeSig?.x;
+  const curY = isText ? textStyle?.y : isLogo ? settings.certificateLogoY : isStamp ? (settings.certificateStampY ?? 78) : activeSig?.y;
 
   function applyPreset(preset) {
     if (isText) {
@@ -2224,6 +2347,8 @@ function CertificatePlacementDock({
       onUpdateTextStyle(active.key, { x: preset.x, y: preset.y, align: presetAlign });
     } else if (isLogo) {
       onUpdateLogo({ certificateLogoX: preset.x, certificateLogoY: preset.y });
+    } else if (isStamp) {
+      onUpdateStamp({ certificateStampX: preset.x, certificateStampY: preset.y });
     } else {
       onUpdateSignature(active.index, { x: preset.x, y: preset.y });
     }
@@ -2240,6 +2365,8 @@ function CertificatePlacementDock({
       });
     } else if (isLogo) {
       onUpdateLogo({ certificateLogoX: null, certificateLogoY: null, certificateLogoSize: 8 });
+    } else if (isStamp) {
+      onUpdateStamp({ certificateStampX: null, certificateStampY: null, certificateStampSize: 12, certificateStampOpacity: 0.85 });
     } else {
       onUpdateSignature(active.index, { x: null, y: null, scale: 1 });
     }
@@ -2261,10 +2388,10 @@ function CertificatePlacementDock({
               item.type === active.type &&
               item.key === active.key &&
               item.index === active.index;
-            const icon = item.type === "logo" ? "🖼 " : item.type === "signature" ? "✍ " : "𝐓 ";
+            const icon = item.type === "logo" ? "🖼 " : item.type === "stamp" ? "💮 " : item.type === "signature" ? "✍ " : "𝐓 ";
             return (
               <button
-                key={item.type === "text" ? `text-${item.key}` : item.type === "logo" ? "logo" : `sig-${item.index}`}
+                key={item.type === "text" ? `text-${item.key}` : item.type === "logo" ? "logo" : item.type === "stamp" ? "stamp" : `sig-${item.index}`}
                 type="button"
                 className={`certificate-pill-btn${isActive ? " is-active" : ""}`}
                 onClick={() =>
@@ -2273,7 +2400,9 @@ function CertificatePlacementDock({
                       ? { type: "text", key: item.key }
                       : item.type === "logo"
                         ? { type: "logo" }
-                        : { type: "signature", index: item.index }
+                        : item.type === "stamp"
+                          ? { type: "stamp" }
+                          : { type: "signature", index: item.index }
                   )
                 }
               >
@@ -2366,43 +2495,70 @@ function CertificatePlacementDock({
           </div>
         )}
 
-        <label className="placement-size-slider">
-          <span>
-            {isText
-              ? `${textCfg.label} Font Size (${Math.round(textStyle?.fontSize ?? textCfg.defaultSize)}pt)`
-              : isLogo
-                ? `Logo Size (${Math.round(settings.certificateLogoSize || 8)}%)`
-                : `Signature Size (${Math.round(((activeSig?.scale ?? 1) || 1) * 100)}%)`}
-          </span>
-          {isText ? (
-            <input
-              type="range"
-              min={textCfg.minSize}
-              max={textCfg.maxSize}
-              step="1"
-              value={textStyle?.fontSize ?? textCfg.defaultSize}
-              onChange={(e) => onUpdateTextStyle(active.key, { fontSize: Number(e.target.value) })}
-            />
-          ) : isLogo ? (
-            <input
-              type="range"
-              min="4"
-              max="24"
-              step="0.5"
-              value={settings.certificateLogoSize ?? 8}
-              onChange={(e) => onUpdateLogo({ certificateLogoSize: Number(e.target.value) })}
-            />
-          ) : (
-            <input
-              type="range"
-              min="0.65"
-              max="1.8"
-              step="0.05"
-              value={activeSig?.scale ?? 1}
-              onChange={(e) => onUpdateSignature(active.index, { scale: Number(e.target.value) })}
-            />
-          )}
-        </label>
+        {isStamp ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+            <label className="placement-size-slider">
+              <span>Stamp Size ({Math.round(settings.certificateStampSize || 12)}%)</span>
+              <input
+                type="range"
+                min="4"
+                max="35"
+                step="0.5"
+                value={settings.certificateStampSize ?? 12}
+                onChange={(e) => onUpdateStamp({ certificateStampSize: Number(e.target.value) })}
+              />
+            </label>
+            <label className="placement-size-slider">
+              <span>Stamp Ink Opacity ({Math.round((settings.certificateStampOpacity ?? 0.85) * 100)}%)</span>
+              <input
+                type="range"
+                min="10"
+                max="100"
+                step="5"
+                value={Math.round((settings.certificateStampOpacity ?? 0.85) * 100)}
+                onChange={(e) => onUpdateStamp({ certificateStampOpacity: Math.max(0.1, Math.min(1, Number(e.target.value) / 100)) })}
+              />
+            </label>
+          </div>
+        ) : (
+          <label className="placement-size-slider">
+            <span>
+              {isText
+                ? `${textCfg.label} Font Size (${Math.round(textStyle?.fontSize ?? textCfg.defaultSize)}pt)`
+                : isLogo
+                  ? `Logo Size (${Math.round(settings.certificateLogoSize || 8)}%)`
+                  : `Signature Size (${Math.round(((activeSig?.scale ?? 1) || 1) * 100)}%)`}
+            </span>
+            {isText ? (
+              <input
+                type="range"
+                min={textCfg.minSize}
+                max={textCfg.maxSize}
+                step="1"
+                value={textStyle?.fontSize ?? textCfg.defaultSize}
+                onChange={(e) => onUpdateTextStyle(active.key, { fontSize: Number(e.target.value) })}
+              />
+            ) : isLogo ? (
+              <input
+                type="range"
+                min="4"
+                max="24"
+                step="0.5"
+                value={settings.certificateLogoSize ?? 8}
+                onChange={(e) => onUpdateLogo({ certificateLogoSize: Number(e.target.value) })}
+              />
+            ) : (
+              <input
+                type="range"
+                min="0.65"
+                max="1.8"
+                step="0.05"
+                value={activeSig?.scale ?? 1}
+                onChange={(e) => onUpdateSignature(active.index, { scale: Number(e.target.value) })}
+              />
+            )}
+          </label>
+        )}
 
         {/* Numeric X, Y, Width, and Size controls for precise positioning */}
         <div className="placement-numeric-grid" role="group" aria-label="Precise coordinates and dimensions">
@@ -2418,6 +2574,7 @@ function CertificatePlacementDock({
                 const val = Math.min(96, Math.max(4, Number(e.target.value) || 50));
                 if (isText) onUpdateTextStyle(active.key, { x: val });
                 else if (isLogo) onUpdateLogo({ certificateLogoX: val });
+                else if (isStamp) onUpdateStamp({ certificateStampX: val });
                 else onUpdateSignature(active.index, { x: val });
               }}
               title="Horizontal position from left (percentage of canvas width)"
@@ -2435,6 +2592,7 @@ function CertificatePlacementDock({
                 const val = Math.min(96, Math.max(4, Number(e.target.value) || 50));
                 if (isText) onUpdateTextStyle(active.key, { y: val });
                 else if (isLogo) onUpdateLogo({ certificateLogoY: val });
+                else if (isStamp) onUpdateStamp({ certificateStampY: val });
                 else onUpdateSignature(active.index, { y: val });
               }}
               title="Vertical position from top (percentage of canvas height)"
@@ -2447,37 +2605,41 @@ function CertificatePlacementDock({
               min="10"
               max="95"
               step="1"
-              value={Math.round(isText ? (textStyle?.width ?? 65) : isLogo ? (settings.certificateLogoSize || 8) : Math.round(16.6 * (activeSig?.scale ?? 1)))}
+              value={Math.round(isText ? (textStyle?.width ?? 65) : isLogo ? (settings.certificateLogoSize || 8) : isStamp ? (settings.certificateStampSize || 12) : Math.round(16.6 * (activeSig?.scale ?? 1)))}
               onChange={(e) => {
                 const val = Math.min(95, Math.max(10, Number(e.target.value) || 60));
                 if (isText) onUpdateTextStyle(active.key, { width: val });
                 else if (isLogo) onUpdateLogo({ certificateLogoSize: Math.min(30, Math.max(4, val)) });
+                else if (isStamp) onUpdateStamp({ certificateStampSize: Math.min(35, Math.max(4, val)) });
                 else onUpdateSignature(active.index, { scale: Math.min(2.5, Math.max(0.5, val / 16.6)) });
               }}
               title="Element box width (percentage of canvas width)"
             />
           </label>
           <label className="placement-numeric-field">
-            <span>{isText ? "Font (pt)" : isLogo ? "Size (%)" : "Scale (%)"}</span>
+            <span>{isText ? "Font (pt)" : isLogo ? "Size (%)" : isStamp ? "Opacity (%)" : "Scale (%)"}</span>
             <input
               type="number"
-              min={isText ? textCfg.minSize : isLogo ? 4 : 50}
-              max={isText ? textCfg.maxSize : isLogo ? 30 : 250}
-              step={isText ? 1 : isLogo ? 1 : 5}
+              min={isText ? textCfg.minSize : isLogo ? 4 : isStamp ? 10 : 50}
+              max={isText ? textCfg.maxSize : isLogo ? 30 : isStamp ? 100 : 250}
+              step={isText ? 1 : isLogo ? 1 : isStamp ? 5 : 5}
               value={
                 isText
                   ? Math.round(textStyle?.fontSize ?? textCfg.defaultSize)
                   : isLogo
                     ? Math.round(settings.certificateLogoSize || 8)
-                    : Math.round(((activeSig?.scale ?? 1) || 1) * 100)
+                    : isStamp
+                      ? Math.round((settings.certificateStampOpacity ?? 0.85) * 100)
+                      : Math.round(((activeSig?.scale ?? 1) || 1) * 100)
               }
               onChange={(e) => {
                 const val = Number(e.target.value);
                 if (isText) onUpdateTextStyle(active.key, { fontSize: Math.min(textCfg.maxSize, Math.max(textCfg.minSize, val || textCfg.defaultSize)) });
                 else if (isLogo) onUpdateLogo({ certificateLogoSize: Math.min(30, Math.max(4, val || 8)) });
+                else if (isStamp) onUpdateStamp({ certificateStampOpacity: Math.min(1, Math.max(0.1, (val || 85) / 100)) });
                 else onUpdateSignature(active.index, { scale: Math.min(2.5, Math.max(0.5, (val || 100) / 100)) });
               }}
-              title={isText ? "Font size in points" : isLogo ? "Logo box size percentage" : "Signature visual scale percentage"}
+              title={isText ? "Font size in points" : isLogo ? "Logo box size percentage" : isStamp ? "Stamp opacity percentage" : "Signature visual scale percentage"}
             />
           </label>
         </div>
@@ -2511,6 +2673,7 @@ function SelectionOverlay({
   meta,
   isText,
   isLogo,
+  isStamp,
   isSignature,
   textKey,
   textStyle = {},
@@ -2520,11 +2683,13 @@ function SelectionOverlay({
   onStartResize,
   onUpdateTextStyle,
   onUpdateLogo,
+  onUpdateStamp,
   onUpdateSignature,
 }) {
   const isNearTop =
     (isText && (textStyle?.y != null ? textStyle.y < 22 : (meta === "organization" || meta === "official" || meta === "title"))) ||
     (isLogo && ((settings?.certificateLogoPosition?.y ?? 12) < 22)) ||
+    (isStamp && ((settings?.certificateStampY ?? 78) < 22)) ||
     (isSignature && signature?.y != null && signature.y < 22);
 
   return (
@@ -2640,6 +2805,64 @@ function SelectionOverlay({
           </>
         )}
 
+        {isStamp && (
+          <>
+            <button
+              type="button"
+              className="toolbar-btn"
+              title="Decrease stamp size"
+              onClick={() => {
+                const cur = settings.certificateStampSize || 12;
+                onUpdateStamp?.({ certificateStampSize: Math.max(4, cur - 1) });
+              }}
+            >
+              −
+            </button>
+            <span className="toolbar-val">
+              {Math.round(settings.certificateStampSize || 12)}%
+            </span>
+            <button
+              type="button"
+              className="toolbar-btn"
+              title="Increase stamp size"
+              onClick={() => {
+                const cur = settings.certificateStampSize || 12;
+                onUpdateStamp?.({ certificateStampSize: Math.min(35, cur + 1) });
+              }}
+            >
+              +
+            </button>
+
+            <div className="toolbar-divider" />
+
+            <button
+              type="button"
+              className="toolbar-btn"
+              title="Fade stamp ink (Decrease opacity)"
+              onClick={() => {
+                const cur = settings.certificateStampOpacity ?? 0.85;
+                onUpdateStamp?.({ certificateStampOpacity: Math.max(0.1, Math.round((cur - 0.1) * 20) / 20) });
+              }}
+            >
+              Fade
+            </button>
+            <span className="toolbar-val" title="Current ink opacity">
+              {Math.round((settings.certificateStampOpacity ?? 0.85) * 100)}%
+            </span>
+            <button
+              type="button"
+              className="toolbar-btn"
+              title="Darken stamp ink (Increase opacity)"
+              onClick={() => {
+                const cur = settings.certificateStampOpacity ?? 0.85;
+                onUpdateStamp?.({ certificateStampOpacity: Math.min(1.0, Math.round((cur + 0.1) * 20) / 20) });
+              }}
+            >
+              Solid
+            </button>
+          </>
+        )}
+
         {isSignature && (
           <>
             <button
@@ -2712,6 +2935,8 @@ function SelectionOverlay({
               onUpdateTextStyle?.(textKey, { x: null, y: null, width: null, zIndex: 10 });
             } else if (isLogo) {
               onUpdateLogo?.({ certificateLogoX: null, certificateLogoY: null, certificateLogoSize: 8 });
+            } else if (isStamp) {
+              onUpdateStamp?.({ certificateStampX: null, certificateStampY: null, certificateStampSize: 12, certificateStampOpacity: 0.85 });
             } else if (isSignature) {
               onUpdateSignature?.(meta, { x: null, y: null, scale: 1 });
             }
@@ -2733,10 +2958,12 @@ function CertificatePreview({
   onSelectItem,
   onUpdateField,
   onMoveLogo,
+  onMoveStamp,
   onMoveSignature,
   onMoveText,
   onUpdateTextStyle,
   onUpdateLogo,
+  onUpdateStamp,
   onUpdateSignature,
 }) {
   const artRef = useRef(null);
@@ -2758,9 +2985,11 @@ function CertificatePreview({
     const nextSelectedItem =
       kind === "logo"
         ? { type: "logo" }
-        : kind === "signature"
-          ? { type: "signature", index: meta }
-          : { type: "text", key: meta };
+        : kind === "stamp"
+          ? { type: "stamp" }
+          : kind === "signature"
+            ? { type: "signature", index: meta }
+            : { type: "text", key: meta };
     onSelectItem?.(nextSelectedItem);
 
     const art = artRef.current;
@@ -2790,6 +3019,15 @@ function CertificatePreview({
       initH = (elRect.height / canvasRect.height) * 100;
       initFontSize = 16;
       initScale = settings.certificateLogoSize || 8;
+    } else if (kind === "stamp") {
+      const domXPct = ((elRect.left + elRect.width / 2 - canvasRect.left) / canvasRect.width) * 100;
+      const domYPct = ((elRect.top + elRect.height / 2 - canvasRect.top) / canvasRect.height) * 100;
+      initX = settings.certificateStampX != null ? settings.certificateStampX : domXPct;
+      initY = settings.certificateStampY != null ? settings.certificateStampY : domYPct;
+      initW = settings.certificateStampSize || 12;
+      initH = (elRect.height / canvasRect.height) * 100;
+      initFontSize = 16;
+      initScale = settings.certificateStampSize || 12;
     } else {
       const sig = settings.signatures[meta] || {};
       const domXPct = ((elRect.left + elRect.width / 2 - canvasRect.left) / canvasRect.width) * 100;
@@ -2858,6 +3096,15 @@ function CertificatePreview({
       initH = (elRect.height / canvasRect.height) * 100;
       initFontSize = 16;
       initScale = settings.certificateLogoSize || 8;
+    } else if (kind === "stamp") {
+      const domXPct = ((elRect.left + elRect.width / 2 - canvasRect.left) / canvasRect.width) * 100;
+      const domYPct = ((elRect.top + elRect.height / 2 - canvasRect.top) / canvasRect.height) * 100;
+      initX = settings.certificateStampX != null ? settings.certificateStampX : domXPct;
+      initY = settings.certificateStampY != null ? settings.certificateStampY : domYPct;
+      initW = settings.certificateStampSize || 12;
+      initH = (elRect.height / canvasRect.height) * 100;
+      initFontSize = 16;
+      initScale = settings.certificateStampSize || 12;
     } else {
       const sig = settings.signatures[meta] || {};
       const domXPct = ((elRect.left + elRect.width / 2 - canvasRect.left) / canvasRect.width) * 100;
@@ -2891,7 +3138,7 @@ function CertificatePreview({
       initialFontSize: initFontSize,
       initialScale: initScale,
     };
-    setActiveItemKey(kind === "logo" ? "logo" : kind === "signature" ? `sig-${meta}` : `text-${meta}`);
+    setActiveItemKey(kind === "logo" ? "logo" : kind === "stamp" ? "stamp" : kind === "signature" ? `sig-${meta}` : `text-${meta}`);
   }
 
   useEffect(() => {
@@ -2905,17 +3152,17 @@ function CertificatePreview({
       if (op.mode === "move" && !op.hasMoved) {
         if (Math.hypot(dxPx, dyPx) < 3) return;
         op.hasMoved = true;
-        setActiveItemKey(op.kind === "logo" ? "logo" : op.kind === "signature" ? `sig-${op.index}` : `text-${op.key}`);
+        setActiveItemKey(op.kind === "logo" ? "logo" : op.kind === "stamp" ? "stamp" : op.kind === "signature" ? `sig-${op.index}` : `text-${op.key}`);
       }
 
       const dxPct = (dxPx / op.canvasRect.width) * 100;
       const dyPct = (dyPx / op.canvasRect.height) * 100;
 
       if (op.mode === "move") {
-        const minX = op.kind === "logo" ? 4 : 6;
-        const maxX = op.kind === "logo" ? 96 : 94;
-        const minY = op.kind === "logo" ? 4 : 6;
-        const maxY = op.kind === "logo" ? 96 : 94;
+        const minX = op.kind === "logo" || op.kind === "stamp" ? 4 : 6;
+        const maxX = op.kind === "logo" || op.kind === "stamp" ? 96 : 94;
+        const minY = op.kind === "logo" || op.kind === "stamp" ? 4 : 6;
+        const maxY = op.kind === "logo" || op.kind === "stamp" ? 96 : 94;
 
         let newX = Math.min(maxX, Math.max(minX, op.initialX + dxPct));
         let newY = Math.min(maxY, Math.max(minY, op.initialY + dyPct));
@@ -2931,6 +3178,8 @@ function CertificatePreview({
 
         if (op.kind === "logo") {
           onMoveLogo?.(roundedX, roundedY);
+        } else if (op.kind === "stamp") {
+          onMoveStamp?.(roundedX, roundedY);
         } else if (op.kind === "signature") {
           onMoveSignature?.(op.index, roundedX, roundedY);
         } else if (op.kind === "text") {
@@ -2972,6 +3221,10 @@ function CertificatePreview({
           const factor = (handle.includes("e") || handle === "s" ? dxPct + dyPct : -dxPct - dyPct) / Math.max(4, initialWidth);
           const newLogoSize = Math.round(Math.min(30, Math.max(4, initialScale * Math.max(0.3, 1 + factor))) * 10) / 10;
           onUpdateLogo?.({ certificateLogoSize: newLogoSize });
+        } else if (kind === "stamp") {
+          const factor = (handle.includes("e") || handle === "s" ? dxPct + dyPct : -dxPct - dyPct) / Math.max(4, initialWidth);
+          const newStampSize = Math.round(Math.min(35, Math.max(4, initialScale * Math.max(0.3, 1 + factor))) * 10) / 10;
+          onUpdateStamp?.({ certificateStampSize: newStampSize });
         } else if (kind === "signature") {
           const factor = (handle.includes("e") || handle === "s" ? dxPct + dyPct : -dxPct - dyPct) / Math.max(6, initialWidth);
           const newSigScale = Math.round(Math.min(2.5, Math.max(0.5, initialScale * Math.max(0.3, 1 + factor))) * 100) / 100;
@@ -2993,7 +3246,7 @@ function CertificatePreview({
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [onMoveLogo, onMoveSignature, onMoveText, onUpdateTextStyle, onUpdateLogo, onUpdateSignature]);
+  }, [onMoveLogo, onMoveStamp, onMoveSignature, onMoveText, onUpdateTextStyle, onUpdateLogo, onUpdateStamp, onUpdateSignature]);
 
   const participantName = formatParticipantName(participant?.name, "Participant Name");
   const eventDisplayTitle = (settings.certificateEventTitle || "").trim() || event.title || "Event Name";
@@ -3120,6 +3373,7 @@ function CertificatePreview({
             onStartResize={startResize}
             onUpdateTextStyle={onUpdateTextStyle}
             onUpdateLogo={onUpdateLogo}
+            onUpdateStamp={onUpdateStamp}
             onUpdateSignature={onUpdateSignature}
           />
         )}
@@ -3166,6 +3420,7 @@ function CertificatePreview({
                   onStartResize={startResize}
                   onUpdateTextStyle={onUpdateTextStyle}
                   onUpdateLogo={onUpdateLogo}
+                  onUpdateStamp={onUpdateStamp}
                   onUpdateSignature={onUpdateSignature}
                 />
               )}
@@ -3283,6 +3538,7 @@ function CertificatePreview({
                     onStartResize={startResize}
                     onUpdateTextStyle={onUpdateTextStyle}
                     onUpdateLogo={onUpdateLogo}
+                    onUpdateStamp={onUpdateStamp}
                     onUpdateSignature={onUpdateSignature}
                   />
                 )}
@@ -3357,6 +3613,40 @@ function CertificatePreview({
               onStartResize={startResize}
               onUpdateTextStyle={onUpdateTextStyle}
               onUpdateLogo={onUpdateLogo}
+              onUpdateStamp={onUpdateStamp}
+              onUpdateSignature={onUpdateSignature}
+            />
+          )}
+        </div>
+      )}
+
+      {settings.certificateStampUrl && (
+        <div
+          className={`certificate-floating-stamp is-draggable-item${selectedItem?.type === "stamp" ? " is-selected" : ""}${activeItemKey === "stamp" ? " is-dragging" : ""}`}
+          style={{
+            left: `${settings.certificateStampX ?? 80}%`,
+            top: `${settings.certificateStampY ?? 78}%`,
+            width: `${settings.certificateStampSize || 12}%`,
+            opacity: settings.certificateStampOpacity ?? 0.85,
+          }}
+          title="Official Organization Seal / Stamp (Drag to move)"
+          onPointerDown={(e) => startCanvasDrag("stamp", -1, e)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectItem?.({ type: "stamp" });
+          }}
+        >
+          <img src={settings.certificateStampUrl} alt="Organization seal or stamp" draggable={false} />
+          {selectedItem?.type === "stamp" && (
+            <SelectionOverlay
+              kind="stamp"
+              meta={-1}
+              isStamp={true}
+              settings={settings}
+              onStartResize={startResize}
+              onUpdateTextStyle={onUpdateTextStyle}
+              onUpdateLogo={onUpdateLogo}
+              onUpdateStamp={onUpdateStamp}
               onUpdateSignature={onUpdateSignature}
             />
           )}
@@ -3403,6 +3693,7 @@ function CertificatePreview({
                 onStartResize={startResize}
                 onUpdateTextStyle={onUpdateTextStyle}
                 onUpdateLogo={onUpdateLogo}
+                onUpdateStamp={onUpdateStamp}
                 onUpdateSignature={onUpdateSignature}
               />
             )}

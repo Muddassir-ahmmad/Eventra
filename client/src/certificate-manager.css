@@ -1754,6 +1754,24 @@
   pointer-events: none;
 }
 
+.certificate-floating-stamp {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  aspect-ratio: 1/1;
+  display: grid;
+  place-items: center;
+  z-index: 7;
+  touch-action: none;
+  transition: opacity 0.15s ease;
+}
+
+.certificate-floating-stamp img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 .certificate-floating-signatory {
   position: absolute;
   transform: translate(-50%, -50%);

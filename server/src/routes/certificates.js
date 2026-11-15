@@ -305,7 +305,7 @@ function drawHeaderTagline(doc, tagline, { x, y, width, align, font, fontSize, c
   return height;
 }
 
-export function renderCertificate(event, registration, organization, images = { logo: null, signatures: [] }) {
+export function renderCertificate(event, registration, organization, images = { logo: null, stamp: null, signatures: [] }) {
   return new Promise((resolve, reject) => {
     import("pdfkit").then(({ default: PDFDocument }) => {
       const doc = new PDFDocument({
@@ -657,6 +657,30 @@ export function renderCertificate(event, registration, organization, images = { 
         }
       }
 
+      if (images.stamp) {
+        const stampPct = Number.isFinite(Number(event.certificateStampSize))
+          ? Math.min(40, Math.max(4, Number(event.certificateStampSize)))
+          : 12;
+        const stampBoxSize = (stampPct / 100) * width;
+        const stampCx = (Math.min(98, Math.max(2, Number(event.certificateStampX ?? 80))) / 100) * width;
+        const stampCy = (Math.min(98, Math.max(2, Number(event.certificateStampY ?? 78))) / 100) * height;
+        const rawOpacity = Number(event.certificateStampOpacity);
+        const stampOpacity = Number.isFinite(rawOpacity) ? Math.min(1, Math.max(0.05, rawOpacity)) : 0.85;
+
+        try {
+          doc.save();
+          doc.opacity(stampOpacity);
+          doc.image(images.stamp, stampCx - stampBoxSize / 2, stampCy - stampBoxSize / 2, {
+            fit: [stampBoxSize, stampBoxSize],
+            align: "center",
+            valign: "center",
+          });
+          doc.restore();
+        } catch (error) {
+          console.error("Certificate stamp could not be rendered:", error.message);
+        }
+      }
+
       const TEMPLATE_KICKERS = {
         techAurora: "✦ TECH MERIT & INNOVATION ✦",
         royalGold: "✦ ROYAL MERIT & DISTINCTION ✦",
@@ -960,10 +984,11 @@ export function renderCertificate(event, registration, organization, images = { 
 
 async function certificateImages(event) {
   const logo = await loadImage(event.certificateLogoPath, event.certificateLogoUrl);
+  const stamp = await loadImage(event.certificateStampPath, event.certificateStampUrl);
   const signatures = await Promise.all(
     (event.signatures || []).slice(0, 4).map((signature) => loadImage(signature.imagePath, signature.imageUrl))
   );
-  return { logo, signatures };
+  return { logo, stamp, signatures };
 }
 
 async function generatePdf(event, registration, organization) {
@@ -1131,8 +1156,8 @@ router.post("/event/:eventId/assets/:kind", requireAuth, verifyEventOwner, (req,
   });
 }, async (req, res) => {
   try {
-    if (!["logo", "signature"].includes(req.params.kind)) {
-      return res.status(400).json({ message: "Choose a logo or signature image." });
+    if (!["logo", "signature", "stamp"].includes(req.params.kind)) {
+      return res.status(400).json({ message: "Choose a logo, signature, or stamp image." });
     }
     if (!req.file) return res.status(400).json({ message: "Choose a PNG or JPEG image." });
     const asset = await saveImage(req, req.certificateEvent._id, req.file);
