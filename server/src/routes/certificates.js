@@ -672,20 +672,124 @@ export function renderCertificate(event, registration, organization, images = { 
       const titleStyle = textStyles.title;
       const titleFont = resolvePdfFont(titleStyle.font, style.titleFont, true);
       const titleAlign = titleStyle.align || align;
-      const titleMaxSize = titleStyle.fontSize || 28;
+      const titleMaxSize = titleStyle.fontSize || 30;
       const titleSize = fitFontSize(doc, title, titleFont, contentWidth, titleMaxSize, Math.min(14, titleMaxSize));
 
-      let currentY = hasCustomHeader ? Math.max(headerBottomY + 16, 96) : 70;
+      const presentedText = "This certificate is proudly presented to";
+      const presentedColor = event.certificateTemplate === "vintageParchment" ? "#92400e" :
+        (event.certificateTemplate === "royalGold" || event.certificateTemplate === "techAurora" ? "#94a3b8" :
+        (event.certificateTemplate === "crimsonLuxe" ? "#9f1239" : "#516071"));
 
-      // Brand Kicker (rendered right above title when title is in normal flow)
-      if (titleStyle.x == null || titleStyle.y == null) {
-        const kickerColor = style.secondaryAccentColor || style.accent;
-        doc.font("Helvetica-Bold").fontSize(8).fillColor(kickerColor)
-          .text(brandKicker, left, currentY, { width: contentWidth, align, characterSpacing: 1.6 });
-        currentY += 8 + 10;
+      const recipientStyle = textStyles.recipient;
+      const recipientFont = resolvePdfFont(recipientStyle.font, style.titleFont, true);
+      const recipientAlign = recipientStyle.align || align;
+      const recipientMaxSize = recipientStyle.fontSize || 36;
+      const participantName = formatParticipantName(registration.name, "Participant");
+      const recipientSize = fitFontSize(
+        doc,
+        participantName,
+        recipientFont,
+        contentWidth,
+        recipientMaxSize,
+        Math.min(16, recipientMaxSize)
+      );
+
+      const descStyle = textStyles.description;
+      const descFont = descStyle.font !== "theme"
+        ? resolvePdfFont(descStyle.font, "Times-Roman", false)
+        : (style.layout === "classic" || style.layout === "academic" || style.layout === "royalGold" || style.layout === "crimsonLuxe" || style.layout === "vintageParchment" ? "Times-Roman" : "Helvetica");
+      const descAlign = descStyle.align || align;
+      const defaultDescColor = (event.certificateTemplate === "royalGold" || event.certificateTemplate === "techAurora")
+        ? "#cbd5e1"
+        : (event.certificateTemplate === "crimsonLuxe" ? "#881337" : (event.certificateTemplate === "vintageParchment" ? "#451a03" : "#3e4b59"));
+      let descriptionFont = descStyle.fontSize || 11;
+      const descBoxWidth = align === "left" ? contentWidth * 0.84 : contentWidth * 0.88;
+      const descBoxX = align === "left" ? left : left + (contentWidth - descBoxWidth) / 2;
+      while (descriptionFont > 8) {
+        doc.font(descFont).fontSize(descriptionFont);
+        if (doc.heightOfString(description, { width: descBoxWidth, lineGap: 3 }) <= 72) break;
+        descriptionFont -= 0.5;
       }
 
-      if (titleStyle.x != null && titleStyle.y != null) {
+      const eventStyle = textStyles.eventName;
+      const eventFont = resolvePdfFont(eventStyle.font, style.titleFont, true);
+      const eventAlign = eventStyle.align || align;
+      const eventMaxSize = eventStyle.fontSize || 15;
+      const eventSize = fitFontSize(doc, eventTitle, eventFont, contentWidth, eventMaxSize, Math.min(9, eventMaxSize));
+
+      const isFlowTitle = titleStyle.x == null || titleStyle.y == null;
+      const isFlowRecipient = recipientStyle.x == null || recipientStyle.y == null;
+      const isFlowDesc = descStyle.x == null || descStyle.y == null;
+      const isFlowEvent = eventStyle.x == null || eventStyle.y == null;
+
+      const signatures = (event.signatures || []).filter((signature) => signature.name || signature.imageUrl).slice(0, 4);
+      const flowSignatures = [];
+      const pinnedSignatures = [];
+      signatures.forEach((signature, index) => {
+        const entry = { signature, image: images.signatures[index] };
+        if (signature.x != null && signature.y != null) {
+          pinnedSignatures.push(entry);
+        } else {
+          flowSignatures.push(entry);
+        }
+      });
+
+      // Signature positioning matching Certificate Studio bottom: 10%
+      const flowSignatureLineY = 478;
+      const hasFlowSignatures = flowSignatures.length > 0;
+      const contentBottomLimit = hasFlowSignatures ? 434 : 480;
+      const contentTopLimit = Math.max(headerBottomY + 22, 106);
+
+      // Measure flow block heights and gaps to replicate .certificate-art-main (margin: auto 0)
+      const kickerH = 10;
+      const kickerGap = 18;
+
+      doc.font(titleFont).fontSize(titleSize);
+      const titleH = doc.heightOfString(title, { width: contentWidth, lineBreak: false });
+      const titleGap = 18;
+
+      doc.font("Times-Roman").fontSize(11.5);
+      const presentedH = doc.heightOfString(presentedText, { width: contentWidth, lineBreak: false });
+      const presentedGap = 15;
+
+      doc.font(recipientFont).fontSize(recipientSize);
+      const recipientH = doc.heightOfString(participantName, { width: contentWidth, lineBreak: false });
+      const recipientGap = 18;
+
+      doc.font(descFont).fontSize(descriptionFont);
+      const descH = doc.heightOfString(description, { width: descBoxWidth, lineGap: 3 });
+      const descGap = 20;
+
+      const eventBoxWidth = align === "left" ? contentWidth * 0.7 : contentWidth;
+      const eventX = align === "left" ? left : left + (contentWidth - eventBoxWidth) / 2;
+      doc.font(eventFont).fontSize(eventSize);
+      const eventH = doc.heightOfString(eventTitle, { width: eventBoxWidth, lineBreak: false });
+      const eventToDateGap = 5;
+      doc.font("Helvetica").fontSize(9.5);
+      const dateH = doc.heightOfString(date, { width: eventBoxWidth, lineBreak: false });
+
+      let totalFlowHeight = 0;
+      if (isFlowTitle) totalFlowHeight += kickerH + kickerGap + titleH + titleGap;
+      totalFlowHeight += presentedH + presentedGap;
+      if (isFlowRecipient) totalFlowHeight += recipientH + recipientGap;
+      if (isFlowDesc) totalFlowHeight += descH + (isFlowEvent ? descGap : 0);
+      if (isFlowEvent) totalFlowHeight += eventH + eventToDateGap + dateH;
+
+      const availableHeight = Math.max(0, contentBottomLimit - contentTopLimit);
+      const extraSpace = Math.max(0, availableHeight - totalFlowHeight);
+      let currentY = contentTopLimit + Math.round(extraSpace / 2);
+
+      // Render Title & Kicker
+      if (isFlowTitle) {
+        const kickerColor = style.secondaryAccentColor || style.accent;
+        doc.font("Helvetica-Bold").fontSize(8.5).fillColor(kickerColor)
+          .text(brandKicker, left, currentY, { width: contentWidth, align, characterSpacing: 1.8 });
+        currentY += kickerH + kickerGap;
+
+        doc.font(titleFont).fontSize(titleSize).fillColor(style.ink)
+          .text(title, left, currentY, { width: contentWidth, align: titleAlign, lineBreak: false, ellipsis: true });
+        currentY += titleH + titleGap;
+      } else {
         drawCustomPositionedText(doc, {
           text: title,
           font: titleFont,
@@ -699,32 +803,19 @@ export function renderCertificate(event, registration, organization, images = { 
           pageHeight: height,
           maxBoxWidth: contentWidth,
         });
-      } else {
-        doc.font(titleFont).fontSize(titleSize).fillColor(style.ink)
-          .text(title, left, currentY, { width: contentWidth, align: titleAlign, lineBreak: false, ellipsis: true });
-        currentY += titleSize + 14;
       }
 
-      const presentedText = "This certificate is proudly presented to";
-      doc.font(style.font).fontSize(11).fillColor(style.ink)
+      // Render Presented Text
+      doc.font("Times-Roman").fontSize(11.5).fillColor(presentedColor)
         .text(presentedText, left, currentY, { width: contentWidth, align });
-      currentY += 11 + 12;
+      currentY += presentedH + presentedGap;
 
-      const recipientStyle = textStyles.recipient;
-      const recipientFont = resolvePdfFont(recipientStyle.font, style.titleFont, true);
-      const recipientAlign = recipientStyle.align || align;
-      const recipientMaxSize = recipientStyle.fontSize || 34;
-      const participantName = formatParticipantName(registration.name, "Participant");
-      const recipientSize = fitFontSize(
-        doc,
-        participantName,
-        recipientFont,
-        contentWidth,
-        recipientMaxSize,
-        Math.min(16, recipientMaxSize)
-      );
-
-      if (recipientStyle.x != null && recipientStyle.y != null) {
+      // Render Recipient
+      if (isFlowRecipient) {
+        doc.font(recipientFont).fontSize(recipientSize).fillColor(style.accent)
+          .text(participantName, left, currentY, { width: contentWidth, align: recipientAlign, lineBreak: false, ellipsis: true });
+        currentY += recipientH + recipientGap;
+      } else {
         drawCustomPositionedText(doc, {
           text: participantName,
           font: recipientFont,
@@ -738,30 +829,25 @@ export function renderCertificate(event, registration, organization, images = { 
           pageHeight: height,
           maxBoxWidth: contentWidth,
         });
+      }
+
+      // Render Description
+      if (isFlowDesc) {
+        doc.font(descFont).fontSize(descriptionFont).fillColor(defaultDescColor)
+          .text(description, descBoxX, currentY, {
+            width: descBoxWidth,
+            height: 72,
+            align: descAlign,
+            lineGap: 3,
+            ellipsis: true,
+          });
+        currentY += descH + (isFlowEvent ? descGap : 0);
       } else {
-        doc.font(recipientFont).fontSize(recipientSize).fillColor(style.accent)
-          .text(participantName, left, currentY, { width: contentWidth, align: recipientAlign, lineBreak: false, ellipsis: true });
-        currentY += recipientSize + 14;
-      }
-
-      const descStyle = textStyles.description;
-      const descFont = resolvePdfFont(descStyle.font, style.font, false);
-      const descAlign = descStyle.align || align;
-      let descriptionFont = descStyle.fontSize || 10.5;
-      const descBoxWidth = align === "left" ? contentWidth * 0.78 : contentWidth * 0.86;
-      const descBoxX = align === "left" ? left : left + (contentWidth - descBoxWidth) / 2;
-      while (descriptionFont > 8) {
-        doc.font(descFont).fontSize(descriptionFont);
-        if (doc.heightOfString(description, { width: descBoxWidth, lineGap: 2.5 }) <= 72) break;
-        descriptionFont -= 0.5;
-      }
-
-      if (descStyle.x != null && descStyle.y != null) {
         drawCustomPositionedText(doc, {
           text: description,
           font: descFont,
           fontSize: descriptionFont,
-          color: style.ink,
+          color: defaultDescColor,
           align: descAlign,
           xPct: descStyle.x,
           yPct: descStyle.y,
@@ -771,26 +857,16 @@ export function renderCertificate(event, registration, organization, images = { 
           maxBoxWidth: descBoxWidth,
           multiline: true,
         });
-      } else {
-        doc.font(descFont).fontSize(descriptionFont).fillColor(style.ink)
-          .text(description, descBoxX, currentY, {
-            width: descBoxWidth,
-            height: 72,
-            align: descAlign,
-            lineGap: 2.5,
-            ellipsis: true,
-          });
-        const actualDescH = doc.heightOfString(description, { width: descBoxWidth, lineGap: 2.5 });
-        currentY += Math.min(actualDescH, 72) + 16;
       }
 
-      const eventStyle = textStyles.eventName;
-      const eventFont = resolvePdfFont(eventStyle.font, style.titleFont, true);
-      const eventAlign = eventStyle.align || align;
-      const eventMaxSize = eventStyle.fontSize || 14;
-      const eventSize = fitFontSize(doc, eventTitle, eventFont, contentWidth, eventMaxSize, Math.min(9, eventMaxSize));
-
-      if (eventStyle.x != null && eventStyle.y != null) {
+      // Render Event Title & Date
+      if (isFlowEvent) {
+        doc.font(eventFont).fontSize(eventSize).fillColor(style.ink)
+          .text(eventTitle, eventX, currentY, { width: eventBoxWidth, align: eventAlign, lineBreak: false, ellipsis: true });
+        currentY += eventH + eventToDateGap;
+        doc.font("Helvetica").fontSize(9.5).fillColor("#526071")
+          .text(date, eventX, currentY, { width: eventBoxWidth, align: eventAlign, lineBreak: false });
+      } else {
         const placedEvent = drawCustomPositionedText(doc, {
           text: eventTitle,
           font: eventFont,
@@ -804,21 +880,14 @@ export function renderCertificate(event, registration, organization, images = { 
           pageHeight: height,
           maxBoxWidth: contentWidth,
         });
-        doc.font("Helvetica").fontSize(9).fillColor(style.ink)
+        doc.font("Helvetica").fontSize(9.5).fillColor("#526071")
           .text(date, placedEvent.drawX, placedEvent.drawY + placedEvent.boxH + 4, {
             width: placedEvent.boxW,
             align: eventAlign,
             lineBreak: false,
           });
-      } else {
-        const eventY = Math.max(currentY, 342);
-        doc.font(eventFont).fontSize(eventSize).fillColor(style.ink)
-          .text(eventTitle, left, eventY, { width: contentWidth * 0.45, align: eventAlign, lineBreak: false, ellipsis: true });
-        doc.font("Helvetica").fontSize(9).fillColor("#526071")
-          .text(date, left, eventY + eventSize + 4, { width: contentWidth * 0.45, align: eventAlign });
       }
 
-      const signatures = (event.signatures || []).filter((signature) => signature.name || signature.imageUrl).slice(0, 4);
       const drawSignatureBlock = (signature, image, centerX, lineY, blockWidth, scale = 1) => {
         const safeScale = Number.isFinite(scale) ? Math.min(2.2, Math.max(0.5, scale)) : 1;
         const imgBoxWidth = blockWidth * 0.65;
@@ -858,18 +927,6 @@ export function renderCertificate(event, registration, organization, images = { 
           });
       };
 
-      const flowSignatures = [];
-      const pinnedSignatures = [];
-      signatures.forEach((signature, index) => {
-        const entry = { signature, image: images.signatures[index] };
-        if (signature.x != null && signature.y != null) {
-          pinnedSignatures.push(entry);
-        } else {
-          flowSignatures.push(entry);
-        }
-      });
-
-      const signatureTop = 432;
       const flowCount = flowSignatures.length;
       if (flowCount > 0) {
         const singleBlockWidth = 140;
@@ -881,7 +938,7 @@ export function renderCertificate(event, registration, organization, images = { 
           const { signature, image } = flowSignatures[index];
           const centerX = startX + index * (singleBlockWidth + gap) + singleBlockWidth / 2;
           const scale = signature.scale != null ? Number(signature.scale) : 1;
-          drawSignatureBlock(signature, image, centerX, signatureTop + 8, singleBlockWidth, scale);
+          drawSignatureBlock(signature, image, centerX, flowSignatureLineY, singleBlockWidth, scale);
         }
       }
 
