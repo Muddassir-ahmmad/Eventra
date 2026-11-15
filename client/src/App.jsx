@@ -219,7 +219,7 @@ function OrganizerHeader() {
     <header className="app-header">
       <div className="header-inner">
         {/* Logo */}
-        <Link className="brand" to="/">
+        <Link className="brand" to="/" id="app-header-brand">
           EVENT<span>RA</span>
         </Link>
 

@@ -14,17 +14,23 @@ export default function Home() {
     return !sessionStorage.getItem("eventra_intro_seen");
   });
   const [hasRevealed, setHasRevealed] = useState(false);
+  const [isRevealing, setIsRevealing] = useState(false);
+
+  const handleZoomOut = () => {
+    setIsRevealing(true);
+  };
 
   const handleIntroComplete = () => {
     setShowIntro(false);
+    setIsRevealing(false);
     setHasRevealed(true);
   };
 
   return (
     <>
-      {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
+      {showIntro && <IntroAnimation onComplete={handleIntroComplete} onZoomOut={handleZoomOut} />}
       <main
-        className={`homepage-reveal-wrapper${hasRevealed ? " is-entering-reveal" : ""}`}
+        className={`homepage-reveal-wrapper${isRevealing ? " is-revealing" : ""}${hasRevealed ? " is-entering-reveal" : ""}`}
         style={{ background: "#F8F9FA", color: "#0F172A", minHeight: "100vh", overflowX: "hidden" }}
       >
       {/* =========================================================================
@@ -79,7 +85,11 @@ export default function Home() {
             <button
               type="button"
               onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.scrollTo({ top: 0, behavior: "instant" });
+                }
                 setHasRevealed(false);
+                setIsRevealing(false);
                 setShowIntro(true);
               }}
               style={{

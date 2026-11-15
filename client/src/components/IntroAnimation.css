@@ -1,16 +1,16 @@
 /* =========================================================================
-   EVENTRA - CINEMATIC BRAND INTRO ANIMATION
-   Sequence:
-     Scene 1: Floating Event Emojis Orbital Movement (0.0s - 1.5s)
-     Scene 2: Emojis Converge & EVENTRA Brand Reveal with Light Sweep (1.5s - 2.8s)
-     Scene 3: Zoom-Out & Seamless Homepage Reveal (2.8s - 3.8s)
+   EVENTRA - COMPLETE CINEMATIC BRAND REVEAL ANIMATION REDESIGN
+   3-Scene Timeline:
+     Scene 1: Cinematic Event Build-up & Orbital Drift (0.0s - 1.45s)
+     Scene 2: EVENTRA Main Brand Reveal & Glory Hold (1.45s - 3.50s)
+     Scene 3: Long Cinematic Zoom-Out to Header Navigation (3.50s - 5.85s)
    ========================================================================= */
 
 .eventra-intro-overlay {
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: radial-gradient(circle at 50% 45%, #062822 0%, #031512 45%, #020706 100%);
+  background: radial-gradient(ellipse at 50% 50%, #062822 0%, #031613 45%, #010806 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -18,59 +18,109 @@
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
-  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
+  transition: opacity 2.15s cubic-bezier(0.16, 1, 0.3, 1), background 2.15s ease;
+  will-change: opacity;
 }
 
-.eventra-intro-overlay.is-exiting {
+/* Scene 3: Dissolve the dark overlay background to reveal the homepage behind the zooming logo */
+.eventra-intro-overlay.stage-zoomOut {
   opacity: 0;
-  transform: scale(1.06);
   pointer-events: none;
 }
 
-/* Background Ambient Orbs */
-.intro-ambient-orb {
+.eventra-intro-overlay.is-skipping {
+  opacity: 0 !important;
+  transition: opacity 0.22s ease !important;
+  pointer-events: none !important;
+}
+
+/* =========================================================================
+   CINEMATIC AMBIENT LIGHTING & PARTICLES
+   ========================================================================= */
+
+.intro-ambient-lighting {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.intro-glow-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(85px);
   pointer-events: none;
-  opacity: 0.6;
-  animation: introOrbPulse 6s ease-in-out infinite alternate;
+  opacity: 0.65;
+  animation: introOrbDrift 7s ease-in-out infinite alternate;
 }
 
-.intro-ambient-orb-1 {
-  width: 520px;
-  height: 520px;
-  background: radial-gradient(circle, rgba(5, 150, 105, 0.35) 0%, transparent 70%);
+.intro-glow-orb-primary {
+  width: 580px;
+  height: 580px;
+  background: radial-gradient(circle, rgba(5, 150, 105, 0.38) 0%, transparent 70%);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
 
-.intro-ambient-orb-2 {
-  width: 380px;
-  height: 380px;
-  background: radial-gradient(circle, rgba(249, 115, 22, 0.22) 0%, transparent 70%);
-  top: 40%;
-  left: 60%;
-  animation-delay: -3s;
+.intro-glow-orb-secondary {
+  width: 440px;
+  height: 440px;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.2) 0%, transparent 70%);
+  top: 42%;
+  left: 58%;
+  animation-delay: -3.5s;
 }
 
-@keyframes introOrbPulse {
-  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.45; }
-  100% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.7; }
+.intro-glow-orb-center {
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.35) 0%, transparent 75%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-/* Skip Intro Button */
-.intro-skip-btn {
+@keyframes introOrbDrift {
+  0% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.5; }
+  100% { transform: translate(-50%, -50%) scale(1.18); opacity: 0.75; }
+}
+
+/* Starlight / Sparkle Floating Micro-Particles */
+.intro-particle {
   position: absolute;
-  top: 28px;
+  border-radius: 50%;
+  background: #6EE7B7;
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.8), 0 0 20px rgba(5, 150, 105, 0.4);
+  animation: introParticleFloat ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes introParticleFloat {
+  0% {
+    transform: translateY(0) scale(0.7);
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(-24px) scale(1.15);
+    opacity: 0.35;
+  }
+}
+
+/* Glassmorphic Skip Pill */
+.intro-skip-pill {
+  position: absolute;
+  top: 24px;
   right: 28px;
   z-index: 100;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 7px;
+  padding: 8px 18px;
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -79,105 +129,99 @@
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.intro-skip-btn:hover {
-  background: rgba(5, 150, 105, 0.2);
+.intro-skip-pill:hover {
+  background: rgba(5, 150, 105, 0.25);
   border-color: #34D399;
   color: #FFFFFF;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3);
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.35);
 }
 
-/* Central Stage Container */
-.intro-stage-center {
-  position: relative;
+/* =========================================================================
+   SCENE 1: EVENT SYMBOLS ORBIT & IMPLOSION CONVERGENCE
+   ========================================================================= */
+
+.intro-orbital-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 380px;
   height: 380px;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 10;
+  animation: introOrbitalSpin 14s linear infinite;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+  pointer-events: none;
 }
 
-@media (max-width: 640px) {
-  .intro-stage-center {
-    width: 290px;
-    height: 290px;
-  }
+@keyframes introOrbitalSpin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-/* =========================================================================
-   SCENE 1: EMOJI ORBITAL RING
-   ========================================================================= */
-
-.intro-orbital-system {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: introSystemSpin 10s linear infinite;
-  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
-}
-
-@keyframes introSystemSpin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Emojis Converge inwards */
-.intro-orbital-system.is-converging {
-  transform: scale(0.15) rotate(180deg) !important;
+/* Implosion: Symbols converge into center before brand reveal */
+.intro-orbital-container.is-imploded {
+  transform: translate(-50%, -50%) scale(0) rotate(180deg) !important;
   opacity: 0;
-  transition: transform 0.6s cubic-bezier(0.55, 0, 1, 0.45), opacity 0.4s ease 0.15s;
+  transition: transform 0.52s cubic-bezier(0.55, 0, 1, 0.45), opacity 0.38s ease 0.1s;
 }
 
-.intro-orbit-track {
+.intro-orbital-ring {
   position: absolute;
-  width: 280px;
-  height: 280px;
+  width: 290px;
+  height: 290px;
   border-radius: 50%;
-  border: 1px dashed rgba(52, 211, 153, 0.18);
+  border: 1px dashed rgba(52, 211, 153, 0.22);
+  box-shadow: inset 0 0 20px rgba(5, 150, 105, 0.12), 0 0 24px rgba(5, 150, 105, 0.08);
   pointer-events: none;
 }
 
 @media (max-width: 640px) {
-  .intro-orbit-track {
-    width: 220px;
-    height: 220px;
+  .intro-orbital-container {
+    width: 280px;
+    height: 280px;
+  }
+  .intro-orbital-ring {
+    width: 210px;
+    height: 210px;
   }
 }
 
-.intro-emoji-item {
+.intro-symbol-token {
   position: absolute;
   top: 50%;
   left: 50%;
-  margin-top: -30px;
-  margin-left: -30px;
-  width: 60px;
-  height: 60px;
+  margin-top: -31px;
+  margin-left: -31px;
+  width: 62px;
+  height: 62px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(52, 211, 153, 0.3);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: radial-gradient(circle at 35% 35%, rgba(30, 41, 59, 0.88) 0%, rgba(6, 78, 59, 0.45) 100%);
+  border: 1px solid rgba(52, 211, 153, 0.38);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.75rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 16px rgba(5, 150, 105, 0.35);
+  font-size: 1.8rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55), 0 0 20px rgba(5, 150, 105, 0.4);
   transform: translate(var(--tx), var(--ty)) scale(0);
   opacity: 0;
-  animation: introEmojiSpawn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: introTokenSpawn 0.72s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   animation-delay: var(--delay);
 }
 
 @media (max-width: 640px) {
-  .intro-emoji-item {
+  .intro-symbol-token {
     width: 48px;
     height: 48px;
     margin-top: -24px;
@@ -186,49 +230,36 @@
   }
 }
 
-/* Counter-rotate individual emojis so they stay upright */
-.intro-emoji-inner {
+/* Individual symbol counter-rotates so emojis stay upright */
+.intro-symbol-inner {
   display: inline-block;
-  animation: introEmojiCounterSpin 10s linear infinite;
+  animation: introSymbolCounterSpin 14s linear infinite;
 }
 
-@keyframes introEmojiCounterSpin {
+@keyframes introSymbolCounterSpin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(-360deg); }
 }
 
-@keyframes introEmojiSpawn {
+@keyframes introTokenSpawn {
   0% {
     opacity: 0;
-    transform: translate(var(--tx), var(--ty)) scale(0.1) rotate(-30deg);
+    transform: translate(var(--tx), var(--ty)) scale(0.1) rotate(-35deg);
+    filter: blur(6px);
   }
-  70% {
-    transform: translate(var(--tx), var(--ty)) scale(1.18) rotate(6deg);
+  65% {
+    transform: translate(var(--tx), var(--ty)) scale(1.15) rotate(4deg);
+    filter: blur(0);
   }
   100% {
     opacity: 1;
     transform: translate(var(--tx), var(--ty)) scale(1) rotate(0deg);
+    filter: blur(0);
   }
 }
 
-/* Subtle floating pulse once spawned */
-.intro-emoji-item.has-spawned {
-  animation: introEmojiFloat 3s ease-in-out infinite alternate;
-}
-
-@keyframes introEmojiFloat {
-  0% {
-    transform: translate(var(--tx), var(--ty)) scale(1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 16px rgba(5, 150, 105, 0.35);
-  }
-  100% {
-    transform: translate(var(--tx), var(--ty)) scale(1.08);
-    box-shadow: 0 6px 26px rgba(0, 0, 0, 0.5), 0 0 24px rgba(5, 150, 105, 0.6);
-  }
-}
-
-/* Energy Burst when converging */
-.intro-energy-burst {
+/* Energy Burst Shockwave Pulse */
+.intro-energy-pulse {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -237,134 +268,206 @@
   margin-top: -70px;
   margin-left: -70px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(52, 211, 153, 0.7) 0%, rgba(5, 150, 105, 0.2) 50%, transparent 75%);
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.8) 0%, rgba(5, 150, 105, 0.25) 50%, transparent 75%);
   transform: scale(0);
   opacity: 0;
   pointer-events: none;
+  z-index: 12;
 }
 
-.intro-energy-burst.is-firing {
-  animation: introEnergyBurst 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.intro-energy-pulse.is-firing {
+  animation: introPulseBlast 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes introEnergyBurst {
-  0% {
-    transform: scale(0.2);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(2.2);
-    opacity: 0.85;
-  }
-  100% {
-    transform: scale(3.5);
-    opacity: 0;
-  }
+@keyframes introPulseBlast {
+  0% { transform: scale(0.15); opacity: 1; }
+  50% { transform: scale(2.4); opacity: 0.9; }
+  100% { transform: scale(4.2); opacity: 0; }
 }
 
 /* =========================================================================
-   SCENE 2: EVENTRA BRAND REVEAL WITH LIGHT SWEEP
+   SCENE 2 & 3: EVENTRA MAIN WORDMARK HERO & LONG CINEMATIC ZOOM-OUT
    ========================================================================= */
 
-.intro-brand-reveal {
+.intro-wordmark-wrapper {
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   opacity: 0;
-  transform: scale(0.85);
+  z-index: 50;
   pointer-events: none;
-  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center center;
+  will-change: transform, opacity;
 }
 
-.intro-brand-reveal.is-active {
+.intro-wordmark-wrapper.is-revealed {
   opacity: 1;
-  transform: scale(1);
+  transform: translate(-50%, -50%) scale(1);
+  transition: opacity 0.5s ease, transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Cinematic Logo Title with Emerald Gradient & Shimmer */
-.intro-logo-title {
+/* SCENE 3: Continuous Cinematic 2.2-Second Flight to Header */
+.intro-wordmark-wrapper.is-zooming {
+  opacity: 1 !important;
+  transform: translate(calc(-50% + var(--zoom-x)), calc(-50% + var(--zoom-y))) scale(var(--zoom-scale)) !important;
+  transition: transform 2.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transform-origin: center center;
+}
+
+/* Wordmark Title */
+.intro-wordmark-title {
   margin: 0;
-  font-family: 'Plus Jakarta Sans', 'Manrope', -apple-system, sans-serif;
-  font-size: clamp(3rem, 7.5vw, 5.2rem);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: clamp(3.6rem, 8.5vw, 6.2rem);
   font-weight: 800;
   line-height: 1;
-  letter-spacing: -0.04em;
-  color: #FFFFFF;
-  background: linear-gradient(135deg, #FFFFFF 0%, #D1FAE5 35%, #34D399 65%, #FFFFFF 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: introShimmer 2.4s linear infinite;
+  letter-spacing: -0.035em;
+  display: flex;
+  align-items: center;
   position: relative;
+  text-shadow: 0 10px 40px rgba(5, 150, 105, 0.45);
+}
+
+/* Sequential 3D Letter Reveal Animation */
+.intro-letter {
   display: inline-block;
-  text-shadow: 0 0 35px rgba(5, 150, 105, 0.45);
+  opacity: 0;
+  transform: translateY(32px) scale(0.65) rotateX(-50deg);
+  filter: blur(8px);
+  animation: introLetterReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--i) * 0.055s);
+  will-change: transform, opacity, filter, color;
 }
 
-@keyframes introShimmer {
-  0% { background-position: 0% center; }
-  100% { background-position: 200% center; }
+@keyframes introLetterReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(32px) scale(0.65) rotateX(-50deg);
+    filter: blur(8px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.05) rotateX(4deg);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0deg);
+    filter: blur(0);
+  }
 }
 
-/* Light beam sweep across wordmark */
-.intro-logo-title::after {
+/* Base Letters: E-V-E-N-T */
+.intro-letter-base {
+  color: #FFFFFF;
+}
+
+/* In Scene 3, as it approaches the light header, morph color smoothly to #0F172A */
+.intro-wordmark-wrapper.is-zooming .intro-letter-base {
+  transition: color 1.8s ease 0.4s;
+  color: #0F172A;
+}
+
+/* Accent Letters: R-A */
+.intro-letter-accent {
+  color: #34D399;
+}
+
+/* In Scene 3, morph color smoothly to primary #059669 */
+.intro-wordmark-wrapper.is-zooming .intro-letter-accent {
+  transition: color 1.8s ease 0.4s;
+  color: #059669;
+}
+
+/* Coral Brand Dot */
+.intro-letter-dot {
+  color: #F97316;
+  font-size: 0.85em;
+  margin-left: 2px;
+  transform: translateY(-2px);
+  filter: drop-shadow(0 0 16px rgba(249, 115, 22, 0.7));
+}
+
+.intro-wordmark-wrapper.is-zooming .intro-letter-dot {
+  transition: filter 1.8s ease 0.4s;
+  filter: none;
+}
+
+/* Smooth Light Sweep across the complete wordmark */
+.intro-wordmark-title::after {
   content: "";
   position: absolute;
   top: 0;
-  left: -100%;
-  width: 60%;
+  left: -120%;
+  width: 55%;
   height: 100%;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
-  transform: skewX(-24deg);
-  animation: introLightBeam 1.8s ease-in-out forwards;
-  animation-delay: 0.2s;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
+  transform: skewX(-20deg);
+  animation: introLightSweep 1.6s ease-in-out forwards 0.45s;
   pointer-events: none;
 }
 
-@keyframes introLightBeam {
-  0% { left: -100%; }
-  100% { left: 220%; }
+@keyframes introLightSweep {
+  0% { left: -120%; }
+  100% { left: 240%; }
 }
 
-/* Tagline */
-.intro-logo-tagline {
-  margin: 14px 0 0 0;
+/* Tagline & Badge Sub-elements */
+.intro-sub-elements {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+/* Scene 3: Instantly dissolve tagline & badge so only the clean wordmark travels to header */
+.intro-wordmark-wrapper.is-zooming .intro-sub-elements {
+  opacity: 0 !important;
+  transform: translateY(14px) scale(0.92) !important;
+  pointer-events: none;
+}
+
+.intro-brand-tagline {
+  margin: 16px 0 0 0;
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: clamp(0.72rem, 1.4vw, 0.88rem);
+  font-size: clamp(0.74rem, 1.4vw, 0.92rem);
   font-weight: 700;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
   color: #A7F3D0;
   opacity: 0;
   transform: translateY(12px);
-  animation: introTaglineIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.35s;
+  animation: introTaglineIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.4s;
 }
 
 @keyframes introTaglineIn {
   0% {
     opacity: 0;
     transform: translateY(12px);
-    letter-spacing: 0.15em;
+    letter-spacing: 0.16em;
   }
   100% {
     opacity: 1;
     transform: translateY(0);
-    letter-spacing: 0.28em;
+    letter-spacing: 0.26em;
   }
 }
 
-/* Category Badge below tagline */
-.intro-badge-pill {
+.intro-category-pill {
   margin-top: 18px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 14px;
+  padding: 6px 16px;
   border-radius: 9999px;
-  background: rgba(5, 150, 105, 0.15);
-  border: 1px solid rgba(52, 211, 153, 0.35);
+  background: rgba(5, 150, 105, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.38);
   color: #34D399;
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 0.72rem;
@@ -373,7 +476,7 @@
   text-transform: uppercase;
   opacity: 0;
   transform: translateY(8px);
-  animation: introBadgeIn 0.5s ease forwards 0.5s;
+  animation: introBadgeIn 0.5s ease forwards 0.55s;
 }
 
 @keyframes introBadgeIn {
@@ -384,39 +487,46 @@
 }
 
 /* =========================================================================
-   SCENE 3: ZOOM-OUT HOMEPAGE REVEAL WRAPPER
+   SCENE 3: HOMEPAGE CO-ORDINATED CAMERA REVEAL
    ========================================================================= */
 
-.homepage-reveal-wrapper {
-  transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, opacity;
+/* While intro is actively playing, keep real header logo hidden so there are never competing logos */
+body.eventra-intro-active #app-header-brand {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
-.homepage-reveal-wrapper.is-entering-reveal {
-  animation: homepageScaleIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* While intro is active, prepare homepage behind it with subtle scale and blur */
+body.eventra-intro-active .homepage-reveal-wrapper {
+  transform: scale(0.975);
+  filter: blur(6px);
+  opacity: 0.15;
+  transition: transform 2.2s cubic-bezier(0.16, 1, 0.3, 1), filter 2.0s ease, opacity 1.8s ease;
+  will-change: transform, filter, opacity;
 }
 
-@keyframes homepageScaleIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.965);
-    filter: blur(4px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-    filter: blur(0);
-  }
+/* When zoom-out begins, smoothly camera-zoom into the crisp, loaded homepage */
+body.eventra-intro-active .homepage-reveal-wrapper.is-revealing {
+  transform: scale(1);
+  filter: blur(0);
+  opacity: 1;
 }
 
-/* Reduced Motion Override */
+/* =========================================================================
+   ACCESSIBILITY: REDUCED MOTION OVERRIDE
+   ========================================================================= */
+
 @media (prefers-reduced-motion: reduce) {
   .eventra-intro-overlay {
     display: none !important;
   }
+  body.eventra-intro-active #app-header-brand {
+    opacity: 1 !important;
+  }
   .homepage-reveal-wrapper {
     animation: none !important;
     transform: none !important;
+    filter: none !important;
     opacity: 1 !important;
   }
 }
