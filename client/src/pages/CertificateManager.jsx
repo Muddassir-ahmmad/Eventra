@@ -106,7 +106,7 @@ function resolveCssFontStyle(styleObj) {
   if (styleObj?.fontSize) {
     // 1 PDF pt on 841.89pt A4 landscape equals 0.1188cqw across any viewport width
     const cqw = Math.round(Number(styleObj.fontSize) * 0.1188 * 100) / 100;
-    css.fontSize = `${cqw}cqw`;
+    css.fontSize = `clamp(${Math.max(8, Math.round(styleObj.fontSize * 0.45))}px, ${cqw}cqw, ${Math.round(styleObj.fontSize * 1.35)}px)`;
   }
   if (styleObj?.align) {
     css.textAlign = styleObj.align;
@@ -1775,7 +1775,7 @@ export default function CertificateManager() {
               borderRadius: "16px",
               boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.35)",
               width: "100%",
-              maxWidth: "1100px",
+              maxWidth: "min(1100px, 96vw)",
               maxHeight: "94vh",
               display: "flex",
               flexDirection: "column",
@@ -1930,7 +1930,8 @@ export default function CertificateManager() {
             <div
               style={{
                 flex: 1,
-                minHeight: "450px",
+                minHeight: "min(360px, 50vh)",
+                height: "60vh",
                 maxHeight: "75vh",
                 background: "#0F172A",
                 display: "flex",
@@ -1978,7 +1979,7 @@ export default function CertificateManager() {
                     width: "100%",
                     height: "100%",
                     border: "none",
-                    minHeight: "520px",
+                    minHeight: "min(360px, 50vh)",
                   }}
                 />
               ) : !generatingPreviewPdf ? (
@@ -2521,6 +2522,11 @@ function SelectionOverlay({
   onUpdateLogo,
   onUpdateSignature,
 }) {
+  const isNearTop =
+    (isText && (textStyle?.y != null ? textStyle.y < 22 : (meta === "organization" || meta === "official" || meta === "title"))) ||
+    (isLogo && ((settings?.certificateLogoPosition?.y ?? 12) < 22)) ||
+    (isSignature && signature?.y != null && signature.y < 22);
+
   return (
     <>
       {/* PowerPoint-Style 8 Resize Handles Frame */}
@@ -2537,7 +2543,7 @@ function SelectionOverlay({
 
       {/* Floating PowerPoint-Style In-Canvas Toolbar */}
       <div
-        className="certificate-element-toolbar"
+        className={`certificate-element-toolbar${isNearTop ? " is-flipped-below" : ""}`}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >

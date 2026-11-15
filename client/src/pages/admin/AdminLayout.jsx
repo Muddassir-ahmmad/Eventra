@@ -136,12 +136,31 @@ export default function AdminLayout({ children, title = "Super Admin Console" })
         </div>
       </aside>
 
+      {/* Mobile Sidebar Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="admin-sidebar-backdrop"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Main Panel */}
       <main className="admin-main">
         {/* Topbar */}
         <header className="admin-topbar">
-          <div className="admin-topbar-title">
-            <h2>{title}</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              type="button"
+              className="admin-mobile-toggle"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle navigation menu"
+              title="Toggle Menu"
+            >
+              ☰
+            </button>
+            <div className="admin-topbar-title">
+              <h2>{title}</h2>
+            </div>
           </div>
 
           <div className="admin-topbar-actions">
