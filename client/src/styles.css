@@ -390,6 +390,18 @@ button, input, textarea, select {
 }
 
 /* =========================================================================
+   MOBILE NAVIGATION DRAWER
+   ========================================================================= */
+
+.mobile-nav-toggle {
+  display: none;
+}
+
+.mobile-nav-drawer {
+  display: none;
+}
+
+/* =========================================================================
    BUTTON SYSTEM (Refined Architectural Buttons)
    ========================================================================= */
 
@@ -1497,6 +1509,108 @@ input:focus, textarea:focus, select:focus {
   }
   .profile-name {
     display: none;
+  }
+  .profile-wrap {
+    margin-left: auto;
+    margin-right: 8px;
+  }
+  .mobile-nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: var(--bg-surface, #FFFFFF);
+    border: 1px solid var(--border-subtle, #E2E8F0);
+    color: var(--text-primary-heading, #0F172A);
+    font-size: 1.25rem;
+    cursor: pointer;
+    margin-left: auto;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+  }
+  .mobile-nav-toggle:hover {
+    background: var(--bg-soft-green, #F1F5F9);
+    border-color: var(--primary, #059669);
+  }
+  .mobile-nav-drawer {
+    display: block;
+    background: #FFFFFF;
+    border-top: 1px solid var(--border-subtle, #E2E8F0);
+    border-bottom: 1px solid var(--border-subtle, #E2E8F0);
+    padding: 16px 20px 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    animation: slideDownNav 0.22s ease-out;
+  }
+  @keyframes slideDownNav {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .mobile-nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .mobile-nav-links a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    color: var(--text-primary-heading, #0F172A);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    background: #F8FAFC;
+    border: 1px solid var(--border-subtle, #E2E8F0);
+    transition: all 0.15s ease;
+  }
+  .mobile-nav-links a:hover,
+  .mobile-nav-links a:active {
+    background: #ECFDF5;
+    border-color: #059669;
+    color: #059669;
+  }
+  .mobile-nav-cta {
+    background: #059669 !important;
+    color: #FFFFFF !important;
+    border-color: #059669 !important;
+    justify-content: center;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.28);
+  }
+  .mobile-nav-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: #F1F5F9;
+    border-radius: 10px;
+    margin-bottom: 4px;
+  }
+  .mobile-nav-logout {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 10px;
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
+    color: #DC2626;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+    margin-top: 6px;
+  }
+  .mobile-nav-logout:hover {
+    background: #FEE2E2;
   }
   .dashboard-welcome, .dashboard-head {
     align-items: flex-start;

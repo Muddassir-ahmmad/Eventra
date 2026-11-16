@@ -204,6 +204,7 @@ export default function App() {
 function OrganizerHeader() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const token = localStorage.getItem("eventra_token");
   const userName = localStorage.getItem("eventra_user_name") || "Organizer";
@@ -212,6 +213,7 @@ function OrganizerHeader() {
   function logout() {
     localStorage.removeItem("eventra_token");
     localStorage.removeItem("eventra_user_name");
+    setMobileMenuOpen(false);
     navigate("/login");
   }
 
@@ -219,7 +221,7 @@ function OrganizerHeader() {
     <header className="app-header">
       <div className="header-inner">
         {/* Logo */}
-        <Link className="brand" to="/" id="app-header-brand">
+        <Link className="brand" to="/" id="app-header-brand" onClick={() => setMobileMenuOpen(false)}>
           EVENT<span>RA</span>
         </Link>
 
@@ -273,7 +275,64 @@ function OrganizerHeader() {
             </Link>
           </nav>
         )}
+
+        {/* Mobile Navigation Toggle Button */}
+        <button
+          type="button"
+          className="mobile-nav-toggle"
+          aria-label="Toggle navigation menu"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          {mobileMenuOpen ? "✕" : "☰"}
+        </button>
       </div>
+
+      {/* Mobile Drawer Menu */}
+      {mobileMenuOpen && (
+        <div className="mobile-nav-drawer">
+          {token ? (
+            <div className="mobile-nav-links">
+              <div className="mobile-nav-user">
+                <span className="avatar">{userInitial}</span>
+                <div>
+                  <strong>{userName}</strong>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>EVENTRA Organizer</span>
+                </div>
+              </div>
+              <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                📊 Dashboard
+              </Link>
+              <Link to="/create-event" onClick={() => setMobileMenuOpen(false)}>
+                ✦ Create New Event
+              </Link>
+              <Link to="/participant/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                🎫 Find My Ticket
+              </Link>
+              <Link to="/dashboard/support" onClick={() => setMobileMenuOpen(false)}>
+                🎧 Talk to Admin / Support
+              </Link>
+              <Link to="/dashboard/settings" onClick={() => setMobileMenuOpen(false)}>
+                ⚙️ Account Settings
+              </Link>
+              <button className="mobile-nav-logout" onClick={logout}>
+                Logout
+              </button>
+            </div>
+          ) : (
+            <div className="mobile-nav-links">
+              <Link to="/participant/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                🎫 Find My Ticket
+              </Link>
+              <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                🔑 Organizer Login
+              </Link>
+              <Link className="mobile-nav-cta" to="/register" onClick={() => setMobileMenuOpen(false)}>
+                Get Started Free ↗
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }
