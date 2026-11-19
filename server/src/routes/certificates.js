@@ -974,9 +974,30 @@ export function renderCertificate(event, registration, organization, images = { 
         drawSignatureBlock(signature, image, centerX, centerY + 6 * scale, blockW, scale);
       }
 
-      // Standardized footer at the end of every certificate
-      doc.font("Helvetica-Bold").fontSize(8).fillColor(style.accent)
-        .text("EVENTRA · EVENT CERTIFICATE", left, height - 38, { width: contentWidth, align: "center", characterSpacing: 1.8 });
+      // Standardized footer credential mark (custom draggable or default fixed)
+      const footerStyle = textStyles.footer || {};
+      const footerFont = resolvePdfFont(footerStyle.font, "Helvetica-Bold", true);
+      const footerFontSize = footerStyle.fontSize || 8;
+      const footerAlign = footerStyle.align || "center";
+
+      if (footerStyle.x != null && footerStyle.y != null) {
+        const fX = (Math.min(96, Math.max(4, Number(footerStyle.x))) / 100) * width;
+        const fY = (Math.min(96, Math.max(4, Number(footerStyle.y))) / 100) * height;
+        const fW = footerStyle.width ? (Number(footerStyle.width) / 100) * width : 280;
+        doc.font(footerFont).fontSize(footerFontSize).fillColor(style.accent)
+          .text("EVENTRA · EVENT CERTIFICATE", fX - fW / 2, fY - (footerFontSize * 0.7), {
+            width: fW,
+            align: footerAlign,
+            characterSpacing: 1.8,
+          });
+      } else {
+        doc.font(footerFont).fontSize(footerFontSize).fillColor(style.accent)
+          .text("EVENTRA · EVENT CERTIFICATE", left, height - 38, {
+            width: contentWidth,
+            align: footerAlign,
+            characterSpacing: 1.8,
+          });
+      }
       doc.end();
     }).catch(reject);
   });

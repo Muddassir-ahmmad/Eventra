@@ -537,28 +537,60 @@ Strict SVG Requirements:
 
     <!-- Accent Divider -->
     <line x1="0" y1="${titleLines.length * titleLineHeight + 95}" x2="160" y2="${titleLines.length * titleLineHeight + 95}" stroke="#06b6d4" stroke-width="3.5" stroke-linecap="round" />
+
+    <!-- Highlights Ribbon -->
+    <g transform="translate(0, ${titleLines.length * titleLineHeight + 115})">
+      <rect width="660" height="34" rx="8" fill="rgba(255,255,255,0.06)" stroke="#6366f1" stroke-opacity="0.35"/>
+      <text x="330" y="22" font-family="'Manrope', system-ui, sans-serif" font-size="11.5" font-weight="800" fill="#38bdf8" letter-spacing="1.5" text-anchor="middle">✦ KEYNOTES ✦ LIVE DEMOS ✦ OFFICIAL CERTIFICATE ✦ NETWORKING</text>
+    </g>
   </g>
 
-  <!-- Bottom Metadata Cards (Dock) -->
+  <!-- Bottom Metadata Cards (Dock) + QR Code -->
   <g transform="translate(65, 515)">
     <!-- Date Card -->
-    <rect x="0" y="0" width="345" height="84" rx="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
-    <rect x="18" y="18" width="48" height="48" rx="10" fill="#6366f1" fill-opacity="0.2" stroke="#6366f1" stroke-opacity="0.4"/>
-    <text x="42" y="48" font-size="20" text-anchor="middle">📅</text>
-    <text x="78" y="36" fill="#a5b4fc" font-family="system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.2">DATE &amp; TIME</text>
-    <text x="78" y="58" fill="#ffffff" font-family="system-ui, sans-serif" font-size="16" font-weight="700">${safeDate}</text>
+    <rect x="0" y="0" width="310" height="88" rx="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
+    <rect x="18" y="19" width="48" height="48" rx="10" fill="#6366f1" fill-opacity="0.2" stroke="#6366f1" stroke-opacity="0.4"/>
+    <text x="42" y="50" font-size="20" text-anchor="middle">📅</text>
+    <text x="78" y="38" fill="#a5b4fc" font-family="system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.2">EVENT DATE</text>
+    <text x="78" y="62" fill="#ffffff" font-family="system-ui, sans-serif" font-size="15" font-weight="800">${safeDate}</text>
 
     <!-- Venue Card -->
-    <rect x="365" y="0" width="375" height="84" rx="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
-    <rect x="383" y="18" width="48" height="48" rx="10" fill="#06b6d4" fill-opacity="0.2" stroke="#06b6d4" stroke-opacity="0.4"/>
-    <text x="407" y="48" font-size="20" text-anchor="middle">📍</text>
-    <text x="443" y="36" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.2">VENUE / PLATFORM</text>
-    <text x="443" y="58" fill="#ffffff" font-family="system-ui, sans-serif" font-size="16" font-weight="700">${safeVenue}</text>
+    <rect x="325" y="0" width="310" height="88" rx="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
+    <rect x="341" y="19" width="48" height="48" rx="10" fill="#06b6d4" fill-opacity="0.2" stroke="#06b6d4" stroke-opacity="0.4"/>
+    <text x="365" y="50" font-size="20" text-anchor="middle">📍</text>
+    <text x="401" y="38" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.2">VENUE / PLATFORM</text>
+    <text x="401" y="62" fill="#ffffff" font-family="system-ui, sans-serif" font-size="15" font-weight="800">${safeVenue}</text>
 
-    <!-- Verification Pill -->
-    <rect x="760" y="0" width="310" height="84" rx="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
-    <text x="782" y="36" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="700" letter-spacing="1.2">HOSTED BY</text>
-    <text x="782" y="58" fill="#ffffff" font-family="system-ui, sans-serif" font-size="16" font-weight="700">EVENTRA VERIFIED HOST</text>
+    <!-- Host Card -->
+    <rect x="650" y="0" width="230" height="88" rx="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
+    <text x="670" y="38" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="700" letter-spacing="1.2">HOSTED BY</text>
+    <text x="670" y="62" fill="#ffffff" font-family="system-ui, sans-serif" font-size="15" font-weight="800">EVENTRA PRO</text>
+
+    <!-- Scan Pass QR Badge -->
+    <g transform="translate(895, 0)">
+      <rect width="185" height="88" rx="14" fill="#6366f1" fill-opacity="0.22" stroke="#6366f1" stroke-width="1.8"/>
+      <g transform="translate(12, 10)">
+        <rect width="68" height="68" rx="8" fill="#ffffff" />
+        <rect x="7" y="7" width="18" height="18" fill="#0f172a" rx="3"/>
+        <rect x="10" y="10" width="12" height="12" fill="#ffffff" rx="1.5"/>
+        <rect x="12" y="12" width="8" height="8" fill="#0f172a" rx="1"/>
+        <rect x="43" y="7" width="18" height="18" fill="#0f172a" rx="3"/>
+        <rect x="46" y="10" width="12" height="12" fill="#ffffff" rx="1.5"/>
+        <rect x="48" y="12" width="8" height="8" fill="#0f172a" rx="1"/>
+        <rect x="7" y="43" width="18" height="18" fill="#0f172a" rx="3"/>
+        <rect x="10" y="46" width="12" height="12" fill="#ffffff" rx="1.5"/>
+        <rect x="12" y="48" width="8" height="8" fill="#0f172a" rx="1"/>
+        <rect x="30" y="9" width="4" height="4" fill="#0f172a"/>
+        <rect x="36" y="13" width="4" height="4" fill="#0f172a"/>
+        <rect x="28" y="28" width="12" height="12" fill="#0f172a" rx="2"/>
+        <rect x="32" y="32" width="4" height="4" fill="#ffffff"/>
+        <rect x="44" y="30" width="5" height="4" fill="#0f172a"/>
+        <rect x="48" y="45" width="4" height="14" fill="#0f172a"/>
+        <rect x="36" y="55" width="8" height="4" fill="#0f172a"/>
+      </g>
+      <text x="90" y="38" font-family="'Manrope', system-ui, sans-serif" font-size="10.5" font-weight="900" fill="#38bdf8" letter-spacing="1.2">SCAN PASS</text>
+      <text x="90" y="58" font-family="'Manrope', system-ui, sans-serif" font-size="13" font-weight="900" fill="#ffffff">REGISTER</text>
+    </g>
   </g>
 
   <!-- Footer Watermark -->

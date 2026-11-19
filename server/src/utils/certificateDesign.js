@@ -17,7 +17,7 @@ export const CERTIFICATE_TEMPLATES = [
 export const CERTIFICATE_ORG_SIZES = ["sm", "md", "lg", "xl"];
 export const CERTIFICATE_ORG_ALIGNS = ["left", "center", "right"];
 export const CERTIFICATE_FONT_KEYS = ["theme", "serif", "sans", "italicSerif", "italicSans", "mono"];
-export const CERTIFICATE_TEXT_ELEMENTS = ["organization", "title", "recipient", "description", "eventName"];
+export const CERTIFICATE_TEXT_ELEMENTS = ["organization", "title", "recipient", "description", "eventName", "footer"];
 
 export const CERTIFICATE_TEXT_DEFAULTS = {
   organization: { defaultSize: 14, minSize: 8, maxSize: 30, presets: { sm: 10, md: 14, lg: 18, xl: 22 } },
@@ -25,6 +25,7 @@ export const CERTIFICATE_TEXT_DEFAULTS = {
   recipient: { defaultSize: 34, minSize: 16, maxSize: 48, presets: { sm: 24, md: 34, lg: 40, xl: 46 } },
   description: { defaultSize: 13, minSize: 8, maxSize: 24, presets: { sm: 10, md: 13, lg: 16, xl: 19 } },
   eventName: { defaultSize: 16, minSize: 9, maxSize: 32, presets: { sm: 12, md: 16, lg: 20, xl: 26 } },
+  footer: { defaultSize: 8, minSize: 6, maxSize: 24, presets: { sm: 7, md: 8, lg: 10, xl: 12 } },
 };
 
 export function normalizeCertificateTextStyles(rawStyles = {}, legacyOrg = {}) {

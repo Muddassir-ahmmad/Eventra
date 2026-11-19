@@ -79,6 +79,14 @@ const TEXT_ELEMENT_CONFIG = {
     maxSize: 32,
     presets: { sm: 12, md: 16, lg: 20, xl: 26 },
   },
+  footer: {
+    label: "Credential Mark",
+    editableKey: null,
+    defaultSize: 8.5,
+    minSize: 6,
+    maxSize: 22,
+    presets: { sm: 7, md: 8.5, lg: 10, xl: 12 },
+  },
 };
 
 function buildTextStylesState(raw = {}, legacyOrgSize = "md", legacyOrgAlign = "center") {
@@ -2295,6 +2303,7 @@ function CertificatePlacementDock({
     { type: "text", key: "recipient", label: "Name" },
     { type: "text", key: "description", label: "Description" },
     { type: "text", key: "eventName", label: "Event Name" },
+    { type: "text", key: "footer", label: "Credential Mark" },
   ];
   if (settings.certificateLogoUrl) {
     dockItems.push({ type: "logo", label: "Logo" });
@@ -3546,7 +3555,12 @@ function CertificatePreview({
             );
           })}
         </div>
-        <span className="certificate-organizer">EVENTRA · EVENT CERTIFICATE</span>
+        {!isFloatingText("footer") && renderEditableText(
+          "footer",
+          "EVENTRA · EVENT CERTIFICATE",
+          "certificate-organizer",
+          "div"
+        )}
       </div>
 
       {/* Floating custom-positioned text elements */}
@@ -3585,6 +3599,12 @@ function CertificatePreview({
         "eventName",
         `${eventDisplayTitle}\n${date}`,
         "certificate-event-name certificate-event-floating-group",
+        "div"
+      )}
+      {isFloatingText("footer") && renderEditableText(
+        "footer",
+        "EVENTRA · EVENT CERTIFICATE",
+        "certificate-organizer certificate-floating-footer",
         "div"
       )}
 

@@ -650,12 +650,33 @@
 .certificate-organizer {
   position: absolute;
   bottom: 2.5%;
+  left: 50%;
+  transform: translateX(-50%);
   color: #53606b;
   font-size: clamp(6px, 1.05cqw, 9.5px);
   max-width: 90%;
   text-align: center;
   line-height: 1.35;
   letter-spacing: 0.08em;
+  cursor: grab;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.certificate-organizer:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.certificate-organizer.certificate-floating-text,
+.certificate-organizer.certificate-floating-footer {
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  cursor: grab;
+  z-index: 20;
 }
 
 /* Template Artwork Variants */

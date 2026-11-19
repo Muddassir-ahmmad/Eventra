@@ -824,6 +824,7 @@ function Design({ form, update }) {
   const [selectedTemplate, setSelectedTemplate] = useState("technical");
   const [customTitle, setCustomTitle] = useState(form.title || "");
   const [customTagline, setCustomTagline] = useState(form.shortDescription || "");
+  const [customHighlights, setCustomHighlights] = useState("");
   const [customPrimaryColor, setCustomPrimaryColor] = useState("#6366f1");
   const [customAccentColor, setCustomAccentColor] = useState("#06b6d4");
   const [aspectRatio, setAspectRatio] = useState("landscape"); // 'landscape' | 'portrait'
@@ -852,8 +853,10 @@ function Design({ form, update }) {
     ratio = aspectRatio,
     styleMode = selectedStyle,
     hTitle = customTitle,
-    hTagline = customTagline
+    hTagline = customTagline,
+    hHighlights = customHighlights
   ) {
+    const tmplObj = POSTER_CATEGORIES.find((c) => c.id === tmplId) || POSTER_CATEGORIES[0];
     const dataUrl = generatePosterDataUrl({
       templateId: tmplId,
       title: hTitle || form.title || "EVENT TITLE",
@@ -861,6 +864,7 @@ function Design({ form, update }) {
       date: form.date ? new Date(form.date).toLocaleDateString() : "",
       venue: form.venue || (form.mode === "online" ? "Online Virtual Event" : ""),
       organizer: form.organizer || "EVENTRA",
+      highlights: hHighlights || tmplObj.defaultHighlights,
       themeColor: pColor,
       accentColor: aColor,
       aspectRatio: ratio,
@@ -1193,10 +1197,33 @@ function Design({ form, update }) {
                       aspectRatio,
                       selectedStyle,
                       customTitle,
-                      e.target.value
+                      e.target.value,
+                      customHighlights
                     );
                   }}
                   placeholder="Event tagline or short summary"
+                />
+              </Field>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <Field label="Key Highlights &amp; Perks (Shown on the poster badge ribbon)">
+                <input
+                  value={customHighlights}
+                  onChange={(e) => {
+                    setCustomHighlights(e.target.value);
+                    applyTemplate(
+                      selectedTemplate,
+                      customPrimaryColor,
+                      customAccentColor,
+                      aspectRatio,
+                      selectedStyle,
+                      customTitle,
+                      customTagline,
+                      e.target.value
+                    );
+                  }}
+                  placeholder="e.g. ✦ Cash Prizes ✦ Certificates ✦ Free Swag ✦ Networking"
                 />
               </Field>
             </div>
