@@ -3,7 +3,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import api from "../api";
 import {
   POSTER_CATEGORIES,
+  POSTER_STYLES,
   generatePosterDataUrl,
+  generatePosterSvg,
 } from "../utils/posterTemplates";
 import { EVENT_FONT_OPTIONS, getEventFontConfig } from "../utils/eventFonts";
 import { formatEventDateDisplay, getEventTotalDays, isEventPastOrCompleted } from "../utils/eventTiming";
@@ -824,31 +826,100 @@ function Design({ form, update }) {
   const [customTagline, setCustomTagline] = useState(form.shortDescription || "");
   const [customPrimaryColor, setCustomPrimaryColor] = useState("#6366f1");
   const [customAccentColor, setCustomAccentColor] = useState("#06b6d4");
+  const [aspectRatio, setAspectRatio] = useState("landscape"); // 'landscape' | 'portrait'
+  const [selectedStyle, setSelectedStyle] = useState("cyber");
   const [uploading, setUploading] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiMessage, setAiMessage] = useState("");
   const [aiStyle, setAiStyle] = useState("futuristic neon cyberpunk");
 
-  const themes = [
-    ["aurora", "Aurora", "Modern gradient glow"],
-    ["minimal", "Minimal", "Clean & professional slate"],
-    ["conference", "Conference", "Corporate leadership summit"],
-    ["creative", "Creative", "Bold vibrant energy"],
+  const COLOR_PALETTES = [
+    { name: "Cyber Neon", primary: "#6366f1", accent: "#06b6d4" },
+    { name: "Builder Emerald", primary: "#10b981", accent: "#22c55e" },
+    { name: "Azure Gold", primary: "#0ea5e9", accent: "#f59e0b" },
+    { name: "Royal Keynote", primary: "#3b82f6", accent: "#fbbf24" },
+    { name: "Festival Violet", primary: "#ec4899", accent: "#a855f7" },
+    { name: "Scholar Amber", primary: "#f59e0b", accent: "#10b981" },
+    { name: "Crimson Drama", primary: "#f43f5e", accent: "#fb7185" },
+    { name: "Octane Flame", primary: "#f97316", accent: "#ef4444" },
   ];
 
   // Apply selected template directly
-  function applyTemplate(tmplId = selectedTemplate, pColor = customPrimaryColor, aColor = customAccentColor) {
+  function applyTemplate(
+    tmplId = selectedTemplate,
+    pColor = customPrimaryColor,
+    aColor = customAccentColor,
+    ratio = aspectRatio,
+    styleMode = selectedStyle,
+    hTitle = customTitle,
+    hTagline = customTagline
+  ) {
     const dataUrl = generatePosterDataUrl({
       templateId: tmplId,
-      title: customTitle || form.title || "EVENT TITLE",
-      subtitle: customTagline || form.shortDescription || "",
+      title: hTitle || form.title || "EVENT TITLE",
+      subtitle: hTagline || form.shortDescription || "",
       date: form.date ? new Date(form.date).toLocaleDateString() : "",
-      venue: form.venue || "",
+      venue: form.venue || (form.mode === "online" ? "Online Virtual Event" : ""),
+      organizer: form.organizer || "EVENTRA",
       themeColor: pColor,
       accentColor: aColor,
+      aspectRatio: ratio,
+      style: styleMode,
     });
     update("posterUrl", dataUrl);
     update("posterType", "template");
+  }
+
+  // Download high-resolution PNG using canvas
+  function handleDownloadPng() {
+    if (!form.posterUrl) return;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || (aspectRatio === "portrait" ? 1000 : 1200);
+      canvas.height = img.naturalHeight || (aspectRatio === "portrait" ? 1250 : 675);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      const pngUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      const titleSlug = (customTitle || form.title || "eventra-poster").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      link.download = `${titleSlug}-${aspectRatio}.png`;
+      link.href = pngUrl;
+      link.click();
+    };
+    img.src = form.posterUrl;
+  }
+
+  // Download raw scalable SVG
+  function handleDownloadSvg() {
+    if (!form.posterUrl) return;
+    let svgContent = "";
+    if (form.posterUrl.startsWith("data:image/svg+xml;base64,")) {
+      const base64 = form.posterUrl.split(",")[1];
+      svgContent = decodeURIComponent(escape(atob(base64)));
+    } else {
+      svgContent = generatePosterSvg({
+        templateId: selectedTemplate,
+        title: customTitle || form.title || "EVENT TITLE",
+        subtitle: customTagline || form.shortDescription || "",
+        date: form.date ? new Date(form.date).toLocaleDateString() : "",
+        venue: form.venue || "",
+        organizer: form.organizer || "EVENTRA",
+        themeColor: customPrimaryColor,
+        accentColor: customAccentColor,
+        aspectRatio,
+        style: selectedStyle,
+      });
+    }
+    const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const titleSlug = (customTitle || form.title || "eventra-poster").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    link.download = `${titleSlug}-${aspectRatio}.svg`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   // Handle Poster File Upload
@@ -922,7 +993,7 @@ function Design({ form, update }) {
           className={`poster-tab-btn ${tab === "templates" ? "active" : ""}`}
           onClick={() => setTab("templates")}
         >
-          🎨 Standard Templates (8 Categories)
+          🎨 Pro Poster Designer (8 Categories)
         </button>
         <button
           type="button"
@@ -940,24 +1011,110 @@ function Design({ form, update }) {
         </button>
       </div>
 
-      {/* Live Poster Preview */}
+      {/* Live Poster Preview Showcase */}
       {form.posterUrl ? (
-        <div className="poster-preview-card">
-          <img src={form.posterUrl} alt="Event Poster" />
+        <div className="poster-preview-wrapper" style={{ marginBottom: 20 }}>
+          <div
+            className="poster-preview-card"
+            style={{
+              aspectRatio: aspectRatio === "portrait" ? "4 / 5" : "16 / 9",
+              maxWidth: aspectRatio === "portrait" ? 440 : 640,
+              boxShadow: "0 12px 32px rgba(15, 23, 42, 0.16)",
+              borderRadius: 16,
+              overflow: "hidden",
+            }}
+          >
+            <img src={form.posterUrl} alt="Event Poster" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
+
+          <div className="poster-preview-actions" style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 12 }}>
+            <button
+              type="button"
+              className="button button-primary small"
+              onClick={handleDownloadPng}
+              title="Download high-resolution PNG image"
+            >
+              📥 Download PNG
+            </button>
+            <button
+              type="button"
+              className="button button-ghost small"
+              onClick={handleDownloadSvg}
+              title="Download clean vector SVG"
+            >
+              📐 Download SVG
+            </button>
+            <button
+              type="button"
+              className="button button-ghost small text-danger"
+              onClick={() => update("posterUrl", "")}
+            >
+              ✕ Remove
+            </button>
+          </div>
         </div>
       ) : (
-        <div className="poster-upload-box" style={{ marginBottom: 16 }}>
-          <p>No poster selected yet. Choose a template or upload your file.</p>
+        <div className="poster-upload-box" style={{ marginBottom: 20 }}>
+          <p>No poster generated yet. Select a category template below or upload your poster.</p>
         </div>
       )}
 
-      {/* TAB 1: STANDARD TEMPLATES */}
+      {/* TAB 1: PRO POSTER DESIGNER */}
       {tab === "templates" && (
         <div>
-          <p className="muted" style={{ marginBottom: 14 }}>
-            Choose a professionally designed web-standard poster template. Customizes instantly with your event details.
+          {/* Format / Aspect Ratio Selector */}
+          <div style={{ marginBottom: 18, background: "var(--bg-surface-secondary, #f8fafc)", padding: "12px 16px", borderRadius: 12, border: "1px solid var(--border-subtle, #e2e8f0)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <strong style={{ fontSize: "0.88rem", display: "block" }}>Poster Aspect Ratio &amp; Format:</strong>
+                <span style={{ fontSize: "0.76rem", color: "var(--text-secondary, #64748b)" }}>
+                  Choose between a digital banner or a vertical event flyer.
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  className={`mode-pill ${aspectRatio === "landscape" ? "selected" : ""}`}
+                  style={{
+                    padding: "6px 14px",
+                    fontWeight: 700,
+                    borderColor: aspectRatio === "landscape" ? "var(--primary, #059669)" : undefined,
+                    background: aspectRatio === "landscape" ? "var(--brand-soft, #ecfdf5)" : undefined,
+                    color: aspectRatio === "landscape" ? "var(--primary, #059669)" : undefined,
+                  }}
+                  onClick={() => {
+                    setAspectRatio("landscape");
+                    applyTemplate(selectedTemplate, customPrimaryColor, customAccentColor, "landscape");
+                  }}
+                >
+                  🖥️ Landscape (16:9 Banner)
+                </button>
+                <button
+                  type="button"
+                  className={`mode-pill ${aspectRatio === "portrait" ? "selected" : ""}`}
+                  style={{
+                    padding: "6px 14px",
+                    fontWeight: 700,
+                    borderColor: aspectRatio === "portrait" ? "var(--primary, #059669)" : undefined,
+                    background: aspectRatio === "portrait" ? "var(--brand-soft, #ecfdf5)" : undefined,
+                    color: aspectRatio === "portrait" ? "var(--primary, #059669)" : undefined,
+                  }}
+                  onClick={() => {
+                    setAspectRatio("portrait");
+                    applyTemplate(selectedTemplate, customPrimaryColor, customAccentColor, "portrait");
+                  }}
+                >
+                  📱 Portrait (4:5 Flyer)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <p className="muted" style={{ marginBottom: 12, fontSize: "0.85rem" }}>
+            Select an event category to load its customized vector artwork, typography, and lighting scheme:
           </p>
 
+          {/* 8 Categories Grid */}
           <div className="template-grid-pro">
             {POSTER_CATEGORIES.map((tmpl) => (
               <button
@@ -968,41 +1125,119 @@ function Design({ form, update }) {
                   setSelectedTemplate(tmpl.id);
                   setCustomPrimaryColor(tmpl.themeColor);
                   setCustomAccentColor(tmpl.accentColor);
-                  applyTemplate(tmpl.id, tmpl.themeColor, tmpl.accentColor);
+                  applyTemplate(tmpl.id, tmpl.themeColor, tmpl.accentColor, aspectRatio, selectedStyle);
                 }}
               >
                 <div
                   className="template-mini-header"
                   style={{
                     background: `linear-gradient(135deg, ${tmpl.bgFrom}, ${tmpl.bgTo})`,
-                    border: `1px solid ${tmpl.themeColor}40`,
+                    border: `1px solid ${tmpl.themeColor}50`,
+                    boxShadow: `0 4px 12px ${tmpl.themeColor}20`,
                   }}
                 >
-                  <span>{tmpl.icon}</span>
+                  <span style={{ fontSize: "1.7rem" }}>{tmpl.icon}</span>
                 </div>
                 <strong>{tmpl.name}</strong>
+                <span
+                  style={{
+                    display: "inline-block",
+                    fontSize: "0.68rem",
+                    fontWeight: 800,
+                    color: tmpl.themeColor,
+                    letterSpacing: "1px",
+                    marginBottom: 4,
+                  }}
+                >
+                  {tmpl.styleBadge}
+                </span>
                 <small>{tmpl.tagline}</small>
               </button>
             ))}
           </div>
 
+          {/* Customization Details & Palette Presets */}
           <div className="template-controls">
-            <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem" }}>Customize Poster Details</h4>
+            <h4 style={{ margin: "0 0 12px 0", fontSize: "0.92rem", fontWeight: 700 }}>
+              Fine-Tune Typography &amp; Palette
+            </h4>
+
             <div className="builder-two">
-              <Field label="Poster Headline">
+              <Field label="Poster Headline (Auto-scales & wraps cleanly)">
                 <input
                   value={customTitle}
-                  onChange={(e) => setCustomTitle(e.target.value)}
+                  onChange={(e) => {
+                    setCustomTitle(e.target.value);
+                    applyTemplate(
+                      selectedTemplate,
+                      customPrimaryColor,
+                      customAccentColor,
+                      aspectRatio,
+                      selectedStyle,
+                      e.target.value,
+                      customTagline
+                    );
+                  }}
                   placeholder={form.title || "EVENT TITLE"}
                 />
               </Field>
-              <Field label="Poster Subtitle">
+              <Field label="Poster Subtitle / Tagline">
                 <input
                   value={customTagline}
-                  onChange={(e) => setCustomTagline(e.target.value)}
+                  onChange={(e) => {
+                    setCustomTagline(e.target.value);
+                    applyTemplate(
+                      selectedTemplate,
+                      customPrimaryColor,
+                      customAccentColor,
+                      aspectRatio,
+                      selectedStyle,
+                      customTitle,
+                      e.target.value
+                    );
+                  }}
                   placeholder="Event tagline or short summary"
                 />
               </Field>
+            </div>
+
+            {/* Quick Palette Swatches */}
+            <div style={{ marginTop: 14 }}>
+              <span style={{ fontSize: "0.8rem", color: "var(--text-secondary, #64748b)", display: "block", marginBottom: 8 }}>
+                Quick Color Schemes:
+              </span>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                {COLOR_PALETTES.map((pal) => (
+                  <button
+                    type="button"
+                    key={pal.name}
+                    className="mode-pill"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: "0.75rem",
+                      padding: "4px 10px",
+                    }}
+                    onClick={() => {
+                      setCustomPrimaryColor(pal.primary);
+                      setCustomAccentColor(pal.accent);
+                      applyTemplate(selectedTemplate, pal.primary, pal.accent, aspectRatio, selectedStyle);
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: "50%",
+                        background: `linear-gradient(135deg, ${pal.primary}, ${pal.accent})`,
+                        display: "inline-block",
+                      }}
+                    />
+                    {pal.name}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="color-pickers-row">
@@ -1011,7 +1246,10 @@ function Design({ form, update }) {
                 <input
                   type="color"
                   value={customPrimaryColor}
-                  onChange={(e) => setCustomPrimaryColor(e.target.value)}
+                  onChange={(e) => {
+                    setCustomPrimaryColor(e.target.value);
+                    applyTemplate(selectedTemplate, e.target.value, customAccentColor, aspectRatio, selectedStyle);
+                  }}
                 />
               </div>
               <div className="color-picker-item">
@@ -1019,16 +1257,19 @@ function Design({ form, update }) {
                 <input
                   type="color"
                   value={customAccentColor}
-                  onChange={(e) => setCustomAccentColor(e.target.value)}
+                  onChange={(e) => {
+                    setCustomAccentColor(e.target.value);
+                    applyTemplate(selectedTemplate, customPrimaryColor, e.target.value, aspectRatio, selectedStyle);
+                  }}
                 />
               </div>
               <button
                 type="button"
                 className="button button-primary small"
                 style={{ marginLeft: "auto" }}
-                onClick={() => applyTemplate(selectedTemplate)}
+                onClick={() => applyTemplate(selectedTemplate, customPrimaryColor, customAccentColor, aspectRatio, selectedStyle)}
               >
-                Apply Updated Template
+                ✓ Re-render Poster
               </button>
             </div>
           </div>

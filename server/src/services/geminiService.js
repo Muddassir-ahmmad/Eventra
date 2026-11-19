@@ -422,78 +422,147 @@ Strict SVG Requirements:
   }
 
   // 3. Failsafe High-End Cinematic Vector Poster
-  const safeTitle = (title || "EVENTRA SHOWCASE").slice(0, 42).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const rawTitle = String(title || "EVENTRA SHOWCASE").trim();
   const safeCat = (category || "TECH SUMMIT").toUpperCase().slice(0, 24).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const safeDesc = (description || "Experience keynotes, hands-on workshops, and transformative tech innovations.").slice(0, 95).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeDesc = (description || "Experience keynotes, hands-on masterclasses, and transformative industry innovations.").slice(0, 110).replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const safeDate = (formattedDate || "Date to be announced").slice(0, 36).replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const safeVenue = (formattedVenue || "Venue to be announced").slice(0, 42).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  // Dynamic Multi-Line Typography Wrapping
+  const words = rawTitle.split(/\s+/);
+  const titleLines = [];
+  let curLine = "";
+  for (const w of words) {
+    if (!curLine) curLine = w;
+    else if ((curLine + " " + w).length <= 26) curLine += " " + w;
+    else {
+      titleLines.push(curLine);
+      curLine = w;
+      if (titleLines.length === 2) break;
+    }
+  }
+  if (curLine && titleLines.length < 3) titleLines.push(curLine);
+
+  const titleFontSize = rawTitle.length > 40 ? 36 : rawTitle.length > 24 ? 44 : 52;
+  const titleLineHeight = titleFontSize + 10;
 
   const fallbackSvg = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#080c18" />
-      <stop offset="40%" stop-color="#140e32" />
-      <stop offset="80%" stop-color="#0b1a2e" />
-      <stop offset="100%" stop-color="#060912" />
+      <stop offset="0%" stop-color="#060913" />
+      <stop offset="45%" stop-color="#0f172a" />
+      <stop offset="85%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#090d16" />
     </linearGradient>
-    <radialGradient id="glowViolet" cx="82%" cy="18%" r="65%">
-      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.45" />
-      <stop offset="60%" stop-color="#6366f1" stop-opacity="0.12" />
+    <radialGradient id="glowTopRight" cx="85%" cy="18%" r="60%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.45" />
+      <stop offset="50%" stop-color="#6366f1" stop-opacity="0.12" />
       <stop offset="100%" stop-color="#000000" stop-opacity="0" />
     </radialGradient>
-    <radialGradient id="glowCyan" cx="16%" cy="84%" r="55%">
+    <radialGradient id="glowBottomLeft" cx="15%" cy="85%" r="55%">
       <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.38" />
-      <stop offset="50%" stop-color="#0284c7" stop-opacity="0.1" />
+      <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.08" />
       <stop offset="100%" stop-color="#000000" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="55%" stop-color="#e0e7ff" />
-      <stop offset="100%" stop-color="#a5b4fc" />
+      <stop offset="60%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#38bdf8" />
     </linearGradient>
     <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur stdDeviation="8" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
+    <pattern id="dotGrid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M 36 0 L 0 0 0 36" fill="none" stroke="rgba(255,255,255,0.035)" stroke-width="1"/>
+      <circle cx="36" cy="36" r="1.2" fill="rgba(255,255,255,0.08)" />
+    </pattern>
   </defs>
-  <rect width="1200" height="675" fill="url(#bg)" />
-  <circle cx="980" cy="160" r="380" fill="url(#glowViolet)" />
-  <circle cx="180" cy="540" r="320" fill="url(#glowCyan)" />
-  
-  <!-- Outer Frame -->
-  <rect x="40" y="35" width="1120" height="605" rx="24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" />
-  
-  <!-- Top Category Pill -->
-  <rect x="75" y="70" width="220" height="38" rx="19" fill="rgba(99,102,241,0.2)" stroke="rgba(165,180,252,0.4)" stroke-width="1.5" />
-  <text x="185" y="94" fill="#c7d2fe" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="800" text-anchor="middle" letter-spacing="2">EVENTRA · ${safeCat}</text>
-  
-  <!-- Right Accent Badge -->
-  <rect x="990" y="70" width="135" height="36" rx="8" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" />
-  <text x="1057" y="93" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="1">OFFICIAL EVENT</text>
 
-  <!-- Title & Subtitle -->
-  <text x="75" y="270" fill="url(#titleGrad)" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="900" letter-spacing="-1.5" filter="url(#softGlow)">${safeTitle}</text>
-  <text x="75" y="335" fill="#cbd5e1" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="500">${safeDesc}…</text>
-  
-  <!-- Divider -->
-  <line x1="75" y1="380" x2="340" y2="380" stroke="#6366f1" stroke-width="4" stroke-linecap="round" />
-  
-  <!-- Bottom Event Metadata Cards: Date & Venue -->
-  <g transform="translate(75, 430)">
+  <rect width="1200" height="675" fill="url(#bg)" />
+  <rect width="1200" height="675" fill="url(#dotGrid)" />
+  <circle cx="980" cy="140" r="380" fill="url(#glowTopRight)" />
+  <circle cx="180" cy="540" r="320" fill="url(#glowBottomLeft)" />
+
+  <!-- Outer Architectural Frame -->
+  <rect x="30" y="25" width="1140" height="625" rx="20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" />
+  <rect x="34" y="29" width="1132" height="617" rx="16" fill="none" stroke="#6366f1" stroke-opacity="0.25" stroke-width="1" stroke-dasharray="8 6"/>
+
+  <!-- Top Header Row -->
+  <g transform="translate(65, 60)">
+    <!-- Brand Pill -->
+    <rect width="135" height="36" rx="8" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" />
+    <circle cx="22" cy="18" r="6" fill="#6366f1" />
+    <text x="78" y="23" font-family="'Manrope', system-ui, sans-serif" font-size="12" font-weight="900" fill="#ffffff" letter-spacing="2.5" text-anchor="middle">EVENTRA</text>
+
+    <!-- Category Pill -->
+    <rect x="150" y="0" width="320" height="36" rx="8" fill="rgba(99,102,241,0.2)" stroke="rgba(165,180,252,0.4)" stroke-width="1.5" />
+    <text x="310" y="23" fill="#c7d2fe" font-family="'Manrope', system-ui, sans-serif" font-size="11" font-weight="800" text-anchor="middle" letter-spacing="2">EVENTRA · ${safeCat}</text>
+
+    <!-- Right Badge -->
+    <rect x="940" y="0" width="130" height="36" rx="8" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
+    <text x="1005" y="23" fill="#94a3b8" font-family="'Manrope', system-ui, sans-serif" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="1.5">OFFICIAL EVENT</text>
+  </g>
+
+  <!-- Right Decorative Vector Artwork (Circuit & Nodes) -->
+  <g id="art-circuit" opacity="0.85">
+    <path d="M 780 180 L 920 180 L 980 240 L 1100 240" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="8 4" opacity="0.6"/>
+    <path d="M 820 120 L 960 120 L 1020 180 L 1130 180" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+    <circle cx="920" cy="180" r="5" fill="#06b6d4" />
+    <circle cx="980" cy="240" r="7" fill="#6366f1" stroke="#ffffff" stroke-width="1.5"/>
+    <g transform="translate(960, 260)">
+      <rect x="-65" y="-65" width="130" height="130" rx="26" fill="rgba(255,255,255,0.04)" stroke="#6366f1" stroke-width="2" stroke-opacity="0.5" filter="url(#softGlow)"/>
+      <path d="M -22 -22 L -38 0 L -22 22" fill="none" stroke="#06b6d4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 22 -22 L 38 0 L 22 22" fill="none" stroke="#06b6d4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <line x1="-8" y1="18" x2="8" y2="-18" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" opacity="0.8"/>
+    </g>
+  </g>
+
+  <!-- Title & Subtitle with Multi-Line Auto-Wrapping -->
+  <g transform="translate(65, 170)">
+    ${titleLines
+      .map(
+        (line, idx) => `
+      <text x="0" y="${idx * titleLineHeight + 45}" fill="url(#titleGrad)" font-family="'Manrope', system-ui, -apple-system, sans-serif" font-size="${titleFontSize}" font-weight="900" letter-spacing="-1.5" filter="url(#softGlow)">
+        ${line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+      </text>
+    `
+      )
+      .join("")}
+    
+    <text x="0" y="${titleLines.length * titleLineHeight + 70}" fill="#cbd5e1" font-family="'Inter', system-ui, sans-serif" font-size="18" font-weight="400">
+      ${safeDesc}
+    </text>
+
+    <!-- Accent Divider -->
+    <line x1="0" y1="${titleLines.length * titleLineHeight + 95}" x2="160" y2="${titleLines.length * titleLineHeight + 95}" stroke="#06b6d4" stroke-width="3.5" stroke-linecap="round" />
+  </g>
+
+  <!-- Bottom Metadata Cards (Dock) -->
+  <g transform="translate(65, 515)">
     <!-- Date Card -->
-    <rect x="0" y="0" width="360" height="74" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
-    <text x="20" y="28" fill="#a5b4fc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" letter-spacing="1">DATE &amp; TIME</text>
-    <text x="20" y="55" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700">📅 ${safeDate}</text>
+    <rect x="0" y="0" width="345" height="84" rx="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
+    <rect x="18" y="18" width="48" height="48" rx="10" fill="#6366f1" fill-opacity="0.2" stroke="#6366f1" stroke-opacity="0.4"/>
+    <text x="42" y="48" font-size="20" text-anchor="middle">📅</text>
+    <text x="78" y="36" fill="#a5b4fc" font-family="system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.2">DATE &amp; TIME</text>
+    <text x="78" y="58" fill="#ffffff" font-family="system-ui, sans-serif" font-size="16" font-weight="700">${safeDate}</text>
 
     <!-- Venue Card -->
-    <rect x="380" y="0" width="420" height="74" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
-    <text x="400" y="28" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" letter-spacing="1">VENUE &amp; LOCATION</text>
-    <text x="400" y="55" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700">📍 ${safeVenue}</text>
+    <rect x="365" y="0" width="375" height="84" rx="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
+    <rect x="383" y="18" width="48" height="48" rx="10" fill="#06b6d4" fill-opacity="0.2" stroke="#06b6d4" stroke-opacity="0.4"/>
+    <text x="407" y="48" font-size="20" text-anchor="middle">📍</text>
+    <text x="443" y="36" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.2">VENUE / PLATFORM</text>
+    <text x="443" y="58" fill="#ffffff" font-family="system-ui, sans-serif" font-size="16" font-weight="700">${safeVenue}</text>
+
+    <!-- Verification Pill -->
+    <rect x="760" y="0" width="310" height="84" rx="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" />
+    <text x="782" y="36" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="700" letter-spacing="1.2">HOSTED BY</text>
+    <text x="782" y="58" fill="#ffffff" font-family="system-ui, sans-serif" font-size="16" font-weight="700">EVENTRA VERIFIED HOST</text>
   </g>
-  
-  <!-- Footer Brand -->
-  <text x="75" y="585" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" letter-spacing="1.5">POWERED BY GEMINI AI · EVENTRA</text>
+
+  <!-- Footer Watermark -->
+  <text x="1135" y="645" fill="rgba(255,255,255,0.35)" font-family="system-ui, sans-serif" font-size="11" font-weight="700" letter-spacing="1.5" text-anchor="end">AI GENERATED · EVENTRA PRO</text>
 </svg>`.trim();
 
   const base64Fallback = Buffer.from(fallbackSvg).toString("base64");
