@@ -527,7 +527,7 @@ export default function ParticipantDashboard() {
                             </button>
                           ) : (
                             <Link
-                              to={`/events/${event._id}/feedback`}
+                              to={reg.feedbackToken ? `/feedback/${reg.feedbackToken}` : `/events/${event._id}/feedback?token=${reg.registrationId || reg._id}`}
                               className="button button-ghost"
                               style={{ fontSize: "0.82rem", color: "#D97706", borderColor: "#FDE68A", background: "#FFFBEB", textAlign: "center", textDecoration: "none", fontWeight: 600 }}
                             >

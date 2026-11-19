@@ -4,9 +4,11 @@ import Event from "../models/Event.js";
 import Registration from "../models/Registration.js";
 import Feedback from "../models/Feedback.js";
 import EmailLog from "../models/EmailLog.js";
+import Certificate from "../models/Certificate.js";
 import { requireAuth } from "../middleware/auth.js";
 import { sendFeedbackEmailsForEvent } from "../utils/feedbackEmail.js";
 import { formatParticipantName } from "../utils/participantName.js";
+import { generateAndEmailCertificateForRegistration } from "./certificates.js";
 
 const router = express.Router();
 
@@ -30,14 +32,21 @@ function hashToken(token) {
 router.get("/:token", async (req, res) => {
   try {
     const { token } = req.params;
-    if (!token || token.length < 16) {
+    if (!token) {
       return res.status(400).json({ message: "Invalid feedback token." });
     }
 
     const tokenHash = hashToken(token);
-    const registration = await Registration.findOne({
+    let registration = await Registration.findOne({
       $or: [{ feedbackTokenHash: tokenHash }, { feedbackToken: token }],
     });
+
+    if (!registration && isValidEventId(token)) {
+      registration = await Registration.findById(token);
+    }
+    if (!registration && /^[A-Z0-9]{6,16}$/i.test(token)) {
+      registration = await Registration.findOne({ registrationId: token });
+    }
 
     if (!registration) {
       return res.status(404).json({ message: "Feedback link not found or invalid." });
@@ -49,12 +58,19 @@ router.get("/:token", async (req, res) => {
     }
 
     if (registration.feedbackSubmitted) {
+      const existingCert = await Certificate.findOne({
+        eventId: event._id,
+        registrationId: registration._id,
+      }).select("lastEmailedAt").lean();
+
       return res.json({
         alreadySubmitted: true,
         eventTitle: event.title,
         participantName: formatParticipantName(registration.name, "Participant"),
         submittedAt: registration.feedbackSubmittedAt,
         certificateEligible: Boolean(event.certificateEnabled && registration.checkedIn),
+        certificateEmailed: Boolean(existingCert?.lastEmailedAt),
+        emailAddress: registration.email,
         eventId: event._id,
         registrationId: registration._id,
       });
@@ -107,14 +123,21 @@ router.get("/:token", async (req, res) => {
 router.post("/:token", async (req, res) => {
   try {
     const { token } = req.params;
-    if (!token || token.length < 16) {
+    if (!token) {
       return res.status(400).json({ message: "Invalid feedback token." });
     }
 
     const tokenHash = hashToken(token);
-    const registration = await Registration.findOne({
+    let registration = await Registration.findOne({
       $or: [{ feedbackTokenHash: tokenHash }, { feedbackToken: token }],
     });
+
+    if (!registration && isValidEventId(token)) {
+      registration = await Registration.findById(token);
+    }
+    if (!registration && /^[A-Z0-9]{6,16}$/i.test(token)) {
+      registration = await Registration.findOne({ registrationId: token });
+    }
 
     if (!registration) {
       return res.status(404).json({ message: "Feedback link not found or invalid." });
@@ -270,10 +293,22 @@ router.post("/:token", async (req, res) => {
     registration.feedbackSubmittedAt = feedbackDoc.submittedAt;
     await registration.save();
 
+    // Auto-generate and email certificate upon feedback survey completion
+    let certEmailResult = null;
+    if (event.certificateEnabled) {
+      try {
+        certEmailResult = await generateAndEmailCertificateForRegistration(event, registration);
+      } catch (certErr) {
+        console.error("Auto-email certificate on feedback error:", certErr);
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: "Thank you for sharing your valuable feedback!",
-      certificateEligible: Boolean(event.certificateEnabled && registration.checkedIn),
+      certificateEligible: Boolean(event.certificateEnabled && (registration.checkedIn || certEmailResult?.success)),
+      certificateEmailed: Boolean(certEmailResult?.emailed),
+      emailAddress: registration.email,
       eventId: event._id,
       registrationId: registration._id,
     });

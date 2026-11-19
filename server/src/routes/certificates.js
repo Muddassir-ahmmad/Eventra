@@ -1763,4 +1763,79 @@ router.post("/event/:eventId/ai-suggestion", requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * Automatically generates and emails the certificate PDF to a participant
+ * once their feedback survey has been submitted and attendance eligibility is verified.
+ */
+export async function generateAndEmailCertificateForRegistration(event, registration) {
+  try {
+    if (!event || !registration || !event.certificateEnabled) {
+      return { success: false, skipped: true, reason: "Certificates not enabled" };
+    }
+
+    const attendanceRecords = await Attendance.find({
+      eventId: event._id,
+      registrationId: registration._id,
+    }).lean();
+
+    const evalResult = evaluateRegistrationCertificateEligibility(event, registration, attendanceRecords);
+    if (evalResult.eligibilityStatus !== "eligible") {
+      return { success: false, skipped: true, reason: evalResult.reason };
+    }
+
+    let certificate = await Certificate.findOne({
+      eventId: event._id,
+      registrationId: registration._id,
+    }).select("+pdfData");
+
+    let pdf;
+    if (certificate && !isCertificatePdfStale(event, certificate, registration)) {
+      pdf = certificate.pdfData;
+    } else {
+      const organization = await organizerOrganization(event);
+      const images = await certificateImages(event);
+      pdf = await renderCertificate(event, registration, organization, images);
+
+      certificate = await Certificate.findOneAndUpdate(
+        { eventId: event._id, registrationId: registration._id },
+        {
+          $set: {
+            issuedTo: formatParticipantName(registration.name, "Participant"),
+            email: registration.email,
+            generatedAt: new Date(),
+            pdfData: pdf,
+            storagePath: "",
+          },
+          $setOnInsert: {
+            eventId: event._id,
+            registrationId: registration._id,
+            generation: 1,
+          },
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    if (!pdf) {
+      return { success: false, error: "Failed to generate certificate PDF" };
+    }
+
+    // Dispatch certificate delivery email
+    const emailResult = await emailService.sendCertificateEmail(event, registration, pdf);
+    if (emailResult.success) {
+      if (certificate) {
+        certificate.lastEmailedAt = new Date();
+        await certificate.save();
+      }
+      return { success: true, emailed: true, certificateId: certificate?._id };
+    } else {
+      console.warn("sendCertificateEmail on feedback submission was not delivered:", emailResult.error);
+      return { success: false, emailed: false, error: emailResult.error };
+    }
+  } catch (err) {
+    console.error("Error in generateAndEmailCertificateForRegistration:", err);
+    return { success: false, error: err.message };
+  }
+}
+
 export default router;

@@ -205,6 +205,20 @@ export default function PublicFeedback() {
                 <p style={{ margin: "0 0 10px 0" }}>
                   ✨ <strong>Certificate Eligibility Verified!</strong> Your certificate of attendance is ready.
                 </p>
+                {submittedInfo?.certificateEmailed && (
+                  <div style={{
+                    background: "rgba(5, 150, 105, 0.1)",
+                    border: "1px solid rgba(5, 150, 105, 0.3)",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    margin: "10px 0 14px 0",
+                    color: "#065f46",
+                    fontSize: "0.88rem",
+                    textAlign: "center"
+                  }}>
+                    ✉️ <strong>Delivered to your email:</strong> {submittedInfo.emailAddress || "your registered email"}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => downloadCertificatePdf(submittedInfo.registrationId)}
@@ -260,6 +274,20 @@ export default function PublicFeedback() {
                 <p style={{ margin: "0 0 10px 0" }}>
                   🎉 <strong>Attendance Certificate Unlocked!</strong> You have fulfilled the post-event survey requirement.
                 </p>
+                {successData?.certificateEmailed && (
+                  <div style={{
+                    background: "rgba(5, 150, 105, 0.12)",
+                    border: "1px solid rgba(5, 150, 105, 0.35)",
+                    borderRadius: "10px",
+                    padding: "12px 16px",
+                    margin: "12px 0 16px 0",
+                    color: "#065f46",
+                    fontSize: "0.9rem",
+                    textAlign: "center"
+                  }}>
+                    ✉️ <strong>Certificate Emailed!</strong> A verified PDF copy has been sent to <strong>{successData.emailAddress || participant?.email || "your registered email"}</strong>.
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => downloadCertificatePdf(successData.registrationId)}
