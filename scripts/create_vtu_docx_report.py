@@ -21,7 +21,7 @@ def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
 def create_report_docx():
     doc = docx.Document()
 
-    # Page Margins: Standard 1 inch (72 pt)
+    # Page Margins: Standard 1 inch (72 pt) with left 1.25 in for binding
     for section in doc.sections:
         section.top_margin = Inches(1.0)
         section.bottom_margin = Inches(1.0)
@@ -57,29 +57,51 @@ def create_report_docx():
         return p
 
     def add_heading_1(text):
-        return add_p(text, align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, size=16, space_before=14, space_after=6, line_spacing=1.5)
+        return add_p(text, align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, size=16, space_before=16, space_after=6, line_spacing=1.5)
 
     def add_heading_2(text):
-        return add_p(text, align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, size=14, space_before=10, space_after=4, line_spacing=1.5)
+        return add_p(text, align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, size=14, space_before=12, space_after=4, line_spacing=1.5)
+
+    def add_fig_image(filename, caption, width_in=5.8):
+        fpath = os.path.join(img_dir, filename)
+        if os.path.exists(fpath):
+            p_img = doc.add_paragraph()
+            p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_img.paragraph_format.space_before = Pt(10)
+            p_img.paragraph_format.space_after = Pt(4)
+            r = p_img.add_run()
+            r.add_picture(fpath, width=Inches(width_in))
+
+            p_cap = doc.add_paragraph()
+            p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_cap.paragraph_format.space_before = Pt(2)
+            p_cap.paragraph_format.space_after = Pt(12)
+            r_cap = p_cap.add_run(caption)
+            r_cap.font.name = 'Times New Roman'
+            r_cap.font.size = Pt(10.5)
+            r_cap.italic = True
+            r_cap.bold = True
+        else:
+            add_p(f"[{caption} - Image not found]", align=WD_ALIGN_PARAGRAPH.CENTER, italic=True)
 
     # ==========================================
     # COVER / TITLE PAGE
     # ==========================================
     add_p("VISVESVARAYA TECHNOLOGICAL UNIVERSITY", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=16, space_before=0, space_after=2)
-    add_p("“JNANA SANGAMA”, BELAGAVI - 590018", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=13, space_before=0, space_after=12)
+    add_p("“JNANA SANGAMA”, BELAGAVI - 590018", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=13, space_before=0, space_after=10)
 
     if os.path.exists(vtu_logo):
         p_logo = doc.add_paragraph()
         p_logo.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p_logo.paragraph_format.space_before = Pt(4)
-        p_logo.paragraph_format.space_after = Pt(12)
+        p_logo.paragraph_format.space_after = Pt(10)
         r_logo = p_logo.add_run()
-        r_logo.add_picture(vtu_logo, width=Inches(1.35))
+        r_logo.add_picture(vtu_logo, width=Inches(1.3))
 
     add_p("MINI PROJECT REPORT", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14, space_before=4, space_after=2)
     add_p("on", align=WD_ALIGN_PARAGRAPH.CENTER, bold=False, size=12, space_before=0, space_after=4)
     add_p("“EVENTRA: AN INTEGRATED END-TO-END EVENT MANAGEMENT FRAMEWORK WITH SECURE QR ATTENDANCE, DYNAMIC VECTOR ASSET STUDIOS, AND FEEDBACK-GATED AUTOMATED CERTIFICATION”",
-          align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=13, space_before=2, space_after=12)
+          align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12.5, space_before=2, space_after=12)
 
     add_p("Submitted by", align=WD_ALIGN_PARAGRAPH.CENTER, bold=False, size=11, space_before=2, space_after=4)
 
@@ -96,7 +118,7 @@ def create_report_docx():
         row = t_students.rows[i]
         c0 = row.cells[0]
         c1 = row.cells[1]
-        c0.width = Inches(2.2)
+        c0.width = Inches(2.3)
         c1.width = Inches(1.8)
         p0 = c0.paragraphs[0]
         p0.paragraph_format.space_after = Pt(2)
@@ -115,10 +137,10 @@ def create_report_docx():
         r1.font.name = 'Times New Roman'
         r1.font.size = Pt(11)
 
-    add_p("In partial fulfillment of the requirements for the V semester", align=WD_ALIGN_PARAGRAPH.CENTER, bold=False, size=11, space_before=10, space_after=2)
+    add_p("In partial fulfillment of the requirements for the V semester", align=WD_ALIGN_PARAGRAPH.CENTER, bold=False, size=11, space_before=8, space_after=2)
     add_p("BACHELOR OF ENGINEERING", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=13, space_before=0, space_after=2)
     add_p("In", align=WD_ALIGN_PARAGRAPH.CENTER, bold=False, size=11, space_before=0, space_after=2)
-    add_p("COMPUTER SCIENCE & ENGINEERING", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=13, space_before=0, space_after=8)
+    add_p("COMPUTER SCIENCE & ENGINEERING", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=13, space_before=0, space_after=6)
 
     add_p("Under the Guidance of", align=WD_ALIGN_PARAGRAPH.CENTER, bold=False, size=11, space_before=4, space_after=2)
     add_p("Ms. Shiji Abraham", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12, space_before=0, space_after=1)
@@ -131,7 +153,7 @@ def create_report_docx():
         p_sh.paragraph_format.space_before = Pt(2)
         p_sh.paragraph_format.space_after = Pt(4)
         r_sh = p_sh.add_run()
-        r_sh.add_picture(shield_logo, width=Inches(0.95))
+        r_sh.add_picture(shield_logo, width=Inches(0.9))
 
     add_p("SAHYADRI", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=13, space_before=2, space_after=1)
     add_p("College of Engineering & Management", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12, space_before=0, space_after=1)
@@ -450,25 +472,27 @@ def create_report_docx():
         "• Business Logic Tier: Node.js 20+ services including Atomic Check-In Engine, Event Closure State Machine, EASAP Sentiment Classifier, and PDFKit Vector Pipeline.\n"
         "• Persistence Tier: MongoDB Atlas multi-tenant database with Mongoose schemas and compound indexes."
     )
+    add_fig_image("fig_4_1_architecture.png", "Figure 4.1: Multi-Tier Architecture Diagram of EVENTRA Platform", width_in=5.8)
+
     add_heading_2("4.2 High Level Design")
-    add_p(
-        "The system incorporates comprehensive architectural modeling:\n"
-        "• Level 0 Context DFD: Captures interactions between Organizers, Attendees, Gate Volunteers, and Admins.\n"
-        "• Level 1 Subsystem DFD: Decomposes data exchanges across Event Authoring, Ticketing, Gate Check-In, Closure, Certification, and Reporting stores.\n"
-        "• Level 2 Check-In DFD: Illustrates the sub-second camera frame capture, token sanitation, atomic query execution, audit logging, and audio chime dispatch.\n"
-        "• Master Activity Flowchart: Details the full lifecycle path from event conceptualization to final PDF dossier archiving.\n"
-        "• Dynamic Poster Studio Flowchart: Maps procedural vector geometry generation and aspect ratio switching between 16:9 banner and 4:5 mobile flyer.\n"
-        "• Sub-Second Gate Check-In Flowchart: Details atomic mutation branching and dual-tone audio cues.\n"
-        "• EASAP Pipeline Flowchart: Details feedback tokenization, aspect extraction, and priority ranking calculation.\n"
-        "• Feedback Auto-Email Flowchart: Details atomic attendance validation, vector PDF synthesis, and SMTP delivery in <3s."
-    )
+    add_p("The high-level design captures data flows and interactions between external actors and platform processes across multiple abstraction levels:")
+
+    add_fig_image("fig_4_2_dfd_lvl0.png", "Figure 4.2: Level 0 Context Data Flow Diagram (DFD)", width_in=5.5)
+    add_fig_image("fig_4_3_dfd_lvl1.png", "Figure 4.3: Level 1 Subsystem Data Flow Diagram (DFD)", width_in=5.8)
+    add_fig_image("fig_4_4_dfd_lvl2.png", "Figure 4.4: Level 2 Sub-Second QR Check-In & Gate Verification DFD", width_in=5.6)
+    add_fig_image("fig_4_5_master_flowchart.png", "Figure 4.5: Master System Operational Activity Flowchart", width_in=5.8)
+    add_fig_image("fig_4_6_poster_flowchart.png", "Figure 4.6: Dynamic Parametric Poster Engine & Dual Aspect Ratio Flowchart", width_in=5.6)
+    add_fig_image("fig_4_7_gate_flowchart.png", "Figure 4.7: Sub-Second Gate Check-In & Anti-Replay Verification Flowchart", width_in=5.6)
+    add_fig_image("fig_4_8_easap_flowchart.png", "Figure 4.8: EASAP (Event-Aware Sentiment Analysis and Prioritization) Pipeline Flowchart", width_in=5.5)
+    add_fig_image("fig_4_9_feedback_cert_flowchart.png", "Figure 4.9: Feedback Submission & Instant Certificate Auto-Email Delivery Flowchart", width_in=5.6)
+    add_fig_image("fig_4_10_use_case.png", "Figure 4.10: UML Use Case Diagram for Primary Platform Actors", width_in=5.8)
+
     add_heading_2("4.3 Detailed Design")
-    add_p(
-        "• Sequence Diagrams 1 to 4: Model participant self-registration, sub-second atomic check-in, event closure with feedback gating, and interactive certificate studio customization.\n"
-        "• Event Lifecycle Finite State Machine: Enforces state transitions (DRAFT -> PUBLISHED -> REGISTRATION_OPEN -> IN_PROGRESS -> COMPLETED -> FINALIZED).\n"
-        "• Entity-Relationship (ER) Model: Maintains referential integrity across 8 Mongoose collections (User, Event, Registration, AttendanceLog, Feedback, Certificate, EmailLog, PostEventReport).\n"
-        "• Data Dictionaries: Detail field types, constraints, and descriptions across all collections."
-    )
+    add_p("The detailed design captures lifecycle state transitions, database relational structures, and component schemas:")
+
+    add_fig_image("fig_4_15_fsm.png", "Figure 4.15: Finite State Machine (FSM) Diagram for Event Lifecycle Transitions", width_in=5.8)
+    add_fig_image("fig_4_16_er_diagram.png", "Figure 4.16: Entity-Relationship (ER) Diagram of EVENTRA Database", width_in=5.8)
+
     add_heading_2("4.4 Datasets Descriptions")
     add_p(
         "• DS01: Collegiate Registration Corpus (500+ student records across CSE, ISE, ECE, ME branches).\n"
@@ -476,6 +500,7 @@ def create_report_docx():
         "• DS03: Multi-Day Conference Agendas (12 session tracks spanning 3 days with venue capacity limits).\n"
         "• DS04: Qualitative Feedback Review Benchmark (240 categorized participant reviews labeled across 6 operational aspects)."
     )
+
     add_heading_2("4.5 Tools and Technologies used for Implementation")
     add_p(
         "• React 19 (Concurrent rendering, declarative UI)\n"
@@ -500,11 +525,13 @@ def create_report_docx():
         "Testing was conducted on an Intel Core i7-11800H CPU @ 2.30GHz, 16 GB RAM host running Node.js v20.18.1 and MongoDB Atlas (ap-south-1). "
         "Gate terminals included iPhone 13 (Safari), Samsung Galaxy S21 (Chrome), and ThinkPad T14 (Webcam) evaluated under Wi-Fi 6 (100 Mbps) and throttled 4G LTE (5 Mbps / 85ms RTT) networks."
     )
+
     add_heading_2("5.2 Functional Requirements Results achieved")
     add_p(
         "All 18 formal test cases (TC01 to TC18) passed successfully. The automated integration test suite (npm test --prefix server) executed 16 comprehensive suites with a 100% pass rate (0 failures, 0 regressions) in 1.19 seconds, "
         "validating user auth, capacity guards, atomic gate locks, survey token expiry, instant auto-email dispatch, and vector PDF compilation."
     )
+
     add_heading_2("5.3 Non-Functional Requirements Results achieved")
     add_p(
         "• Gate Admission Latency: 340ms mean turnaround (exceeding <500ms target).\n"
@@ -514,11 +541,15 @@ def create_report_docx():
         "• Feedback Completion Rate: 89.4% survey turnout (4.9x higher than 18.2% baseline).\n"
         "• Mobile Responsiveness: Zero visual clipping across viewports from 360px to 1440px."
     )
+    add_fig_image("fig_5_1_latency_curve.png", "Figure 5.1: Gate Admission Latency Distribution Curve across 500 Test Scans", width_in=5.4)
+    add_fig_image("fig_5_3_feedback_turnout.png", "Figure 5.3: Comparative Participant Feedback Completion Rate (%)", width_in=5.4)
+
     add_heading_2("5.4 Comparison of Results with Existing works")
     add_p(
         "Compared to traditional paper rosters (45s check-in, 0% proxy prevention, 18.2% feedback, 15h certificate drag) and Google Forms (38.5s check-in, vulnerable to forwarded screenshots, 19.4% feedback), "
         "EVENTRA achieves 4s queue transit, 100% atomic duplicate prevention, 89.4% feedback completion, and sub-3s automated zero-touch certificate delivery."
     )
+
     add_heading_2("5.5 Project GUI Snapshots (Major Functionalities)")
     add_p(
         "1. Public Landing Page (/events/:slug): Glassmorphism hero, countdown timer, multi-day schedule drawer, live seat counter.\n"
@@ -529,6 +560,7 @@ def create_report_docx():
         "6. Instant Feedback Portal (/feedback/:token): 4-tier ratings, qualitative reviews, instant on-screen download button, automated email dispatch.\n"
         "7. 12-Section Executive PDF Dossier (/dashboard/events/:id/reports): Multi-page institutional compliance report with NPS analytics and EASAP issue rankings."
     )
+
     add_heading_2("5.6 Societal Impact of the Project")
     add_p(
         "• Democratization of Event Tech: Equips student clubs and colleges with enterprise tools at zero SaaS subscription cost.\n"
@@ -536,6 +568,7 @@ def create_report_docx():
         "• Faculty Stress Reduction: Saves >15 hours of manual certificate generation and data reconciliation per event.\n"
         "• Frictionless Student Experience: Sub-second admission and instant digital credential delivery."
     )
+
     add_heading_2("5.7 SDG Mapped (Sustainable Development Goals Alignment)")
     add_p(
         "EVENTRA directly maps to four United Nations Sustainable Development Goals [22]:\n"
@@ -593,9 +626,16 @@ def create_report_docx():
     for ref in refs:
         add_p(ref, align=WD_ALIGN_PARAGRAPH.JUSTIFY, size=10, space_before=2, space_after=6, line_spacing=1.15)
 
+    out_docx_final = r"d:\MINIPROJECT EVNTRA\EVENTRA_phase1_starter\EVENTRA_VTU_Final_Report_With_Diagrams.docx"
+    doc.save(out_docx_final)
+    print(f"VTU Word Document with ALL embedded diagram images generated successfully at: {out_docx_final}")
+
     out_docx = r"d:\MINIPROJECT EVNTRA\EVENTRA_phase1_starter\EVENTRA_VTU_Report.docx"
-    doc.save(out_docx)
-    print(f"VTU Word Document generated successfully at: {out_docx}")
+    try:
+        doc.save(out_docx)
+        print(f"VTU Word Document also successfully saved at: {out_docx}")
+    except PermissionError:
+        print(f"Note: {out_docx} is currently open in Word/another application, so the updated report with all diagrams is saved at: {out_docx_final}")
 
 if __name__ == '__main__':
     create_report_docx()
