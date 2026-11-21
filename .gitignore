@@ -23,6 +23,8 @@ uploads/
 *.log
 npm-debug.log*
 
-# OS files
+# OS and Office temp files
 .DS_Store
 Thumbs.db
+~$*
+*.tmp
