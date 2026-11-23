@@ -818,10 +818,31 @@ export function generatePosterSvg({
 }
 
 /**
+ * Maps human-readable event categories to the best-matching poster template ID.
+ */
+export function categoryToTemplateId(category) {
+  if (!category) return "technical";
+  const cat = String(category).toLowerCase().trim();
+  if (cat.includes("hack")) return "hackathon";
+  if (cat.includes("work")) return "workshop";
+  if (cat.includes("conf")) return "conference";
+  if (cat.includes("fest")) return "college_fest";
+  if (cat.includes("sem") || cat.includes("acad")) return "seminar";
+  if (cat.includes("cult") || cat.includes("art")) return "cultural";
+  if (cat.includes("comp") || cat.includes("esport")) return "competition";
+  return "technical";
+}
+
+/**
  * Returns a base64 Data URL of the generated SVG poster for direct use in <img src="..." />.
  */
 export function generatePosterDataUrl(config) {
   const svg = generatePosterSvg(config);
-  const base64 = btoa(unescape(encodeURIComponent(svg)));
+  let base64 = "";
+  if (typeof Buffer !== "undefined") {
+    base64 = Buffer.from(svg, "utf-8").toString("base64");
+  } else if (typeof btoa !== "undefined") {
+    base64 = btoa(unescape(encodeURIComponent(svg)));
+  }
   return `data:image/svg+xml;base64,${base64}`;
 }

@@ -501,7 +501,7 @@ export default function PublicEvent() {
                 {/* Atmospheric Ambient Glow matching the poster colors */}
                 <div
                   className="poster-ambient-glow"
-                  style={{ backgroundImage: `url(${event.posterUrl})` }}
+                  style={{ backgroundImage: `url("${event.posterUrl}")` }}
                   aria-hidden="true"
                 />
 

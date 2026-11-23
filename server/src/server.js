@@ -58,7 +58,8 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 if (process.env.NODE_ENV !== "production") {
   app.use("/uploads", express.static(uploadDirectory, { maxAge: "1d" }));
 }

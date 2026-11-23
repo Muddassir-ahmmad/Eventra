@@ -6,6 +6,7 @@ import {
   POSTER_STYLES,
   generatePosterDataUrl,
   generatePosterSvg,
+  categoryToTemplateId,
 } from "../utils/posterTemplates";
 import { EVENT_FONT_OPTIONS, getEventFontConfig } from "../utils/eventFonts";
 import { formatEventDateDisplay, getEventTotalDays, isEventPastOrCompleted } from "../utils/eventTiming";
@@ -179,15 +180,44 @@ export default function EventBuilder() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  const goToStep = (targetStep) => {
+    const clamped = Math.max(0, Math.min(targetStep, STEPS.length - 1));
+    setStep(clamped);
+    try {
+      const stepKey = STEPS[clamped]?.[0] || "basics";
+      const searchParams = new URLSearchParams(window.location.search);
+      searchParams.set("step", stepKey);
+      const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+      window.history.replaceState(null, "", newUrl);
+    } catch (_) {}
+  };
+
   useEffect(() => {
     if (!editing) {
-      // Auto-generate standard poster template for new events
+      // Auto-generate standard poster template matching category for new events
+      const initialTmplId = categoryToTemplateId(form.category || "Technical");
+      const tmplObj = POSTER_CATEGORIES.find((c) => c.id === initialTmplId) || POSTER_CATEGORIES[0];
       const defaultPoster = generatePosterDataUrl({
-        templateId: "technical",
-        title: "NEW EVENT",
-        subtitle: "EVENTRA Smart Event Platform",
+        templateId: initialTmplId,
+        title: form.title || "NEW EVENT",
+        subtitle: form.shortDescription || tmplObj.tagline,
+        date: form.date || form.startDate || "",
+        venue: form.venue || "",
+        themeColor: tmplObj.themeColor,
+        accentColor: tmplObj.accentColor,
       });
-      setForm((old) => ({ ...old, posterUrl: defaultPoster }));
+      setForm((old) => ({
+        ...old,
+        posterUrl: defaultPoster,
+        posterType: "template",
+        posterTemplateData: {
+          templateId: initialTmplId,
+          themeColor: tmplObj.themeColor,
+          accentColor: tmplObj.accentColor,
+          headline: form.title || "",
+          tagline: form.shortDescription || tmplObj.tagline,
+        },
+      }));
       return;
     }
 
@@ -231,9 +261,35 @@ export default function EventBuilder() {
             }))
           : [];
 
+        // Ensure poster is not blank if missing
+        let resolvedPosterUrl = event.posterUrl || "";
+        let resolvedPosterType = event.posterType || "template";
+        const resolvedPosterData = event.posterTemplateData || {};
+
+        if (!resolvedPosterUrl) {
+          const tmplId = resolvedPosterData?.templateId || categoryToTemplateId(event.category);
+          const tmplObj = POSTER_CATEGORIES.find((c) => c.id === tmplId) || POSTER_CATEGORIES[0];
+          resolvedPosterUrl = generatePosterDataUrl({
+            templateId: tmplId,
+            title: event.title || "EVENT TITLE",
+            subtitle: event.shortDescription || tmplObj.tagline,
+            date: event.date || event.startDate || "",
+            venue: event.venue || "",
+            themeColor: resolvedPosterData?.themeColor || tmplObj.themeColor,
+            accentColor: resolvedPosterData?.accentColor || tmplObj.accentColor,
+          });
+          resolvedPosterType = "template";
+        }
+
         setForm((old) => ({
           ...old,
           ...event,
+          posterUrl: resolvedPosterUrl,
+          posterType: resolvedPosterType,
+          posterTemplateData: {
+            ...resolvedPosterData,
+            templateId: resolvedPosterData?.templateId || categoryToTemplateId(event.category),
+          },
           eventDurationType: isMulti ? "multi_day" : "single_day",
           date: event.date ? dateOnly(event.date) : resolvedStart,
           startDate: resolvedStart,
@@ -254,6 +310,15 @@ export default function EventBuilder() {
           feedbackEnabled: event.feedbackEnabled ?? true,
           feedbackQuestions: event.feedbackQuestions?.length ? event.feedbackQuestions : old.feedbackQuestions,
         }));
+
+        // Preserve step from URL query param if present
+        try {
+          const requested = new URLSearchParams(window.location.search).get("step");
+          const foundIndex = STEPS.findIndex(([key]) => key === requested);
+          if (foundIndex >= 0) {
+            setStep(foundIndex);
+          }
+        } catch (_) {}
       })
       .catch((err) => {
         setError(err.response?.data?.message || "Could not load event.");
@@ -306,12 +371,18 @@ export default function EventBuilder() {
     setError("");
     setMessage("");
 
+    const nextStepIdx = goNext ? Math.min(step + 1, STEPS.length - 1) : step;
+    const nextStepKey = STEPS[nextStepIdx]?.[0] || "basics";
+
     try {
       if (editing) {
         const payload = buildNormalizedEventPayload(form.status || "draft");
         const { data } = await api.put(`/events/${eventId}`, payload);
         setForm((old) => ({ ...old, ...data.event }));
         setMessage("Draft saved.");
+        if (goNext && step < STEPS.length - 1) {
+          goToStep(step + 1);
+        }
       } else {
         if (!form.title.trim()) {
           setError("Enter an event title before saving.");
@@ -322,13 +393,32 @@ export default function EventBuilder() {
         const payload = buildNormalizedEventPayload("draft");
         payload.venue = form.venue || "TBD Venue";
 
+        // Auto-generate poster if missing or generic placeholder
+        if (!payload.posterUrl || payload.posterUrl.includes("NEW%20EVENT") || payload.posterUrl.includes("NEW EVENT")) {
+          const tmplId = payload.posterTemplateData?.templateId || categoryToTemplateId(payload.category);
+          const tmplObj = POSTER_CATEGORIES.find((c) => c.id === tmplId) || POSTER_CATEGORIES[0];
+          payload.posterUrl = generatePosterDataUrl({
+            templateId: tmplId,
+            title: payload.title,
+            subtitle: payload.shortDescription || tmplObj.tagline,
+            date: payload.date || payload.startDate || "",
+            venue: payload.venue || "",
+            themeColor: tmplObj.themeColor,
+            accentColor: tmplObj.accentColor,
+          });
+          payload.posterType = "template";
+          payload.posterTemplateData = {
+            templateId: tmplId,
+            themeColor: tmplObj.themeColor,
+            accentColor: tmplObj.accentColor,
+            headline: payload.title,
+            tagline: payload.shortDescription || tmplObj.tagline,
+          };
+        }
+
         const { data } = await api.post("/events", payload);
         setMessage("Event draft created.");
-        navigate(`/dashboard/events/${data.event._id}/edit`, { replace: true });
-      }
-
-      if (goNext && step < STEPS.length - 1) {
-        setStep((old) => old + 1);
+        navigate(`/dashboard/events/${data.event._id}/edit?step=${nextStepKey}`, { replace: true });
       }
     } catch (err) {
       setError(err.response?.data?.message || "Could not save event.");
@@ -340,33 +430,33 @@ export default function EventBuilder() {
   async function publishEvent() {
     if (!form.title.trim()) {
       setError("Event title is required.");
-      setStep(0);
+      goToStep(0);
       return;
     }
     if (form.eventDurationType === "multi_day") {
       if (!form.startDate || !form.endDate) {
         setError("Start date and end date are required for multi-day events.");
-        setStep(0);
+        goToStep(0);
         return;
       }
       if (form.endDate < form.startDate) {
         setError("End date must be on or after the start date.");
-        setStep(0);
+        goToStep(0);
         return;
       }
     } else if (!form.date) {
       setError("Event date is required.");
-      setStep(0);
+      goToStep(0);
       return;
     }
     if (!form.venue.trim()) {
       setError("Event venue is required.");
-      setStep(0);
+      goToStep(0);
       return;
     }
     if (!form.capacity || Number(form.capacity) < 1) {
       setError("Capacity must be at least 1.");
-      setStep(0);
+      goToStep(0);
       return;
     }
 
@@ -426,7 +516,7 @@ export default function EventBuilder() {
             <button
               key={key}
               className={`builder-step ${index === step ? "active" : ""} ${index < step ? "done" : ""}`}
-              onClick={() => setStep(index)}
+              onClick={() => goToStep(index)}
             >
               <span>{index < step ? "✓" : index + 1}</span>
               {label}
@@ -465,7 +555,7 @@ export default function EventBuilder() {
               form={form}
               update={update}
               eventId={eventId}
-              onOpenFeedbackStep={() => setStep(8)}
+              onOpenFeedbackStep={() => goToStep(8)}
             />
           )}
           {step === 8 && <FeedbackFormSection form={form} update={update} />}
@@ -475,7 +565,7 @@ export default function EventBuilder() {
             <button
               className="button button-ghost"
               disabled={step === 0 || saving}
-              onClick={() => setStep((old) => old - 1)}
+              onClick={() => goToStep(step - 1)}
             >
               ← Back
             </button>
@@ -820,15 +910,18 @@ function Basics({ form, update }) {
    STEP 2: POSTER & BRANDING (UPLOAD, 8 TEMPLATES, AI)
 ------------------------------------------------------------------------- */
 function Design({ form, update }) {
-  const [tab, setTab] = useState("templates"); // 'upload' | 'templates' | 'ai'
-  const [selectedTemplate, setSelectedTemplate] = useState("technical");
-  const [customTitle, setCustomTitle] = useState(form.title || "");
-  const [customTagline, setCustomTagline] = useState(form.shortDescription || "");
-  const [customHighlights, setCustomHighlights] = useState("");
-  const [customPrimaryColor, setCustomPrimaryColor] = useState("#6366f1");
-  const [customAccentColor, setCustomAccentColor] = useState("#06b6d4");
-  const [aspectRatio, setAspectRatio] = useState("landscape"); // 'landscape' | 'portrait'
-  const [selectedStyle, setSelectedStyle] = useState("cyber");
+  const [tab, setTab] = useState(form.posterType === "upload" ? "upload" : form.posterType === "ai" ? "ai" : "templates");
+  const resolvedTemplateId = form.posterTemplateData?.templateId || categoryToTemplateId(form.category);
+  const tmplObj = POSTER_CATEGORIES.find((c) => c.id === resolvedTemplateId) || POSTER_CATEGORIES[0];
+
+  const [selectedTemplate, setSelectedTemplate] = useState(resolvedTemplateId);
+  const [customTitle, setCustomTitle] = useState(form.posterTemplateData?.headline || form.title || "");
+  const [customTagline, setCustomTagline] = useState(form.posterTemplateData?.tagline || form.shortDescription || "");
+  const [customHighlights, setCustomHighlights] = useState(form.posterTemplateData?.highlights || tmplObj.defaultHighlights);
+  const [customPrimaryColor, setCustomPrimaryColor] = useState(form.posterTemplateData?.themeColor || tmplObj.themeColor);
+  const [customAccentColor, setCustomAccentColor] = useState(form.posterTemplateData?.accentColor || tmplObj.accentColor);
+  const [aspectRatio, setAspectRatio] = useState(form.posterTemplateData?.aspectRatio || "landscape"); // 'landscape' | 'portrait'
+  const [selectedStyle, setSelectedStyle] = useState(form.posterTemplateData?.style || "cyber");
   const [uploading, setUploading] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiMessage, setAiMessage] = useState("");
@@ -856,15 +949,19 @@ function Design({ form, update }) {
     hTagline = customTagline,
     hHighlights = customHighlights
   ) {
-    const tmplObj = POSTER_CATEGORIES.find((c) => c.id === tmplId) || POSTER_CATEGORIES[0];
+    const curTmpl = POSTER_CATEGORIES.find((c) => c.id === tmplId) || POSTER_CATEGORIES[0];
+    const resolvedTitle = (hTitle || form.title || "EVENT TITLE").trim();
+    const resolvedSubtitle = (hTagline || form.shortDescription || curTmpl.tagline).trim();
+    const resolvedHighlights = hHighlights || curTmpl.defaultHighlights;
+
     const dataUrl = generatePosterDataUrl({
       templateId: tmplId,
-      title: hTitle || form.title || "EVENT TITLE",
-      subtitle: hTagline || form.shortDescription || "",
-      date: form.date ? new Date(form.date).toLocaleDateString() : "",
+      title: resolvedTitle,
+      subtitle: resolvedSubtitle,
+      date: form.date || form.startDate || "",
       venue: form.venue || (form.mode === "online" ? "Online Virtual Event" : ""),
       organizer: form.organizer || "EVENTRA",
-      highlights: hHighlights || tmplObj.defaultHighlights,
+      highlights: resolvedHighlights,
       themeColor: pColor,
       accentColor: aColor,
       aspectRatio: ratio,
@@ -872,7 +969,42 @@ function Design({ form, update }) {
     });
     update("posterUrl", dataUrl);
     update("posterType", "template");
+    update("posterTemplateData", {
+      templateId: tmplId,
+      themeColor: pColor,
+      accentColor: aColor,
+      headline: resolvedTitle,
+      tagline: resolvedSubtitle,
+      highlights: resolvedHighlights,
+      aspectRatio: ratio,
+      style: styleMode,
+    });
   }
+
+  // Auto-generate or refresh poster on mount if missing or using generic placeholder
+  useEffect(() => {
+    if (form.posterType === "upload" && form.posterUrl) return;
+    if (form.posterType === "ai" && form.posterUrl) return;
+
+    const isGenericOrMissing =
+      !form.posterUrl ||
+      form.posterUrl.includes("NEW%20EVENT") ||
+      form.posterUrl.includes("NEW EVENT") ||
+      (form.title && form.title !== "NEW EVENT" && (!form.posterTemplateData?.headline || form.posterTemplateData.headline === "NEW EVENT"));
+
+    if (isGenericOrMissing) {
+      applyTemplate(
+        resolvedTemplateId,
+        customPrimaryColor,
+        customAccentColor,
+        aspectRatio,
+        selectedStyle,
+        customTitle || form.title,
+        customTagline || form.shortDescription,
+        customHighlights
+      );
+    }
+  }, [form.title, form.category, form.date, form.venue]);
 
   // Download high-resolution PNG using canvas
   function handleDownloadPng() {
@@ -907,7 +1039,7 @@ function Design({ form, update }) {
         templateId: selectedTemplate,
         title: customTitle || form.title || "EVENT TITLE",
         subtitle: customTagline || form.shortDescription || "",
-        date: form.date ? new Date(form.date).toLocaleDateString() : "",
+        date: form.date || form.startDate || "",
         venue: form.venue || "",
         organizer: form.organizer || "EVENTRA",
         themeColor: customPrimaryColor,
@@ -1088,7 +1220,7 @@ function Design({ form, update }) {
                   }}
                   onClick={() => {
                     setAspectRatio("landscape");
-                    applyTemplate(selectedTemplate, customPrimaryColor, customAccentColor, "landscape");
+                    applyTemplate(selectedTemplate, customPrimaryColor, customAccentColor, "landscape", selectedStyle, customTitle, customTagline, customHighlights);
                   }}
                 >
                   🖥️ Landscape (16:9 Banner)
@@ -1105,7 +1237,7 @@ function Design({ form, update }) {
                   }}
                   onClick={() => {
                     setAspectRatio("portrait");
-                    applyTemplate(selectedTemplate, customPrimaryColor, customAccentColor, "portrait");
+                    applyTemplate(selectedTemplate, customPrimaryColor, customAccentColor, "portrait", selectedStyle, customTitle, customTagline, customHighlights);
                   }}
                 >
                   📱 Portrait (4:5 Flyer)
@@ -1129,7 +1261,8 @@ function Design({ form, update }) {
                   setSelectedTemplate(tmpl.id);
                   setCustomPrimaryColor(tmpl.themeColor);
                   setCustomAccentColor(tmpl.accentColor);
-                  applyTemplate(tmpl.id, tmpl.themeColor, tmpl.accentColor, aspectRatio, selectedStyle);
+                  setCustomHighlights(tmpl.defaultHighlights);
+                  applyTemplate(tmpl.id, tmpl.themeColor, tmpl.accentColor, aspectRatio, selectedStyle, customTitle, customTagline, tmpl.defaultHighlights);
                 }}
               >
                 <div
@@ -1249,7 +1382,7 @@ function Design({ form, update }) {
                     onClick={() => {
                       setCustomPrimaryColor(pal.primary);
                       setCustomAccentColor(pal.accent);
-                      applyTemplate(selectedTemplate, pal.primary, pal.accent, aspectRatio, selectedStyle);
+                      applyTemplate(selectedTemplate, pal.primary, pal.accent, aspectRatio, selectedStyle, customTitle, customTagline, customHighlights);
                     }}
                   >
                     <span
@@ -1275,7 +1408,7 @@ function Design({ form, update }) {
                   value={customPrimaryColor}
                   onChange={(e) => {
                     setCustomPrimaryColor(e.target.value);
-                    applyTemplate(selectedTemplate, e.target.value, customAccentColor, aspectRatio, selectedStyle);
+                    applyTemplate(selectedTemplate, e.target.value, customAccentColor, aspectRatio, selectedStyle, customTitle, customTagline, customHighlights);
                   }}
                 />
               </div>
@@ -1286,7 +1419,7 @@ function Design({ form, update }) {
                   value={customAccentColor}
                   onChange={(e) => {
                     setCustomAccentColor(e.target.value);
-                    applyTemplate(selectedTemplate, customPrimaryColor, e.target.value, aspectRatio, selectedStyle);
+                    applyTemplate(selectedTemplate, customPrimaryColor, e.target.value, aspectRatio, selectedStyle, customTitle, customTagline, customHighlights);
                   }}
                 />
               </div>
@@ -1294,7 +1427,7 @@ function Design({ form, update }) {
                 type="button"
                 className="button button-primary small"
                 style={{ marginLeft: "auto" }}
-                onClick={() => applyTemplate(selectedTemplate, customPrimaryColor, customAccentColor, aspectRatio, selectedStyle)}
+                onClick={() => applyTemplate(selectedTemplate, customPrimaryColor, customAccentColor, aspectRatio, selectedStyle, customTitle, customTagline, customHighlights)}
               >
                 ✓ Re-render Poster
               </button>
