@@ -837,12 +837,26 @@ export function categoryToTemplateId(category) {
  * Returns a base64 Data URL of the generated SVG poster for direct use in <img src="..." />.
  */
 export function generatePosterDataUrl(config) {
-  const svg = generatePosterSvg(config);
-  let base64 = "";
-  if (typeof Buffer !== "undefined") {
-    base64 = Buffer.from(svg, "utf-8").toString("base64");
-  } else if (typeof btoa !== "undefined") {
-    base64 = btoa(unescape(encodeURIComponent(svg)));
+  try {
+    const svg = generatePosterSvg(config);
+    let base64 = "";
+    if (typeof Buffer !== "undefined") {
+      base64 = Buffer.from(svg, "utf-8").toString("base64");
+    } else if (typeof btoa !== "undefined") {
+      try {
+        base64 = btoa(unescape(encodeURIComponent(svg)));
+      } catch (_) {
+        try {
+          base64 = btoa(svg);
+        } catch (_) {}
+      }
+    }
+    if (base64) {
+      return `data:image/svg+xml;base64,${base64}`;
+    }
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  } catch (err) {
+    console.error("Poster generation error:", err);
+    return "";
   }
-  return `data:image/svg+xml;base64,${base64}`;
 }

@@ -160,6 +160,39 @@ const defaultForm = {
   status: "draft",
 };
 
+class StepErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("Step render error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="builder-card" style={{ padding: 30, textAlign: "center" }}>
+          <h3 style={{ color: "#ef4444" }}>Failed to load this step</h3>
+          <p className="muted" style={{ marginBottom: 16 }}>
+            {this.state.error?.message || "An unexpected error occurred while rendering this section."}
+          </p>
+          <button
+            type="button"
+            className="button button-primary small"
+            onClick={() => this.setState({ hasError: false, error: null })}
+          >
+            Retry Loading
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function EventBuilder() {
   const { eventId } = useParams();
   const navigate = useNavigate();
@@ -543,23 +576,25 @@ export default function EventBuilder() {
 
           {error && <div className="alert-error" style={{ marginBottom: 20 }}>{error}</div>}
 
-          {step === 0 && <Basics form={form} update={update} />}
-          {step === 1 && <Design form={form} update={update} />}
-          {step === 2 && <Speakers form={form} update={update} />}
-          {step === 3 && <Agenda form={form} update={update} />}
-          {step === 4 && <Faqs form={form} update={update} />}
-          {step === 5 && <Registration form={form} update={update} />}
-          {step === 6 && <Tickets form={form} update={update} />}
-          {step === 7 && (
-            <Certificates
-              form={form}
-              update={update}
-              eventId={eventId}
-              onOpenFeedbackStep={() => goToStep(8)}
-            />
-          )}
-          {step === 8 && <FeedbackFormSection form={form} update={update} />}
-          {step === 9 && <Preview form={form} />}
+          <StepErrorBoundary key={step}>
+            {step === 0 && <Basics form={form} update={update} />}
+            {step === 1 && <Design form={form} update={update} />}
+            {step === 2 && <Speakers form={form} update={update} />}
+            {step === 3 && <Agenda form={form} update={update} />}
+            {step === 4 && <Faqs form={form} update={update} />}
+            {step === 5 && <Registration form={form} update={update} />}
+            {step === 6 && <Tickets form={form} update={update} />}
+            {step === 7 && (
+              <Certificates
+                form={form}
+                update={update}
+                eventId={eventId}
+                onOpenFeedbackStep={() => goToStep(8)}
+              />
+            )}
+            {step === 8 && <FeedbackFormSection form={form} update={update} />}
+            {step === 9 && <Preview form={form} />}
+          </StepErrorBoundary>
 
           <div className="builder-footer">
             <button
@@ -909,6 +944,13 @@ function Basics({ form, update }) {
 /* -------------------------------------------------------------------------
    STEP 2: POSTER & BRANDING (UPLOAD, 8 TEMPLATES, AI)
 ------------------------------------------------------------------------- */
+const themes = [
+  ["aurora", "Electric Aurora", "Deep cosmic indigo and violet gradient with neon edge"],
+  ["minimal", "Modern Slate", "Minimalist dark obsidian with crisp structural rules"],
+  ["conference", "Ocean Sapphire", "Professional deep azure with executive authority"],
+  ["creative", "Festival Velvet", "Vibrant purple and magenta pulse for celebrations"],
+];
+
 function Design({ form, update }) {
   const [tab, setTab] = useState(form.posterType === "upload" ? "upload" : form.posterType === "ai" ? "ai" : "templates");
   const resolvedTemplateId = form.posterTemplateData?.templateId || categoryToTemplateId(form.category);
